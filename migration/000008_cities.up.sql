@@ -1,0 +1,6 @@
+CREATE TABLE cities (
+  id SERIAL PRIMARY KEY,
+  state_id INT NOT NULL,
+  name VARCHAR(150) NOT NULL,
+  FOREIGN KEY (state_id) REFERENCES states(id) ON DELETE CASCADE
+);

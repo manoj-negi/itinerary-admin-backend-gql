@@ -48,9 +48,9 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	Mutation struct {
-		CreateUser func(childComplexity int, name string, email string, age *int) int
+		CreateUser func(childComplexity int, fullName string, email string, password string, phone *string) int
 		DeleteUser func(childComplexity int, id string) int
-		UpdateUser func(childComplexity int, id string, name *string, email *string, age *int) int
+		UpdateUser func(childComplexity int, id string, fullName *string, email *string, password *string, phone *string) int
 	}
 
 	Query struct {
@@ -59,17 +59,18 @@ type ComplexityRoot struct {
 	}
 
 	User struct {
-		Age       func(childComplexity int) int
 		CreatedAt func(childComplexity int) int
 		Email     func(childComplexity int) int
+		FullName  func(childComplexity int) int
 		ID        func(childComplexity int) int
-		Name      func(childComplexity int) int
+		Phone     func(childComplexity int) int
+		UpdatedAt func(childComplexity int) int
 	}
 }
 
 type MutationResolver interface {
-	CreateUser(ctx context.Context, name string, email string, age *int) (*models.User, error)
-	UpdateUser(ctx context.Context, id string, name *string, email *string, age *int) (*models.User, error)
+	CreateUser(ctx context.Context, fullName string, email string, password string, phone *string) (*models.User, error)
+	UpdateUser(ctx context.Context, id string, fullName *string, email *string, password *string, phone *string) (*models.User, error)
 	DeleteUser(ctx context.Context, id string) (*models.User, error)
 }
 type QueryResolver interface {
@@ -106,7 +107,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateUser(childComplexity, args["name"].(string), args["email"].(string), args["age"].(*int)), true
+		return e.complexity.Mutation.CreateUser(childComplexity, args["full_name"].(string), args["email"].(string), args["password"].(string), args["phone"].(*string)), true
 	case "Mutation.deleteUser":
 		if e.complexity.Mutation.DeleteUser == nil {
 			break
@@ -128,7 +129,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateUser(childComplexity, args["id"].(string), args["name"].(*string), args["email"].(*string), args["age"].(*int)), true
+		return e.complexity.Mutation.UpdateUser(childComplexity, args["id"].(string), args["full_name"].(*string), args["email"].(*string), args["password"].(*string), args["phone"].(*string)), true
 
 	case "Query.user":
 		if e.complexity.Query.User == nil {
@@ -148,12 +149,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Query.Users(childComplexity), true
 
-	case "User.age":
-		if e.complexity.User.Age == nil {
-			break
-		}
-
-		return e.complexity.User.Age(childComplexity), true
 	case "User.created_at":
 		if e.complexity.User.CreatedAt == nil {
 			break
@@ -166,18 +161,30 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.User.Email(childComplexity), true
+	case "User.full_name":
+		if e.complexity.User.FullName == nil {
+			break
+		}
+
+		return e.complexity.User.FullName(childComplexity), true
 	case "User.id":
 		if e.complexity.User.ID == nil {
 			break
 		}
 
 		return e.complexity.User.ID(childComplexity), true
-	case "User.name":
-		if e.complexity.User.Name == nil {
+	case "User.phone":
+		if e.complexity.User.Phone == nil {
 			break
 		}
 
-		return e.complexity.User.Name(childComplexity), true
+		return e.complexity.User.Phone(childComplexity), true
+	case "User.updated_at":
+		if e.complexity.User.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.User.UpdatedAt(childComplexity), true
 
 	}
 	return 0, false
@@ -287,10 +294,11 @@ var sources = []*ast.Source{
 
 type User {
   id: ID!
-  name: String!
+  full_name: String!
   email: String!
-  age: Int
+  phone: String
   created_at: Time!
+  updated_at: Time!
 }
 
 type Query {
@@ -299,8 +307,8 @@ type Query {
 }
 
 type Mutation {
-  createUser(name: String!, email: String!, age: Int): User!
-  updateUser(id: ID!, name: String, email: String, age: Int): User!
+  createUser(full_name: String!, email: String!, password: String!, phone: String): User!
+  updateUser(id: ID!, full_name: String, email: String, password: String, phone: String): User!
   deleteUser(id: ID!): User!
 }
 
@@ -315,21 +323,26 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 func (ec *executionContext) field_Mutation_createUser_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "name", ec.unmarshalNString2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "full_name", ec.unmarshalNString2string)
 	if err != nil {
 		return nil, err
 	}
-	args["name"] = arg0
+	args["full_name"] = arg0
 	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "email", ec.unmarshalNString2string)
 	if err != nil {
 		return nil, err
 	}
 	args["email"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "age", ec.unmarshalOInt2ᚖint)
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "password", ec.unmarshalNString2string)
 	if err != nil {
 		return nil, err
 	}
-	args["age"] = arg2
+	args["password"] = arg2
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "phone", ec.unmarshalOString2ᚖstring)
+	if err != nil {
+		return nil, err
+	}
+	args["phone"] = arg3
 	return args, nil
 }
 
@@ -352,21 +365,26 @@ func (ec *executionContext) field_Mutation_updateUser_args(ctx context.Context, 
 		return nil, err
 	}
 	args["id"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "name", ec.unmarshalOString2ᚖstring)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "full_name", ec.unmarshalOString2ᚖstring)
 	if err != nil {
 		return nil, err
 	}
-	args["name"] = arg1
+	args["full_name"] = arg1
 	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "email", ec.unmarshalOString2ᚖstring)
 	if err != nil {
 		return nil, err
 	}
 	args["email"] = arg2
-	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "age", ec.unmarshalOInt2ᚖint)
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "password", ec.unmarshalOString2ᚖstring)
 	if err != nil {
 		return nil, err
 	}
-	args["age"] = arg3
+	args["password"] = arg3
+	arg4, err := graphql.ProcessArgField(ctx, rawArgs, "phone", ec.unmarshalOString2ᚖstring)
+	if err != nil {
+		return nil, err
+	}
+	args["phone"] = arg4
 	return args, nil
 }
 
@@ -452,7 +470,7 @@ func (ec *executionContext) _Mutation_createUser(ctx context.Context, field grap
 		ec.fieldContext_Mutation_createUser,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().CreateUser(ctx, fc.Args["name"].(string), fc.Args["email"].(string), fc.Args["age"].(*int))
+			return ec.resolvers.Mutation().CreateUser(ctx, fc.Args["full_name"].(string), fc.Args["email"].(string), fc.Args["password"].(string), fc.Args["phone"].(*string))
 		},
 		nil,
 		ec.marshalNUser2ᚖgraphqlᚋmodelsᚐUser,
@@ -471,14 +489,16 @@ func (ec *executionContext) fieldContext_Mutation_createUser(ctx context.Context
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_User_id(ctx, field)
-			case "name":
-				return ec.fieldContext_User_name(ctx, field)
+			case "full_name":
+				return ec.fieldContext_User_full_name(ctx, field)
 			case "email":
 				return ec.fieldContext_User_email(ctx, field)
-			case "age":
-				return ec.fieldContext_User_age(ctx, field)
+			case "phone":
+				return ec.fieldContext_User_phone(ctx, field)
 			case "created_at":
 				return ec.fieldContext_User_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_User_updated_at(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -505,7 +525,7 @@ func (ec *executionContext) _Mutation_updateUser(ctx context.Context, field grap
 		ec.fieldContext_Mutation_updateUser,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().UpdateUser(ctx, fc.Args["id"].(string), fc.Args["name"].(*string), fc.Args["email"].(*string), fc.Args["age"].(*int))
+			return ec.resolvers.Mutation().UpdateUser(ctx, fc.Args["id"].(string), fc.Args["full_name"].(*string), fc.Args["email"].(*string), fc.Args["password"].(*string), fc.Args["phone"].(*string))
 		},
 		nil,
 		ec.marshalNUser2ᚖgraphqlᚋmodelsᚐUser,
@@ -524,14 +544,16 @@ func (ec *executionContext) fieldContext_Mutation_updateUser(ctx context.Context
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_User_id(ctx, field)
-			case "name":
-				return ec.fieldContext_User_name(ctx, field)
+			case "full_name":
+				return ec.fieldContext_User_full_name(ctx, field)
 			case "email":
 				return ec.fieldContext_User_email(ctx, field)
-			case "age":
-				return ec.fieldContext_User_age(ctx, field)
+			case "phone":
+				return ec.fieldContext_User_phone(ctx, field)
 			case "created_at":
 				return ec.fieldContext_User_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_User_updated_at(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -577,14 +599,16 @@ func (ec *executionContext) fieldContext_Mutation_deleteUser(ctx context.Context
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_User_id(ctx, field)
-			case "name":
-				return ec.fieldContext_User_name(ctx, field)
+			case "full_name":
+				return ec.fieldContext_User_full_name(ctx, field)
 			case "email":
 				return ec.fieldContext_User_email(ctx, field)
-			case "age":
-				return ec.fieldContext_User_age(ctx, field)
+			case "phone":
+				return ec.fieldContext_User_phone(ctx, field)
 			case "created_at":
 				return ec.fieldContext_User_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_User_updated_at(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -630,14 +654,16 @@ func (ec *executionContext) fieldContext_Query_user(ctx context.Context, field g
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_User_id(ctx, field)
-			case "name":
-				return ec.fieldContext_User_name(ctx, field)
+			case "full_name":
+				return ec.fieldContext_User_full_name(ctx, field)
 			case "email":
 				return ec.fieldContext_User_email(ctx, field)
-			case "age":
-				return ec.fieldContext_User_age(ctx, field)
+			case "phone":
+				return ec.fieldContext_User_phone(ctx, field)
 			case "created_at":
 				return ec.fieldContext_User_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_User_updated_at(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -682,14 +708,16 @@ func (ec *executionContext) fieldContext_Query_users(_ context.Context, field gr
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_User_id(ctx, field)
-			case "name":
-				return ec.fieldContext_User_name(ctx, field)
+			case "full_name":
+				return ec.fieldContext_User_full_name(ctx, field)
 			case "email":
 				return ec.fieldContext_User_email(ctx, field)
-			case "age":
-				return ec.fieldContext_User_age(ctx, field)
+			case "phone":
+				return ec.fieldContext_User_phone(ctx, field)
 			case "created_at":
 				return ec.fieldContext_User_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_User_updated_at(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -834,14 +862,14 @@ func (ec *executionContext) fieldContext_User_id(_ context.Context, field graphq
 	return fc, nil
 }
 
-func (ec *executionContext) _User_name(ctx context.Context, field graphql.CollectedField, obj *models.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_full_name(ctx context.Context, field graphql.CollectedField, obj *models.User) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_User_name,
+		ec.fieldContext_User_full_name,
 		func(ctx context.Context) (any, error) {
-			return obj.Name, nil
+			return obj.FullName, nil
 		},
 		nil,
 		ec.marshalNString2string,
@@ -850,7 +878,7 @@ func (ec *executionContext) _User_name(ctx context.Context, field graphql.Collec
 	)
 }
 
-func (ec *executionContext) fieldContext_User_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_User_full_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "User",
 		Field:      field,
@@ -892,30 +920,30 @@ func (ec *executionContext) fieldContext_User_email(_ context.Context, field gra
 	return fc, nil
 }
 
-func (ec *executionContext) _User_age(ctx context.Context, field graphql.CollectedField, obj *models.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_phone(ctx context.Context, field graphql.CollectedField, obj *models.User) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_User_age,
+		ec.fieldContext_User_phone,
 		func(ctx context.Context) (any, error) {
-			return obj.Age, nil
+			return obj.Phone, nil
 		},
 		nil,
-		ec.marshalOInt2ᚖint,
+		ec.marshalOString2ᚖstring,
 		true,
 		false,
 	)
 }
 
-func (ec *executionContext) fieldContext_User_age(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_User_phone(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "User",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -938,6 +966,35 @@ func (ec *executionContext) _User_created_at(ctx context.Context, field graphql.
 }
 
 func (ec *executionContext) fieldContext_User_created_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _User_updated_at(ctx context.Context, field graphql.CollectedField, obj *models.User) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_User_updated_at,
+		func(ctx context.Context) (any, error) {
+			return obj.UpdatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_User_updated_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "User",
 		Field:      field,
@@ -2574,8 +2631,8 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "name":
-			out.Values[i] = ec._User_name(ctx, field, obj)
+		case "full_name":
+			out.Values[i] = ec._User_full_name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -2584,10 +2641,15 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "age":
-			out.Values[i] = ec._User_age(ctx, field, obj)
+		case "phone":
+			out.Values[i] = ec._User_phone(ctx, field, obj)
 		case "created_at":
 			out.Values[i] = ec._User_created_at(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updated_at":
+			out.Values[i] = ec._User_updated_at(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -3351,24 +3413,6 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	_ = sel
 	_ = ctx
 	res := graphql.MarshalBoolean(*v)
-	return res
-}
-
-func (ec *executionContext) unmarshalOInt2ᚖint(ctx context.Context, v any) (*int, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := graphql.UnmarshalInt(v)
-	return &res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.SelectionSet, v *int) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	_ = sel
-	_ = ctx
-	res := graphql.MarshalInt(*v)
 	return res
 }
 

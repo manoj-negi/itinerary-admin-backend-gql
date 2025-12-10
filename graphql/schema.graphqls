@@ -2,10 +2,11 @@ scalar Time
 
 type User {
   id: ID!
-  name: String!
+  full_name: String!
   email: String!
-  age: Int
+  phone: String
   created_at: Time!
+  updated_at: Time!
 }
 
 type Query {
@@ -14,8 +15,8 @@ type Query {
 }
 
 type Mutation {
-  createUser(name: String!, email: String!, age: Int): User!
-  updateUser(id: ID!, name: String, email: String, age: Int): User!
+  createUser(full_name: String!, email: String!, password: String!, phone: String): User!
+  updateUser(id: ID!, full_name: String, email: String, password: String, phone: String): User!
   deleteUser(id: ID!): User!
 }
 

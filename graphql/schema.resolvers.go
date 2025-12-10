@@ -11,78 +11,71 @@ import (
 	"errors"
 	"graphql/database"
 	"graphql/graphql/generated"
+	"graphql/internal/db"
 	"graphql/models"
 	"strconv"
 )
 
 // CreateUser is the resolver for the createUser field.
-func (r *mutationResolver) CreateUser(ctx context.Context, name string, email string, age *int) (*models.User, error) {
-	if name == "" || email == "" {
-		return nil, errors.New("name and email are required")
+func (r *mutationResolver) CreateUser(ctx context.Context, fullName string, email string, password string, phone *string) (*models.User, error) {
+	if fullName == "" || email == "" || password == "" {
+		return nil, errors.New("full_name, email, and password are required")
 	}
 
-	var ageVal sql.NullInt64
-	if age != nil {
-		ageVal = sql.NullInt64{Int64: int64(*age), Valid: true}
+	var phoneVal sql.NullString
+	if phone != nil {
+		phoneVal = sql.NullString{String: *phone, Valid: true}
 	}
 
-	var userDB models.UserDB
-	err := database.DB.QueryRow(
-		"INSERT INTO users (name, email, age) VALUES ($1, $2, $3) RETURNING id, name, email, age, created_at",
-		name, email, ageVal,
-	).Scan(&userDB.ID, &userDB.Name, &userDB.Email, &userDB.Age, &userDB.CreatedAt)
-
+	userDB, err := database.Queries.CreateUser(ctx, db.CreateUserParams{
+		FullName: fullName,
+		Email:    email,
+		Password: password,
+		Phone:    phoneVal,
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	return userDB.ToUser(), nil
+	return database.ToModelUser(db.User{
+		ID:        userDB.ID,
+		FullName:  userDB.FullName,
+		Email:     userDB.Email,
+		Phone:     userDB.Phone,
+		CreatedAt: userDB.CreatedAt,
+		UpdatedAt: userDB.UpdatedAt,
+	}), nil
 }
 
 // UpdateUser is the resolver for the updateUser field.
-func (r *mutationResolver) UpdateUser(ctx context.Context, id string, name *string, email *string, age *int) (*models.User, error) {
+func (r *mutationResolver) UpdateUser(ctx context.Context, id string, fullName *string, email *string, password *string, phone *string) (*models.User, error) {
 	userID, err := strconv.Atoi(id)
 	if err != nil {
 		return nil, errors.New("invalid user ID")
 	}
 
-	// Build update query dynamically based on provided fields
-	updates := []string{}
-	args := []interface{}{}
-	argPos := 1
-
-	if name != nil && *name != "" {
-		updates = append(updates, "name = $"+strconv.Itoa(argPos))
-		args = append(args, *name)
-		argPos++
-	}
-
-	if email != nil && *email != "" {
-		updates = append(updates, "email = $"+strconv.Itoa(argPos))
-		args = append(args, *email)
-		argPos++
-	}
-
-	if age != nil {
-		updates = append(updates, "age = $"+strconv.Itoa(argPos))
-		args = append(args, *age)
-		argPos++
-	}
-
-	if len(updates) == 0 {
+	if fullName == nil && email == nil && password == nil && phone == nil {
 		return nil, errors.New("at least one field must be provided for update")
 	}
 
-	args = append(args, userID)
-	query := "UPDATE users SET " + updates[0]
-	for i := 1; i < len(updates); i++ {
-		query += ", " + updates[i]
+	params := db.UpdateUserParams{
+		ID: int32(userID),
 	}
-	query += " WHERE id = $" + strconv.Itoa(argPos) + " RETURNING id, name, email, age, created_at"
 
-	var userDB models.UserDB
-	err = database.DB.QueryRow(query, args...).Scan(&userDB.ID, &userDB.Name, &userDB.Email, &userDB.Age, &userDB.CreatedAt)
+	if fullName != nil {
+		params.FullName = sql.NullString{String: *fullName, Valid: true}
+	}
+	if email != nil {
+		params.Email = sql.NullString{String: *email, Valid: true}
+	}
+	if password != nil {
+		params.Password = sql.NullString{String: *password, Valid: true}
+	}
+	if phone != nil {
+		params.Phone = sql.NullString{String: *phone, Valid: true}
+	}
 
+	userDB, err := database.Queries.UpdateUser(ctx, params)
 	if err == sql.ErrNoRows {
 		return nil, errors.New("user not found")
 	}
@@ -90,7 +83,14 @@ func (r *mutationResolver) UpdateUser(ctx context.Context, id string, name *stri
 		return nil, err
 	}
 
-	return userDB.ToUser(), nil
+	return database.ToModelUser(db.User{
+		ID:        userDB.ID,
+		FullName:  userDB.FullName,
+		Email:     userDB.Email,
+		Phone:     userDB.Phone,
+		CreatedAt: userDB.CreatedAt,
+		UpdatedAt: userDB.UpdatedAt,
+	}), nil
 }
 
 // DeleteUser is the resolver for the deleteUser field.
@@ -100,12 +100,7 @@ func (r *mutationResolver) DeleteUser(ctx context.Context, id string) (*models.U
 		return nil, errors.New("invalid user ID")
 	}
 
-	var userDB models.UserDB
-	err = database.DB.QueryRow(
-		"DELETE FROM users WHERE id = $1 RETURNING id, name, email, age, created_at",
-		userID,
-	).Scan(&userDB.ID, &userDB.Name, &userDB.Email, &userDB.Age, &userDB.CreatedAt)
-
+	userDB, err := database.Queries.DeleteUser(ctx, int32(userID))
 	if err == sql.ErrNoRows {
 		return nil, errors.New("user not found")
 	}
@@ -113,7 +108,14 @@ func (r *mutationResolver) DeleteUser(ctx context.Context, id string) (*models.U
 		return nil, err
 	}
 
-	return userDB.ToUser(), nil
+	return database.ToModelUser(db.User{
+		ID:        userDB.ID,
+		FullName:  userDB.FullName,
+		Email:     userDB.Email,
+		Phone:     userDB.Phone,
+		CreatedAt: userDB.CreatedAt,
+		UpdatedAt: userDB.UpdatedAt,
+	}), nil
 }
 
 // User is the resolver for the user field.
@@ -123,12 +125,7 @@ func (r *queryResolver) User(ctx context.Context, id string) (*models.User, erro
 		return nil, errors.New("invalid user ID")
 	}
 
-	var userDB models.UserDB
-	err = database.DB.QueryRow(
-		"SELECT id, name, email, age, created_at FROM users WHERE id = $1",
-		userID,
-	).Scan(&userDB.ID, &userDB.Name, &userDB.Email, &userDB.Age, &userDB.CreatedAt)
-
+	userDB, err := database.Queries.GetUser(ctx, int32(userID))
 	if err == sql.ErrNoRows {
 		return nil, errors.New("user not found")
 	}
@@ -136,28 +133,23 @@ func (r *queryResolver) User(ctx context.Context, id string) (*models.User, erro
 		return nil, err
 	}
 
-	return userDB.ToUser(), nil
+	return database.ToModelUser(db.User{
+		ID:        userDB.ID,
+		FullName:  userDB.FullName,
+		Email:     userDB.Email,
+		Phone:     userDB.Phone,
+		CreatedAt: userDB.CreatedAt,
+		UpdatedAt: userDB.UpdatedAt,
+	}), nil
 }
 
 // Users is the resolver for the users field.
 func (r *queryResolver) Users(ctx context.Context) ([]*models.User, error) {
-	rows, err := database.DB.Query("SELECT id, name, email, age, created_at FROM users ORDER BY id")
+	usersDB, err := database.Queries.ListUsers(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-
-	var users []*models.User
-	for rows.Next() {
-		var userDB models.UserDB
-		err := rows.Scan(&userDB.ID, &userDB.Name, &userDB.Email, &userDB.Age, &userDB.CreatedAt)
-		if err != nil {
-			return nil, err
-		}
-		users = append(users, userDB.ToUser())
-	}
-
-	return users, nil
+	return database.ToModelUsers(usersDB), nil
 }
 
 // Mutation returns generated.MutationResolver implementation.
