@@ -10,19 +10,18 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"os"
-	"strings"
-	"time"
-
-	"github.com/golang-jwt/jwt/v5"
-	"golang.org/x/crypto/bcrypt"
-
 	"graphql/database"
 	"graphql/graphql/generated"
 	models1 "graphql/graphql/models"
 	"graphql/internal/db"
 	"graphql/models"
+	"os"
 	"strconv"
+	"strings"
+	"time"
+
+	jwt "github.com/golang-jwt/jwt/v5"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // CreateUser is the resolver for the createUser field.
@@ -239,8 +238,10 @@ func (r *queryResolver) Users(ctx context.Context) ([]*models.User, error) {
 	return database.ToModelUsers(usersDB), nil
 }
 
+// Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
+// Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
 type mutationResolver struct{ *Resolver }

@@ -5,6 +5,7 @@ type User {
   full_name: String!
   email: String!
   phone: String
+  role_id: ID
   created_at: Time!
   updated_at: Time!
 }
