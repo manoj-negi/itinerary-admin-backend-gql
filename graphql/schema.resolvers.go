@@ -140,27 +140,22 @@ func (r *mutationResolver) DeleteUser(ctx context.Context, id string) (*models.U
 
 // Login is the resolver for the login field.
 func (r *mutationResolver) Login(ctx context.Context, email string, password string) (*models1.LoginResponse, error) {
-	// Lookup user by email
-	var (
-		id        int32
-		fullName  string
-		em        string
-		storedPwd string
-		phone     sql.NullString
-		roleID    sql.NullInt32
-		createdAt time.Time
-		updatedAt time.Time
-	)
-
-	err := database.DB.QueryRowContext(ctx, `SELECT id, full_name, email, password, phone, role_id, created_at, updated_at FROM users WHERE email = $1`, email).Scan(
-		&id, &fullName, &em, &storedPwd, &phone, &roleID, &createdAt, &updatedAt,
-	)
+	// Lookup user by email using sqlc-generated query
+	userDB, err := database.Queries.GetUserByEmail(ctx, email)
 	if err == sql.ErrNoRows {
 		return nil, errors.New("invalid credentials")
 	}
 	if err != nil {
 		return nil, err
 	}
+	id := userDB.ID
+	fullName := userDB.FullName
+	em := userDB.Email
+	storedPwd := userDB.Password
+	phone := userDB.Phone
+	roleID := userDB.RoleID
+	createdAt := userDB.CreatedAt
+	updatedAt := userDB.UpdatedAt
 
 	// Verify password (support bcrypt hashes and plaintext)
 	ok := false
@@ -244,10 +239,8 @@ func (r *queryResolver) Users(ctx context.Context) ([]*models.User, error) {
 	return database.ToModelUsers(usersDB), nil
 }
 
-// Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
-// Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
 type mutationResolver struct{ *Resolver }
