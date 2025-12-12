@@ -9,8 +9,17 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
+	"os"
+	"strings"
+	"time"
+
+	"github.com/golang-jwt/jwt/v5"
+	"golang.org/x/crypto/bcrypt"
+
 	"graphql/database"
 	"graphql/graphql/generated"
+	models1 "graphql/graphql/models"
 	"graphql/internal/db"
 	"graphql/models"
 	"strconv"
@@ -27,10 +36,16 @@ func (r *mutationResolver) CreateUser(ctx context.Context, fullName string, emai
 		phoneVal = sql.NullString{String: *phone, Valid: true}
 	}
 
+	// Hash the password before storing
+	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, err
+	}
+
 	userDB, err := database.Queries.CreateUser(ctx, db.CreateUserParams{
 		FullName: fullName,
 		Email:    email,
-		Password: password,
+		Password: string(hashed),
 		Phone:    phoneVal,
 	})
 	if err != nil {
@@ -69,7 +84,12 @@ func (r *mutationResolver) UpdateUser(ctx context.Context, id string, fullName *
 		params.Email = sql.NullString{String: *email, Valid: true}
 	}
 	if password != nil {
-		params.Password = sql.NullString{String: *password, Valid: true}
+		// Hash updated password
+		hashed, err := bcrypt.GenerateFromPassword([]byte(*password), bcrypt.DefaultCost)
+		if err != nil {
+			return nil, err
+		}
+		params.Password = sql.NullString{String: string(hashed), Valid: true}
 	}
 	if phone != nil {
 		params.Phone = sql.NullString{String: *phone, Valid: true}
@@ -116,6 +136,78 @@ func (r *mutationResolver) DeleteUser(ctx context.Context, id string) (*models.U
 		CreatedAt: userDB.CreatedAt,
 		UpdatedAt: userDB.UpdatedAt,
 	}), nil
+}
+
+// Login is the resolver for the login field.
+func (r *mutationResolver) Login(ctx context.Context, email string, password string) (*models1.LoginResponse, error) {
+	// Lookup user by email
+	var (
+		id        int32
+		fullName  string
+		em        string
+		storedPwd string
+		phone     sql.NullString
+		roleID    sql.NullInt32
+		createdAt time.Time
+		updatedAt time.Time
+	)
+
+	err := database.DB.QueryRowContext(ctx, `SELECT id, full_name, email, password, phone, role_id, created_at, updated_at FROM users WHERE email = $1`, email).Scan(
+		&id, &fullName, &em, &storedPwd, &phone, &roleID, &createdAt, &updatedAt,
+	)
+	if err == sql.ErrNoRows {
+		return nil, errors.New("invalid credentials")
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// Verify password (support bcrypt hashes and plaintext)
+	ok := false
+	if strings.HasPrefix(storedPwd, "$2a$") || strings.HasPrefix(storedPwd, "$2b$") || strings.HasPrefix(storedPwd, "$2y$") {
+		if bcrypt.CompareHashAndPassword([]byte(storedPwd), []byte(password)) == nil {
+			ok = true
+		}
+	} else {
+		if storedPwd == password {
+			ok = true
+			// re-hash and store
+			if hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost); err == nil {
+				_, _ = database.DB.ExecContext(ctx, `UPDATE users SET password = $1 WHERE id = $2`, string(hash), id)
+			}
+		}
+	}
+
+	if !ok {
+		return nil, errors.New("invalid credentials")
+	}
+
+	// create JWT
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		secret = "devsecret"
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"sub": fmt.Sprintf("%d", id),
+		"exp": time.Now().Add(24 * time.Hour).Unix(),
+	})
+	tokenStr, err := token.SignedString([]byte(secret))
+	if err != nil {
+		return nil, err
+	}
+
+	user := database.ToModelUser(db.User{
+		ID:        id,
+		FullName:  fullName,
+		Email:     em,
+		Password:  storedPwd,
+		Phone:     phone,
+		RoleID:    roleID,
+		CreatedAt: createdAt,
+		UpdatedAt: updatedAt,
+	})
+
+	return &models1.LoginResponse{Token: tokenStr, User: user}, nil
 }
 
 // User is the resolver for the user field.

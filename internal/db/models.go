@@ -9,12 +9,19 @@ import (
 	"time"
 )
 
+type Role struct {
+	ID        int32     `json:"id"`
+	RoleName  string    `json:"role_name"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
 type User struct {
 	ID        int32          `json:"id"`
 	FullName  string         `json:"full_name"`
 	Email     string         `json:"email"`
 	Password  string         `json:"password"`
 	Phone     sql.NullString `json:"phone"`
+	RoleID    sql.NullInt32  `json:"role_id"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 }

@@ -47,6 +47,7 @@ func createTable() {
 		email VARCHAR(255) UNIQUE NOT NULL,
 		password VARCHAR(255) NOT NULL,
 		phone VARCHAR(50),
+		role_id INTEGER REFERENCES roles(id),
 		created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 		updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 	)`
@@ -74,6 +75,11 @@ func ToModelUser(u db.User) *models.User {
 		user.Phone = &phone
 	}
 
+	if u.RoleID.Valid {
+		role := fmt.Sprintf("%d", u.RoleID.Int32)
+		user.RoleID = &role
+	}
+
 	return user
 }
 
@@ -86,6 +92,7 @@ func ToModelUsers(users []db.ListUsersRow) []*models.User {
 			FullName:  u.FullName,
 			Email:     u.Email,
 			Phone:     u.Phone,
+			RoleID:    u.RoleID,
 			CreatedAt: u.CreatedAt,
 			UpdatedAt: u.UpdatedAt,
 		}))

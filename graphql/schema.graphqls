@@ -18,5 +18,11 @@ type Mutation {
   createUser(full_name: String!, email: String!, password: String!, phone: String): User!
   updateUser(id: ID!, full_name: String, email: String, password: String, phone: String): User!
   deleteUser(id: ID!): User!
+  login(email: String!, password: String!): LoginResponse!
+}
+
+type LoginResponse {
+  token: String!
+  user: User!
 }
 

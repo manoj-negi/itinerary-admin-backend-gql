@@ -12,9 +12,9 @@ import (
 )
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO users (full_name, email, password, phone)
-VALUES ($1, $2, $3, $4)
-RETURNING id, full_name, email, phone, created_at, updated_at
+INSERT INTO users (full_name, email, password, phone, role_id)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, full_name, email, phone, role_id, created_at, updated_at
 `
 
 type CreateUserParams struct {
@@ -22,6 +22,7 @@ type CreateUserParams struct {
 	Email    string         `json:"email"`
 	Password string         `json:"password"`
 	Phone    sql.NullString `json:"phone"`
+	RoleID   sql.NullInt32  `json:"role_id"`
 }
 
 type CreateUserRow struct {
@@ -29,6 +30,7 @@ type CreateUserRow struct {
 	FullName  string         `json:"full_name"`
 	Email     string         `json:"email"`
 	Phone     sql.NullString `json:"phone"`
+	RoleID    sql.NullInt32  `json:"role_id"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 }
@@ -39,6 +41,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateU
 		arg.Email,
 		arg.Password,
 		arg.Phone,
+		arg.RoleID,
 	)
 	var i CreateUserRow
 	err := row.Scan(
@@ -46,6 +49,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateU
 		&i.FullName,
 		&i.Email,
 		&i.Phone,
+		&i.RoleID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -82,7 +86,7 @@ func (q *Queries) DeleteUser(ctx context.Context, id int32) (DeleteUserRow, erro
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, full_name, email, phone, created_at, updated_at
+SELECT id, full_name, email, phone, role_id, created_at, updated_at
 FROM users
 WHERE id = $1
 `
@@ -92,6 +96,7 @@ type GetUserRow struct {
 	FullName  string         `json:"full_name"`
 	Email     string         `json:"email"`
 	Phone     sql.NullString `json:"phone"`
+	RoleID    sql.NullInt32  `json:"role_id"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 }
@@ -104,6 +109,29 @@ func (q *Queries) GetUser(ctx context.Context, id int32) (GetUserRow, error) {
 		&i.FullName,
 		&i.Email,
 		&i.Phone,
+		&i.RoleID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getUserByEmail = `-- name: GetUserByEmail :one
+SELECT id, full_name, email, password, phone, role_id, created_at, updated_at
+FROM users
+WHERE email = $1
+`
+
+func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.FullName,
+		&i.Email,
+		&i.Password,
+		&i.Phone,
+		&i.RoleID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -111,7 +139,7 @@ func (q *Queries) GetUser(ctx context.Context, id int32) (GetUserRow, error) {
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT id, full_name, email, phone, created_at, updated_at
+SELECT id, full_name, email, phone, role_id, created_at, updated_at
 FROM users
 ORDER BY id
 `
@@ -121,6 +149,7 @@ type ListUsersRow struct {
 	FullName  string         `json:"full_name"`
 	Email     string         `json:"email"`
 	Phone     sql.NullString `json:"phone"`
+	RoleID    sql.NullInt32  `json:"role_id"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 }
@@ -139,6 +168,7 @@ func (q *Queries) ListUsers(ctx context.Context) ([]ListUsersRow, error) {
 			&i.FullName,
 			&i.Email,
 			&i.Phone,
+			&i.RoleID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -162,9 +192,10 @@ SET
   email = COALESCE($2, email),
   password = COALESCE($3, password),
   phone = COALESCE($4, phone),
+  role_id = COALESCE($5, role_id),
   updated_at = NOW()
-WHERE id = $5
-RETURNING id, full_name, email, phone, created_at, updated_at
+WHERE id = $6
+RETURNING id, full_name, email, phone, role_id, created_at, updated_at
 `
 
 type UpdateUserParams struct {
@@ -172,6 +203,7 @@ type UpdateUserParams struct {
 	Email    sql.NullString `json:"email"`
 	Password sql.NullString `json:"password"`
 	Phone    sql.NullString `json:"phone"`
+	RoleID   sql.NullInt32  `json:"role_id"`
 	ID       int32          `json:"id"`
 }
 
@@ -180,6 +212,7 @@ type UpdateUserRow struct {
 	FullName  string         `json:"full_name"`
 	Email     string         `json:"email"`
 	Phone     sql.NullString `json:"phone"`
+	RoleID    sql.NullInt32  `json:"role_id"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 }
@@ -190,6 +223,7 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (UpdateU
 		arg.Email,
 		arg.Password,
 		arg.Phone,
+		arg.RoleID,
 		arg.ID,
 	)
 	var i UpdateUserRow
@@ -198,6 +232,7 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (UpdateU
 		&i.FullName,
 		&i.Email,
 		&i.Phone,
+		&i.RoleID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

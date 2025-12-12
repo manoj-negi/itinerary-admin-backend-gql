@@ -2,6 +2,15 @@
 
 package models
 
+import (
+	"graphql/models"
+)
+
+type LoginResponse struct {
+	Token string       `json:"token"`
+	User  *models.User `json:"user"`
+}
+
 type Mutation struct {
 }
 
