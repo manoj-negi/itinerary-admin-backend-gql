@@ -15,6 +15,19 @@ type Role struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+type Tour struct {
+	ID           int32          `json:"id"`
+	Title        string         `json:"title"`
+	Description  sql.NullString `json:"description"`
+	CategoryID   int32          `json:"category_id"`
+	CityID       int32          `json:"city_id"`
+	DurationDays int32          `json:"duration_days"`
+	CreatedBy    int32          `json:"created_by"`
+	Status       string         `json:"status"`
+	CreatedAt    time.Time      `json:"created_at"`
+	UpdatedAt    time.Time      `json:"updated_at"`
+}
+
 type User struct {
 	ID        int32          `json:"id"`
 	FullName  string         `json:"full_name"`

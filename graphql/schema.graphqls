@@ -2,24 +2,25 @@ scalar Time
 
 type User {
   id: ID!
-  full_name: String!
+  fullName: String!
   email: String!
   phone: String
-  role_id: ID
-  created_at: Time!
-  updated_at: Time!
+  roleId: ID
+  createdAt: Time!
+  updatedAt: Time!
 }
 
-type Query {
-  user(id: ID!): User
-  users: [User!]!
-}
-
-type Mutation {
-  createUser(full_name: String!, email: String!, password: String!, phone: String): User!
-  updateUser(id: ID!, full_name: String, email: String, password: String, phone: String): User!
-  deleteUser(id: ID!): User!
-  login(email: String!, password: String!): LoginResponse!
+type Tour {
+  id: ID!
+  title: String!
+  description: String
+  categoryId: Int!
+  cityId: Int!
+  durationDays: Int!
+  createdBy: Int!
+  status: String!
+  createdAt: Time!
+  updatedAt: Time!
 }
 
 type LoginResponse {
@@ -27,3 +28,27 @@ type LoginResponse {
   user: User!
 }
 
+input CreateTourInput {
+  title: String!
+  description: String
+  categoryId: Int!
+  cityId: Int!
+  durationDays: Int!
+  status: String!
+}
+
+type Query {
+  user(id: ID!): User
+  users: [User!]!
+  tours: [Tour!]!
+  tour(id: ID!): Tour
+}
+
+type Mutation {
+  createUser(fullName: String!, email: String!, password: String!, phone: String): User!
+  updateUser(id: ID!, fullName: String, email: String, password: String, phone: String): User!
+  deleteUser(id: ID!): User!
+  login(email: String!, password: String!): LoginResponse!
+  createTour(input: CreateTourInput!): Tour!
+  archiveTour(id: ID!): Tour!
+}

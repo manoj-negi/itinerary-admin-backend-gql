@@ -18,7 +18,7 @@ var (
 
 // InitDB initializes the database connection
 func InitDB() {
-	connStr := "user=postgres password=Qwerty@12 dbname=itenenary sslmode=disable host=localhost port=5432"
+	connStr := "user=postgres password=12345 dbname=itinerary sslmode=disable host=localhost port=5433"
 	var err error
 	DB, err = sql.Open("postgres", connStr)
 	if err != nil {
@@ -81,6 +81,21 @@ func ToModelUser(u db.User) *models.User {
 	}
 
 	return user
+}
+
+func ToModelTour(t db.Tour) *models.Tour {
+	return &models.Tour{
+		ID:           t.ID,
+		Title:        t.Title,
+		Description:  (t.Description).String,
+		CategoryID:   int32(t.CategoryID),
+		CityID:       int32(t.CityID),
+		DurationDays: int32(t.DurationDays),
+		CreatedBy:    int32(t.CreatedBy),
+		Status:       t.Status,
+		CreatedAt:    t.CreatedAt,
+		UpdatedAt:    t.UpdatedAt,
+	}
 }
 
 // ToModelUsers converts a slice of sqlc Users to GraphQL models.

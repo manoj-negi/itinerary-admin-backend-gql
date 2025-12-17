@@ -6,6 +6,15 @@ import (
 	"graphql/models"
 )
 
+type CreateTourInput struct {
+	Title        string  `json:"title"`
+	Description  *string `json:"description,omitempty"`
+	CategoryID   int     `json:"categoryId"`
+	CityID       int     `json:"cityId"`
+	DurationDays int     `json:"durationDays"`
+	Status       string  `json:"status"`
+}
+
 type LoginResponse struct {
 	Token string       `json:"token"`
 	User  *models.User `json:"user"`

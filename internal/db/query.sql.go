@@ -11,6 +11,47 @@ import (
 	"time"
 )
 
+const createTour = `-- name: CreateTour :one
+INSERT INTO tours (title, description, category_id, city_id, duration_days, created_by, status) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, title, description, category_id, city_id, duration_days, created_by, status, created_at, updated_at
+`
+
+type CreateTourParams struct {
+	Title        string         `json:"title"`
+	Description  sql.NullString `json:"description"`
+	CategoryID   int32          `json:"category_id"`
+	CityID       int32          `json:"city_id"`
+	DurationDays int32          `json:"duration_days"`
+	CreatedBy    int32          `json:"created_by"`
+	Status       string         `json:"status"`
+}
+
+// tour related queries
+func (q *Queries) CreateTour(ctx context.Context, arg CreateTourParams) (Tour, error) {
+	row := q.db.QueryRowContext(ctx, createTour,
+		arg.Title,
+		arg.Description,
+		arg.CategoryID,
+		arg.CityID,
+		arg.DurationDays,
+		arg.CreatedBy,
+		arg.Status,
+	)
+	var i Tour
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.Description,
+		&i.CategoryID,
+		&i.CityID,
+		&i.DurationDays,
+		&i.CreatedBy,
+		&i.Status,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (full_name, email, password, phone, role_id)
 VALUES ($1, $2, $3, $4, $5)
@@ -56,6 +97,28 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateU
 	return i, err
 }
 
+const deleteTour = `-- name: DeleteTour :one
+DELETE FROM tours WHERE id = $1 RETURNING id, title, description, category_id, city_id, duration_days, created_by, status, created_at, updated_at
+`
+
+func (q *Queries) DeleteTour(ctx context.Context, id int32) (Tour, error) {
+	row := q.db.QueryRowContext(ctx, deleteTour, id)
+	var i Tour
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.Description,
+		&i.CategoryID,
+		&i.CityID,
+		&i.DurationDays,
+		&i.CreatedBy,
+		&i.Status,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const deleteUser = `-- name: DeleteUser :one
 DELETE FROM users
 WHERE id = $1
@@ -79,6 +142,28 @@ func (q *Queries) DeleteUser(ctx context.Context, id int32) (DeleteUserRow, erro
 		&i.FullName,
 		&i.Email,
 		&i.Phone,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getTour = `-- name: GetTour :one
+SELECT id, title, description, category_id, city_id, duration_days, created_by, status, created_at, updated_at FROM tours WHERE id = $1
+`
+
+func (q *Queries) GetTour(ctx context.Context, id int32) (Tour, error) {
+	row := q.db.QueryRowContext(ctx, getTour, id)
+	var i Tour
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.Description,
+		&i.CategoryID,
+		&i.CityID,
+		&i.DurationDays,
+		&i.CreatedBy,
+		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -138,6 +223,44 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 	return i, err
 }
 
+const listTours = `-- name: ListTours :many
+SELECT id, title, description, category_id, city_id, duration_days, created_by, status, created_at, updated_at FROM tours ORDER BY created_at DESC
+`
+
+func (q *Queries) ListTours(ctx context.Context) ([]Tour, error) {
+	rows, err := q.db.QueryContext(ctx, listTours)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Tour{}
+	for rows.Next() {
+		var i Tour
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Description,
+			&i.CategoryID,
+			&i.CityID,
+			&i.DurationDays,
+			&i.CreatedBy,
+			&i.Status,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listUsers = `-- name: ListUsers :many
 SELECT id, full_name, email, phone, role_id, created_at, updated_at
 FROM users
@@ -183,6 +306,46 @@ func (q *Queries) ListUsers(ctx context.Context) ([]ListUsersRow, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateTour = `-- name: UpdateTour :one
+UPDATE tours SET title = COALESCE($2, title), description = COALESCE($3, description), category_id = COALESCE($4, category_id), city_id = COALESCE($5, city_id), duration_days = COALESCE($6, duration_days), status = COALESCE($7, status), updated_at = NOW() WHERE id = $1 RETURNING id, title, description, category_id, city_id, duration_days, created_by, status, created_at, updated_at
+`
+
+type UpdateTourParams struct {
+	ID           int32          `json:"id"`
+	Title        string         `json:"title"`
+	Description  sql.NullString `json:"description"`
+	CategoryID   int32          `json:"category_id"`
+	CityID       int32          `json:"city_id"`
+	DurationDays int32          `json:"duration_days"`
+	Status       string         `json:"status"`
+}
+
+func (q *Queries) UpdateTour(ctx context.Context, arg UpdateTourParams) (Tour, error) {
+	row := q.db.QueryRowContext(ctx, updateTour,
+		arg.ID,
+		arg.Title,
+		arg.Description,
+		arg.CategoryID,
+		arg.CityID,
+		arg.DurationDays,
+		arg.Status,
+	)
+	var i Tour
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.Description,
+		&i.CategoryID,
+		&i.CityID,
+		&i.DurationDays,
+		&i.CreatedBy,
+		&i.Status,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const updateUser = `-- name: UpdateUser :one
