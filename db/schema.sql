@@ -1,18 +1,18 @@
-CREATE TABLE roles (
-  id SERIAL PRIMARY KEY,
-  role_name VARCHAR(100) NOT NULL UNIQUE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
 CREATE TABLE users (
   id SERIAL PRIMARY KEY,
   full_name VARCHAR(255) NOT NULL,
   email VARCHAR(255) NOT NULL UNIQUE,
   password VARCHAR(255) NOT NULL,
   phone VARCHAR(50),
-  role_id INTEGER REFERENCES roles(id),
+  role_id INT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE categories (
+  id SERIAL PRIMARY KEY,
+  category_name VARCHAR(150) NOT NULL UNIQUE,
+  description TEXT
 );
 
 CREATE TABLE tours (
@@ -23,10 +23,7 @@ CREATE TABLE tours (
   city_id INT NOT NULL,
   duration_days INT NOT NULL,
   created_by INT NOT NULL,
-  status TEXT NOT NULL CHECK (status IN ('draft','published','archived')),
+  status TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  FOREIGN KEY (category_id) REFERENCES categories(id),
-  FOREIGN KEY (city_id) REFERENCES cities(id),
-  FOREIGN KEY (created_by) REFERENCES users(id)
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

@@ -17,20 +17,36 @@ A simple GraphQL API built with Go using gqlgen, featuring CRUD operations for a
 
 2. **Configure database connection:**
    
-   Edit `database/database.go` and update the connection string if needed:
-   ```go
-   connStr := "user=postgres password=Qwerty@12 dbname=graphql sslmode=disable host=localhost port=5432"
+   Copy `.env.example` to `.env` and update with your credentials:
+   ```bash
+   cp .env.example .env
    ```
    
-   Adjust the following as needed:
-   - `user`: Your PostgreSQL username
-   - `password`: Your PostgreSQL password
-   - `host`: Database host (default: localhost)
-   - `port`: Database port (default: 5432)
+   Then edit `.env` with your actual database credentials. The application reads all database configuration from the `.env` file only.
+   
+   **Required fields in .env file:**
+   - `DB_USER`: PostgreSQL username
+   - `DB_PASSWORD`: PostgreSQL password
+   - `DB_NAME`: Database name
+   - `DB_HOST`: Database host
+   - `DB_PORT`: Database port
+   - `DB_SSLMODE`: SSL mode (optional, defaults to `disable` if not specified)
+   
+   Example `.env` file:
+   ```
+   DB_USER=postgres
+   DB_PASSWORD=your_password_here
+   DB_NAME=itinerary
+   DB_HOST=localhost
+   DB_PORT=5433
+   DB_SSLMODE=disable
+   ```
+   
+   **Note**: The application will fail to start if the `.env` file is missing or if any required field is not set.
 
 3. **Create the database:**
    ```sql
-   CREATE DATABASE graphql;
+   CREATE DATABASE itinerary;
    ```
 
 4. **Run the server:**

@@ -4,10 +4,11 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"os"
 
 	"graphql/internal/db"
-	"graphql/models"
 
+	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
 
@@ -16,9 +17,32 @@ var (
 	Queries *db.Queries
 )
 
-// InitDB initializes the database connection
+// getEnvFromFile returns the value of an environment variable from .env file, or empty string if not set
+func getEnvFromFile(key string) string {
+	return os.Getenv(key)
+}
+
+// InitDB initializes the database connection using .env file only
 func InitDB() {
-	connStr := "user=postgres password=12345 dbname=itinerary sslmode=disable host=localhost port=5433"
+	// Load .env file - fail if file doesn't exist
+	if err := godotenv.Load(); err != nil {
+		log.Fatal("Failed to load .env file. Please create .env file with database credentials. Error: ", err)
+	}
+
+	// Get database configuration from .env file only
+	dbUser := getEnvFromFile("DB_USER")
+	dbPassword := getEnvFromFile("DB_PASSWORD")
+	dbName := getEnvFromFile("DB_NAME")
+	dbHost := getEnvFromFile("DB_HOST")
+	dbPort := getEnvFromFile("DB_PORT")
+	dbSSLMode := getEnvFromFile("DB_SSLMODE")
+
+	// Build connection string from .env file values
+	connStr := fmt.Sprintf(
+		"user=%s password=%s dbname=%s sslmode=%s host=%s port=%s",
+		dbUser, dbPassword, dbName, dbSSLMode, dbHost, dbPort,
+	)
+
 	var err error
 	DB, err = sql.Open("postgres", connStr)
 	if err != nil {
@@ -28,89 +52,7 @@ func InitDB() {
 	if err = DB.Ping(); err != nil {
 		log.Fatal("Failed to ping database:", err)
 	}
-
 	fmt.Println("Successfully connected to database!")
-
-	// Create users table if it doesn't exist
-	createTable()
-
 	// Initialize sqlc queries
 	Queries = db.New(DB)
-}
-
-// createTable creates the users table
-func createTable() {
-	query := `
-	CREATE TABLE IF NOT EXISTS users (
-		id SERIAL PRIMARY KEY,
-		full_name VARCHAR(255) NOT NULL,
-		email VARCHAR(255) UNIQUE NOT NULL,
-		password VARCHAR(255) NOT NULL,
-		phone VARCHAR(50),
-		role_id INTEGER REFERENCES roles(id),
-		created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-		updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-	)`
-
-	_, err := DB.Exec(query)
-	if err != nil {
-		log.Fatal("Failed to create table:", err)
-	}
-
-	fmt.Println("Users table ready!")
-}
-
-// ToModelUser converts a sqlc User to the GraphQL model.
-func ToModelUser(u db.User) *models.User {
-	user := &models.User{
-		ID:        fmt.Sprintf("%d", u.ID),
-		FullName:  u.FullName,
-		Email:     u.Email,
-		CreatedAt: u.CreatedAt,
-		UpdatedAt: u.UpdatedAt,
-	}
-
-	if u.Phone.Valid {
-		phone := u.Phone.String
-		user.Phone = &phone
-	}
-
-	if u.RoleID.Valid {
-		role := fmt.Sprintf("%d", u.RoleID.Int32)
-		user.RoleID = &role
-	}
-
-	return user
-}
-
-func ToModelTour(t db.Tour) *models.Tour {
-	return &models.Tour{
-		ID:           t.ID,
-		Title:        t.Title,
-		Description:  (t.Description).String,
-		CategoryID:   int32(t.CategoryID),
-		CityID:       int32(t.CityID),
-		DurationDays: int32(t.DurationDays),
-		CreatedBy:    int32(t.CreatedBy),
-		Status:       t.Status,
-		CreatedAt:    t.CreatedAt,
-		UpdatedAt:    t.UpdatedAt,
-	}
-}
-
-// ToModelUsers converts a slice of sqlc Users to GraphQL models.
-func ToModelUsers(users []db.ListUsersRow) []*models.User {
-	out := make([]*models.User, 0, len(users))
-	for _, u := range users {
-		out = append(out, ToModelUser(db.User{
-			ID:        u.ID,
-			FullName:  u.FullName,
-			Email:     u.Email,
-			Phone:     u.Phone,
-			RoleID:    u.RoleID,
-			CreatedAt: u.CreatedAt,
-			UpdatedAt: u.UpdatedAt,
-		}))
-	}
-	return out
 }

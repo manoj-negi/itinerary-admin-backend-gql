@@ -12,20 +12,28 @@ import (
 	"fmt"
 	"graphql/database"
 	"graphql/graphql/generated"
-	models1 "graphql/graphql/models"
 	"graphql/internal/db"
-	"graphql/models"
-	"os"
 	"strconv"
-	"strings"
-	"time"
 
-	jwt "github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
+// ID is the resolver for the id field.
+func (r *categoryResolver) ID(ctx context.Context, obj *db.Category) (string, error) {
+	return fmt.Sprintf("%d", obj.ID), nil
+}
+
+// Description is the resolver for the description field.
+func (r *categoryResolver) Description(ctx context.Context, obj *db.Category) (*string, error) {
+	if !obj.Description.Valid {
+		return nil, nil
+	}
+	desc := obj.Description.String
+	return &desc, nil
+}
+
 // CreateUser is the resolver for the createUser field.
-func (r *mutationResolver) CreateUser(ctx context.Context, fullName string, email string, password string, phone *string) (*models.User, error) {
+func (r *mutationResolver) CreateUser(ctx context.Context, fullName string, email string, password string, phone *string) (*db.User, error) {
 	if fullName == "" || email == "" || password == "" {
 		return nil, errors.New("full_name, email, and password are required")
 	}
@@ -51,203 +59,44 @@ func (r *mutationResolver) CreateUser(ctx context.Context, fullName string, emai
 		return nil, err
 	}
 
-	return database.ToModelUser(db.User{
+	// Convert CreateUserRow to db.User
+	user := &db.User{
 		ID:        userDB.ID,
 		FullName:  userDB.FullName,
 		Email:     userDB.Email,
 		Phone:     userDB.Phone,
+		RoleID:    userDB.RoleID,
 		CreatedAt: userDB.CreatedAt,
 		UpdatedAt: userDB.UpdatedAt,
-	}), nil
+	}
+
+	return user, nil
 }
 
-// UpdateUser is the resolver for the updateUser field.
-func (r *mutationResolver) UpdateUser(ctx context.Context, id string, fullName *string, email *string, password *string, phone *string) (*models.User, error) {
-	userID, err := strconv.Atoi(id)
-	if err != nil {
-		return nil, errors.New("invalid user ID")
+// CreateCategory is the resolver for the createCategory field.
+func (r *mutationResolver) CreateCategory(ctx context.Context, categoryName string, description *string) (*db.Category, error) {
+	if categoryName == "" {
+		return nil, errors.New("category_name is required")
 	}
 
-	if fullName == nil && email == nil && password == nil && phone == nil {
-		return nil, errors.New("at least one field must be provided for update")
+	var descVal sql.NullString
+	if description != nil {
+		descVal = sql.NullString{String: *description, Valid: true}
 	}
 
-	params := db.UpdateUserParams{
-		ID: int32(userID),
-	}
-
-	if fullName != nil {
-		params.FullName = sql.NullString{String: *fullName, Valid: true}
-	}
-	if email != nil {
-		params.Email = sql.NullString{String: *email, Valid: true}
-	}
-	if password != nil {
-		// Hash updated password
-		hashed, err := bcrypt.GenerateFromPassword([]byte(*password), bcrypt.DefaultCost)
-		if err != nil {
-			return nil, err
-		}
-		params.Password = sql.NullString{String: string(hashed), Valid: true}
-	}
-	if phone != nil {
-		params.Phone = sql.NullString{String: *phone, Valid: true}
-	}
-
-	userDB, err := database.Queries.UpdateUser(ctx, params)
-	if err == sql.ErrNoRows {
-		return nil, errors.New("user not found")
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	return database.ToModelUser(db.User{
-		ID:        userDB.ID,
-		FullName:  userDB.FullName,
-		Email:     userDB.Email,
-		Phone:     userDB.Phone,
-		CreatedAt: userDB.CreatedAt,
-		UpdatedAt: userDB.UpdatedAt,
-	}), nil
-}
-
-// DeleteUser is the resolver for the deleteUser field.
-func (r *mutationResolver) DeleteUser(ctx context.Context, id string) (*models.User, error) {
-	userID, err := strconv.Atoi(id)
-	if err != nil {
-		return nil, errors.New("invalid user ID")
-	}
-
-	userDB, err := database.Queries.DeleteUser(ctx, int32(userID))
-	if err == sql.ErrNoRows {
-		return nil, errors.New("user not found")
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	return database.ToModelUser(db.User{
-		ID:        userDB.ID,
-		FullName:  userDB.FullName,
-		Email:     userDB.Email,
-		Phone:     userDB.Phone,
-		CreatedAt: userDB.CreatedAt,
-		UpdatedAt: userDB.UpdatedAt,
-	}), nil
-}
-
-// Login is the resolver for the login field.
-func (r *mutationResolver) Login(ctx context.Context, email string, password string) (*models1.LoginResponse, error) {
-	// Lookup user by email using sqlc-generated query
-	userDB, err := database.Queries.GetUserByEmail(ctx, email)
-	if err == sql.ErrNoRows {
-		return nil, errors.New("invalid credentials")
-	}
-	if err != nil {
-		return nil, err
-	}
-	id := userDB.ID
-	fullName := userDB.FullName
-	em := userDB.Email
-	storedPwd := userDB.Password
-	phone := userDB.Phone
-	roleID := userDB.RoleID
-	createdAt := userDB.CreatedAt
-	updatedAt := userDB.UpdatedAt
-
-	// Verify password (support bcrypt hashes and plaintext)
-	ok := false
-	if strings.HasPrefix(storedPwd, "$2a$") || strings.HasPrefix(storedPwd, "$2b$") || strings.HasPrefix(storedPwd, "$2y$") {
-		if bcrypt.CompareHashAndPassword([]byte(storedPwd), []byte(password)) == nil {
-			ok = true
-		}
-	} else {
-		if storedPwd == password {
-			ok = true
-			// re-hash and store
-			if hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost); err == nil {
-				_, _ = database.DB.ExecContext(ctx, `UPDATE users SET password = $1 WHERE id = $2`, string(hash), id)
-			}
-		}
-	}
-
-	if !ok {
-		return nil, errors.New("invalid credentials")
-	}
-
-	// create JWT
-	secret := os.Getenv("JWT_SECRET")
-	if secret == "" {
-		secret = "devsecret"
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub": fmt.Sprintf("%d", id),
-		"exp": time.Now().Add(24 * time.Hour).Unix(),
-	})
-	tokenStr, err := token.SignedString([]byte(secret))
-	if err != nil {
-		return nil, err
-	}
-
-	user := database.ToModelUser(db.User{
-		ID:        id,
-		FullName:  fullName,
-		Email:     em,
-		Password:  storedPwd,
-		Phone:     phone,
-		RoleID:    roleID,
-		CreatedAt: createdAt,
-		UpdatedAt: updatedAt,
-	})
-
-	return &models1.LoginResponse{Token: tokenStr, User: user}, nil
-}
-
-// CreateTour is the resolver for the createTour field.
-//
-//	func (r *mutationResolver) CreateTour(ctx context.Context, input models1.CreateTourInput) (*models.Tour, error) {
-//		panic(fmt.Errorf("not implemented: CreateTour - createTour"))
-//	}
-func (r *mutationResolver) CreateTour(ctx context.Context, nput models.CreateTourInput) (*models.Tour, error) {
-
-	if input.Title == "" {
-		return nil, errors.New("title is required")
-	}
-
-	userID, err := auth.GetUserID(ctx) // from JWT
-	if err != nil {
-		return nil, err
-	}
-
-	var desc sql.NullString
-	if input.Description != nil {
-		desc = sql.NullString{String: *input.Description, Valid: true}
-	}
-
-	tourDB, err := database.Queries.CreateTour(ctx, db.CreateTourParams{
-		Title:        input.Title,
-		Description:  desc,
-		CategoryID:   int32(input.CategoryId),
-		CityID:       int32(input.CityId),
-		DurationDays: int32(input.DurationDays),
-		CreatedBy:    userID,
-		Status:       string(input.Status),
+	categoryDB, err := database.Queries.CreateCategory(ctx, db.CreateCategoryParams{
+		CategoryName: categoryName,
+		Description:  descVal,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	return database.ToModelTour(tourDB), nil
-}
-
-// ArchiveTour is the resolver for the archiveTour field.
-func (r *mutationResolver) ArchiveTour(ctx context.Context, id string) (*models.Tour, error) {
-	panic(fmt.Errorf("not implemented: ArchiveTour - archiveTour"))
+	return &categoryDB, nil
 }
 
 // User is the resolver for the user field.
-func (r *queryResolver) User(ctx context.Context, id string) (*models.User, error) {
+func (r *queryResolver) User(ctx context.Context, id string) (*db.User, error) {
 	userID, err := strconv.Atoi(id)
 	if err != nil {
 		return nil, errors.New("invalid user ID")
@@ -261,39 +110,79 @@ func (r *queryResolver) User(ctx context.Context, id string) (*models.User, erro
 		return nil, err
 	}
 
-	return database.ToModelUser(db.User{
+	// Convert GetUserRow to db.User
+	user := &db.User{
 		ID:        userDB.ID,
 		FullName:  userDB.FullName,
 		Email:     userDB.Email,
 		Phone:     userDB.Phone,
+		RoleID:    userDB.RoleID,
 		CreatedAt: userDB.CreatedAt,
 		UpdatedAt: userDB.UpdatedAt,
-	}), nil
+	}
+
+	return user, nil
 }
 
-// Users is the resolver for the users field.
-func (r *queryResolver) Users(ctx context.Context) ([]*models.User, error) {
-	usersDB, err := database.Queries.ListUsers(ctx)
+// Category is the resolver for the category field.
+func (r *queryResolver) Category(ctx context.Context, id string) (*db.Category, error) {
+	categoryID, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, errors.New("invalid category ID")
+	}
+
+	categoryDB, err := database.Queries.GetCategory(ctx, int32(categoryID))
+	if err == sql.ErrNoRows {
+		return nil, errors.New("category not found")
+	}
 	if err != nil {
 		return nil, err
 	}
-	return database.ToModelUsers(usersDB), nil
+
+	return &categoryDB, nil
 }
 
-// Tours is the resolver for the tours field.
-func (r *queryResolver) Tours(ctx context.Context) ([]*models.Tour, error) {
-	panic(fmt.Errorf("not implemented: Tours - tours"))
-}
+// Categories is the resolver for the categories field.
+func (r *queryResolver) Categories(ctx context.Context) ([]*db.Category, error) {
+	categoriesDB, err := database.Queries.ListCategories(ctx)
+	if err != nil {
+		return nil, err
+	}
 
-// Tour is the resolver for the tour field.
-func (r *queryResolver) Tour(ctx context.Context, id string) (*models.Tour, error) {
-	panic(fmt.Errorf("not implemented: Tour - tour"))
+	// Convert []Category to []*Category
+	categories := make([]*db.Category, len(categoriesDB))
+	for i := range categoriesDB {
+		categories[i] = &categoriesDB[i]
+	}
+
+	return categories, nil
 }
 
 // ID is the resolver for the id field.
-func (r *tourResolver) ID(ctx context.Context, obj *models.Tour) (string, error) {
-	panic(fmt.Errorf("not implemented: ID - id"))
+func (r *userResolver) ID(ctx context.Context, obj *db.User) (string, error) {
+	return fmt.Sprintf("%d", obj.ID), nil
 }
+
+// Phone is the resolver for the phone field.
+func (r *userResolver) Phone(ctx context.Context, obj *db.User) (*string, error) {
+	if !obj.Phone.Valid {
+		return nil, nil
+	}
+	phone := obj.Phone.String
+	return &phone, nil
+}
+
+// RoleID is the resolver for the roleId field.
+func (r *userResolver) RoleID(ctx context.Context, obj *db.User) (*string, error) {
+	if !obj.RoleID.Valid {
+		return nil, nil
+	}
+	roleID := fmt.Sprintf("%d", obj.RoleID.Int32)
+	return &roleID, nil
+}
+
+// Category returns generated.CategoryResolver implementation.
+func (r *Resolver) Category() generated.CategoryResolver { return &categoryResolver{r} }
 
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
@@ -301,9 +190,10 @@ func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResol
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
-// Tour returns generated.TourResolver implementation.
-func (r *Resolver) Tour() generated.TourResolver { return &tourResolver{r} }
+// User returns generated.UserResolver implementation.
+func (r *Resolver) User() generated.UserResolver { return &userResolver{r} }
 
+type categoryResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
-type tourResolver struct{ *Resolver }
+type userResolver struct{ *Resolver }

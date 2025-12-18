@@ -9,10 +9,10 @@ import (
 	"time"
 )
 
-type Role struct {
-	ID        int32     `json:"id"`
-	RoleName  string    `json:"role_name"`
-	CreatedAt time.Time `json:"created_at"`
+type Category struct {
+	ID           int32          `json:"id"`
+	CategoryName string         `json:"category_name"`
+	Description  sql.NullString `json:"description"`
 }
 
 type Tour struct {
