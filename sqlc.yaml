@@ -5,6 +5,10 @@ sql:
       - "db/category_queries.sql"
       - "db/tour_queries.sql"
       - "db/user_queries.sql"
+      - "db/country_queries.sql"
+      - "db/state_queries.sql"
+      - "db/city_queries.sql"
+
     engine: "postgresql"
     gen:
       go:

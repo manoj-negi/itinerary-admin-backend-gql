@@ -16,13 +16,58 @@ type Category {
   description: String
 }
 
+type Country {
+  id: ID!
+  name: String!
+}
+
+type State {
+  id: ID!
+  countryId: ID!
+  name: String!
+}
+
+type City {
+  id: ID!
+  stateId: ID!
+  name: String!
+}
+
 type Query {
   user(id: ID!): User
+  users: [User!]!
   category(id: ID!): Category
+
   categories: [Category!]!
+
+  country(id: ID!): Country
+  countries: [Country!]!
+
+  state(id: ID!): State
+  states: [State!]!
+  statesByCountry(countryId: ID!): [State!]!
+
+  city(id: ID!): City
+  cities: [City!]!
+  citiesByState(stateId: ID!): [City!]!
 }
 
 type Mutation {
-  createUser(fullName: String!, email: String!, password: String!, phone: String): User!
+  createUser(full_name: String!, email: String!, password: String!, phone: String): User!
+  updateUser(id: ID!, full_name: String, email: String, password: String, phone: String): User!
+  deleteUser(id: ID!): User!
+
   createCategory(categoryName: String!, description: String): Category!
-}
+
+  createCountry(name :String!): Country!
+  updateCountry(id: ID!, name: String): Country!
+  deleteCountry(id: ID!): Country!
+
+  createState(countryId: ID!, name: String!): State!
+  updateState(id: ID!, countryId: ID, name: String): State!
+  deleteState(id: ID!): State!
+
+  createCity(stateId: ID!, name: String!): City!
+  updateCity(id: ID!, stateId: ID, name: String): City!
+  deleteCity(id: ID!): City!
+  }

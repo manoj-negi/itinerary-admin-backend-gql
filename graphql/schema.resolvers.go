@@ -32,6 +32,21 @@ func (r *categoryResolver) Description(ctx context.Context, obj *db.Category) (*
 	return &desc, nil
 }
 
+// ID is the resolver for the id field.
+func (r *cityResolver) ID(ctx context.Context, obj *db.City) (string, error) {
+	return fmt.Sprintf("%d", obj.ID), nil
+}
+
+// StateID is the resolver for the stateId field.
+func (r *cityResolver) StateID(ctx context.Context, obj *db.City) (string, error) {
+	return fmt.Sprintf("%d", obj.ID), nil
+}
+
+// ID is the resolver for the id field.
+func (r *countryResolver) ID(ctx context.Context, obj *db.Country) (string, error) {
+	return fmt.Sprintf("%d", obj.ID), nil
+}
+
 // CreateUser is the resolver for the createUser field.
 func (r *mutationResolver) CreateUser(ctx context.Context, fullName string, email string, password string, phone *string) (*db.User, error) {
 	if fullName == "" || email == "" || password == "" {
@@ -73,6 +88,105 @@ func (r *mutationResolver) CreateUser(ctx context.Context, fullName string, emai
 	return user, nil
 }
 
+// UpdateUser is the resolver for the updateUser field.
+func (r *mutationResolver) UpdateUser(ctx context.Context, id string, fullName *string, email *string, password *string, phone *string) (*db.User, error) {
+	userID, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, errors.New("invalid user id")
+	}
+
+	// Fetch existing user
+	existing, err := database.Queries.GetUser(ctx, int32(userID))
+	if err == sql.ErrNoRows {
+		return nil, errors.New("user not found")
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// Build update values with defaults from existing
+	updateFullName := existing.FullName
+	updateEmail := existing.Email
+	updatePhone := existing.Phone
+
+	// Apply optional updates
+	if fullName != nil {
+		updateFullName = *fullName
+	}
+	if email != nil {
+		updateEmail = *email
+	}
+	if phone != nil {
+		updatePhone = sql.NullString{String: *phone, Valid: true}
+	}
+
+	// Handle password separately - only update if provided
+	updatePassword := "" // empty string = no change (your SQL should handle this)
+	if password != nil {
+		hashed, err := bcrypt.GenerateFromPassword([]byte(*password), bcrypt.DefaultCost)
+		if err != nil {
+			return nil, err
+		}
+		updatePassword = string(hashed)
+	}
+
+	// Update via sqlc
+	userDB, err := database.Queries.UpdateUser(ctx, db.UpdateUserParams{
+		ID:       int32(userID),
+		FullName: updateFullName,
+		Email:    updateEmail,
+		Password: updatePassword, // empty = no change
+		Phone:    updatePhone,
+		RoleID:   existing.RoleID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert to db.User and return
+	user := &db.User{
+		ID:        userDB.ID,
+		FullName:  userDB.FullName,
+		Email:     userDB.Email,
+		Phone:     userDB.Phone,
+		RoleID:    userDB.RoleID,
+		CreatedAt: userDB.CreatedAt,
+		UpdatedAt: userDB.UpdatedAt,
+	}
+
+	return user, nil
+}
+
+// DeleteUser is the resolver for the deleteUser field.
+func (r *mutationResolver) DeleteUser(ctx context.Context, id string) (*db.User, error) {
+	// Convert GraphQL ID → int
+	userID, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, errors.New("invalid user id")
+	}
+
+	// Call sqlc delete
+	userDB, err := database.Queries.DeleteUser(ctx, int32(userID))
+	if err == sql.ErrNoRows {
+		return nil, errors.New("user not found")
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert DeleteUserRow → db.User
+	user := &db.User{
+		ID:        userDB.ID,
+		FullName:  userDB.FullName,
+		Email:     userDB.Email,
+		Phone:     userDB.Phone,
+		CreatedAt: userDB.CreatedAt,
+		UpdatedAt: userDB.UpdatedAt,
+	}
+
+	return user, nil
+}
+
 // CreateCategory is the resolver for the createCategory field.
 func (r *mutationResolver) CreateCategory(ctx context.Context, categoryName string, description *string) (*db.Category, error) {
 	if categoryName == "" {
@@ -93,6 +207,226 @@ func (r *mutationResolver) CreateCategory(ctx context.Context, categoryName stri
 	}
 
 	return &categoryDB, nil
+}
+
+// CreateCountry is the resolver for the createCountry field.
+func (r *mutationResolver) CreateCountry(ctx context.Context, name string) (*db.Country, error) {
+	if name == "" {
+		return nil, errors.New("name is required")
+	}
+
+	// Call the database query
+	countryDB, err := database.Queries.CreateCountry(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+
+	return &countryDB, nil
+}
+
+// UpdateCountry is the resolver for the updateCountry field.
+func (r *mutationResolver) UpdateCountry(ctx context.Context, id string, name *string) (*db.Country, error) {
+	// Convert ID
+	countryID, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, errors.New("invalid country id")
+	}
+
+	// Handle optional name
+	updateName := ""
+	if name != nil {
+		updateName = *name
+	}
+
+	// Call sqlc update query
+	countryDB, err := database.Queries.UpdateCountry(ctx, db.UpdateCountryParams{
+		Name: updateName,
+		ID:   int32(countryID),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &countryDB, nil
+}
+
+// DeleteCountry is the resolver for the deleteCountry field.
+func (r *mutationResolver) DeleteCountry(ctx context.Context, id string) (*db.Country, error) {
+	// Convert ID from string → int
+	countryID, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, errors.New("invalid country id")
+	}
+
+	// Call sqlc delete query
+	countryDB, err := database.Queries.DeleteCountry(ctx, int32(countryID))
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errors.New("country not found")
+		}
+		return nil, err
+	}
+
+	return &countryDB, nil
+}
+
+// CreateState is the resolver for the createState field.
+func (r *mutationResolver) CreateState(ctx context.Context, countryID string, name string) (*db.State, error) {
+	if name == "" {
+		return nil, errors.New("state name is required")
+	}
+
+	// Parse country ID
+	cID, err := strconv.Atoi(countryID)
+	if err != nil {
+		return nil, errors.New("invalid country id")
+	}
+
+	state, err := database.Queries.CreateState(ctx, db.CreateStateParams{
+		CountryID: int32(cID),
+		Name:      name,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &state, nil
+}
+
+// UpdateState is the resolver for the updateState field.
+func (r *mutationResolver) UpdateState(ctx context.Context, id string, countryID *string, name *string) (*db.State, error) {
+	stateID, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, errors.New("invalid state ID")
+	}
+
+	existing, err := database.Queries.GetState(ctx, int32(stateID))
+	if err != nil {
+		return nil, err
+	}
+
+	// Resolve country ID
+	updateCountryID := existing.CountryID
+	if countryID != nil {
+		parsedID, err := strconv.Atoi(*countryID)
+		if err != nil {
+			return nil, errors.New("invalid country ID")
+		}
+		updateCountryID = int32(parsedID)
+	}
+
+	// Resolve name
+	updateName := existing.Name
+	if name != nil {
+		updateName = *name
+	}
+
+	state, err := database.Queries.UpdateState(ctx, db.UpdateStateParams{
+		CountryID: updateCountryID,
+		Name:      updateName,
+		ID:        int32(stateID),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &state, nil
+}
+
+// DeleteState is the resolver for the deleteState field.
+func (r *mutationResolver) DeleteState(ctx context.Context, id string) (*db.State, error) {
+	stateID, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, errors.New("invalid state id")
+	}
+
+	state, err := database.Queries.DeleteState(ctx, int32(stateID))
+	return &state, err
+}
+
+// CreateCity is the resolver for the createCity field.
+func (r *mutationResolver) CreateCity(ctx context.Context, stateID string, name string) (*db.City, error) {
+	if name == "" {
+		return nil, errors.New("city name is required")
+	}
+
+	sID, err := strconv.Atoi(stateID)
+	if err != nil {
+		return nil, errors.New("invalid state id")
+	}
+
+	city, err := database.Queries.CreateCity(ctx, db.CreateCityParams{
+		StateID: int32(sID),
+		Name:    name,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &city, nil
+}
+
+// UpdateCity is the resolver for the updateCity field.
+func (r *mutationResolver) UpdateCity(ctx context.Context, id string, stateId *string, name *string) (*db.City, error) {
+	// Convert id string to int32
+	cityID, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, errors.New("invalid city id")
+	}
+
+	// Prepare parameters
+	var sID int32
+	if stateId != nil {
+		sidInt, err := strconv.Atoi(*stateId)
+		if err != nil {
+			return nil, errors.New("invalid state id")
+		}
+		sID = int32(sidInt)
+	}
+
+	// Fetch existing city
+	existingCity, err := database.Queries.GetCity(ctx, int32(cityID))
+	if err != nil {
+		return nil, err
+	}
+
+	// Update fields if provided
+	updatedCity, err := database.Queries.UpdateCity(ctx, db.UpdateCityParams{
+		ID: int32(cityID),
+		StateID: func() int32 {
+			if stateId != nil {
+				return sID
+			}
+			return existingCity.StateID
+		}(),
+		Name: func() string {
+			if name != nil {
+				return *name
+			}
+			return existingCity.Name
+		}(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &updatedCity, nil
+}
+
+// DeleteCity is the resolver for the deleteCity field.
+func (r *mutationResolver) DeleteCity(ctx context.Context, id string) (*db.City, error) {
+	cityID, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, errors.New("invalid city id")
+	}
+
+	// Call SQL query to delete city
+	city, err := database.Queries.DeleteCity(ctx, int32(cityID))
+	if err != nil {
+		return nil, err
+	}
+
+	return &city, nil
 }
 
 // User is the resolver for the user field.
@@ -122,6 +456,31 @@ func (r *queryResolver) User(ctx context.Context, id string) (*db.User, error) {
 	}
 
 	return user, nil
+}
+
+// Users is the resolver for the users field.
+func (r *queryResolver) Users(ctx context.Context) ([]*db.User, error) {
+	usersDB, err := database.Queries.ListUsers(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	users := make([]*db.User, 0, len(usersDB))
+
+	for _, u := range usersDB {
+		user := &db.User{
+			ID:        u.ID,
+			FullName:  u.FullName,
+			Email:     u.Email,
+			Phone:     u.Phone,
+			RoleID:    u.RoleID,
+			CreatedAt: u.CreatedAt,
+			UpdatedAt: u.UpdatedAt,
+		}
+		users = append(users, user)
+	}
+
+	return users, nil
 }
 
 // Category is the resolver for the category field.
@@ -158,6 +517,158 @@ func (r *queryResolver) Categories(ctx context.Context) ([]*db.Category, error) 
 	return categories, nil
 }
 
+// Country is the resolver for the country field.
+func (r *queryResolver) Country(ctx context.Context, id string) (*db.Country, error) {
+	// Convert GraphQL ID (string) → int
+	countryID, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, errors.New("invalid country id")
+	}
+
+	// Fetch country from database
+	countryDB, err := database.Queries.GetCountry(ctx, int32(countryID))
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errors.New("country not found")
+		}
+		return nil, err
+	}
+
+	return &countryDB, nil
+}
+
+// Countries is the resolver for the countries field.
+func (r *queryResolver) Countries(ctx context.Context) ([]*db.Country, error) {
+	countriesDB, err := database.Queries.ListCountries(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert []Country → []*Country
+	countries := make([]*db.Country, len(countriesDB))
+	for i := range countriesDB {
+		countries[i] = &countriesDB[i]
+	}
+
+	return countries, nil
+}
+
+// State is the resolver for the state field.
+func (r *queryResolver) State(ctx context.Context, id string) (*db.State, error) {
+	stateID, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, errors.New("invalid state id")
+	}
+
+	state, err := database.Queries.GetState(ctx, int32(stateID))
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+
+	return &state, err
+}
+
+// States is the resolver for the states field.
+func (r *queryResolver) States(ctx context.Context) ([]*db.State, error) {
+	states, err := database.Queries.ListStates(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var result []*db.State
+	for _, s := range states {
+		state := s
+		result = append(result, &state)
+	}
+
+	return result, nil
+}
+
+// StatesByCountry is the resolver for the statesByCountry field.
+func (r *queryResolver) StatesByCountry(ctx context.Context, countryID string) ([]*db.State, error) {
+	id, err := strconv.Atoi(countryID)
+	if err != nil {
+		return nil, errors.New("invalid country id")
+	}
+
+	states, err := database.Queries.ListStatesByCountry(ctx, int32(id))
+	if err != nil {
+		return nil, err
+	}
+
+	var result []*db.State
+	for _, s := range states {
+		state := s
+		result = append(result, &state)
+	}
+
+	return result, nil
+}
+
+// City is the resolver for the city field.
+func (r *queryResolver) City(ctx context.Context, id string) (*db.City, error) {
+	cityID, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, errors.New("invalid city id")
+	}
+
+	city, err := database.Queries.GetCity(ctx, int32(cityID))
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errors.New("city not found")
+		}
+		return nil, err
+	}
+
+	return &city, nil
+}
+
+// Cities is the resolver for the cities field.
+func (r *queryResolver) Cities(ctx context.Context) ([]*db.City, error) {
+	cities, err := database.Queries.ListCities(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]*db.City, 0, len(cities))
+	for _, city := range cities {
+		c := city // avoid pointer reuse bug
+		result = append(result, &c)
+	}
+
+	return result, nil
+}
+
+// CitiesByState is the resolver for the citiesByState field.
+func (r *queryResolver) CitiesByState(ctx context.Context, stateID string) ([]*db.City, error) {
+	sID, err := strconv.Atoi(stateID)
+	if err != nil {
+		return nil, errors.New("invalid state id")
+	}
+
+	cities, err := database.Queries.ListCitiesByState(ctx, int32(sID))
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]*db.City, 0, len(cities))
+	for _, city := range cities {
+		c := city // avoid pointer reuse bug
+		result = append(result, &c)
+	}
+
+	return result, nil
+}
+
+// ID is the resolver for the id field.
+func (r *stateResolver) ID(ctx context.Context, obj *db.State) (string, error) {
+	return fmt.Sprintf("%d", obj.ID), nil
+}
+
+// CountryID is the resolver for the countryId field.
+func (r *stateResolver) CountryID(ctx context.Context, obj *db.State) (string, error) {
+	return fmt.Sprintf("%d", obj.CountryID), nil
+}
+
 // ID is the resolver for the id field.
 func (r *userResolver) ID(ctx context.Context, obj *db.User) (string, error) {
 	return fmt.Sprintf("%d", obj.ID), nil
@@ -184,16 +695,28 @@ func (r *userResolver) RoleID(ctx context.Context, obj *db.User) (*string, error
 // Category returns generated.CategoryResolver implementation.
 func (r *Resolver) Category() generated.CategoryResolver { return &categoryResolver{r} }
 
+// City returns generated.CityResolver implementation.
+func (r *Resolver) City() generated.CityResolver { return &cityResolver{r} }
+
+// Country returns generated.CountryResolver implementation.
+func (r *Resolver) Country() generated.CountryResolver { return &countryResolver{r} }
+
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
+// State returns generated.StateResolver implementation.
+func (r *Resolver) State() generated.StateResolver { return &stateResolver{r} }
+
 // User returns generated.UserResolver implementation.
 func (r *Resolver) User() generated.UserResolver { return &userResolver{r} }
 
 type categoryResolver struct{ *Resolver }
+type cityResolver struct{ *Resolver }
+type countryResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
+type stateResolver struct{ *Resolver }
 type userResolver struct{ *Resolver }

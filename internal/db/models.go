@@ -15,6 +15,23 @@ type Category struct {
 	Description  sql.NullString `json:"description"`
 }
 
+type City struct {
+	ID      int32  `json:"id"`
+	StateID int32  `json:"state_id"`
+	Name    string `json:"name"`
+}
+
+type Country struct {
+	ID   int32  `json:"id"`
+	Name string `json:"name"`
+}
+
+type State struct {
+	ID        int32  `json:"id"`
+	CountryID int32  `json:"country_id"`
+	Name      string `json:"name"`
+}
+
 type Tour struct {
 	ID           int32          `json:"id"`
 	Title        string         `json:"title"`
