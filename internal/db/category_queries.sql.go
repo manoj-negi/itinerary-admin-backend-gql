@@ -70,7 +70,7 @@ func (q *Queries) GetCategoryByName(ctx context.Context, categoryName string) (C
 const listCategories = `-- name: ListCategories :many
 SELECT id, category_name, description
 FROM categories
-ORDER BY category_name
+ORDER BY id
 `
 
 func (q *Queries) ListCategories(ctx context.Context) ([]Category, error) {

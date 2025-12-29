@@ -12,11 +12,42 @@ import (
 	"fmt"
 	"graphql/database"
 	"graphql/graphql/generated"
+	"graphql/graphql/models"
 	"graphql/internal/db"
+	"os"
 	"strconv"
+	"strings"
+	"time"
 
+	jwt "github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
+
+// ID is the resolver for the id field.
+func (r *bookingResolver) ID(ctx context.Context, obj *db.Booking) (string, error) {
+	return fmt.Sprintf("%d", obj.ID), nil
+}
+
+// UserID is the resolver for the user_id field.
+func (r *bookingResolver) UserID(ctx context.Context, obj *db.Booking) (string, error) {
+	return fmt.Sprintf("%d", obj.UserID), nil
+}
+
+// PackageID is the resolver for the package_id field.
+func (r *bookingResolver) PackageID(ctx context.Context, obj *db.Booking) (string, error) {
+	return fmt.Sprintf("%d", obj.PackageID), nil
+}
+
+// TravelStartDate is the resolver for the travel_start_date field.
+func (r *bookingResolver) TravelStartDate(ctx context.Context, obj *db.Booking) (string, error) {
+	// DATE in DB → String in GraphQL schema
+	return obj.TravelStartDate.Format("2006-01-02"), nil
+}
+
+// TravelEndDate is the resolver for the travel_end_date field.
+func (r *bookingResolver) TravelEndDate(ctx context.Context, obj *db.Booking) (string, error) {
+	return obj.TravelEndDate.Format("2006-01-02"), nil
+}
 
 // ID is the resolver for the id field.
 func (r *categoryResolver) ID(ctx context.Context, obj *db.Category) (string, error) {
@@ -187,26 +218,155 @@ func (r *mutationResolver) DeleteUser(ctx context.Context, id string) (*db.User,
 	return user, nil
 }
 
+// Login is the resolver for the login field.
+func (r *mutationResolver) Login(ctx context.Context, email string, password string) (*models.LoginResponse, error) {
+	if email == "" || password == "" {
+		return nil, errors.New("email and password are required")
+	}
+
+	// 1) Fetch user by email
+	userDB, err := database.Queries.GetUserByEmail(ctx, email)
+	if err == sql.ErrNoRows {
+		return nil, errors.New("invalid credentials")
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// 2) Verify password (bcrypt or plaintext migration)
+	ok := false
+	if strings.HasPrefix(userDB.Password, "$2a$") ||
+		strings.HasPrefix(userDB.Password, "$2b$") ||
+		strings.HasPrefix(userDB.Password, "$2y$") {
+		if bcrypt.CompareHashAndPassword([]byte(userDB.Password), []byte(password)) == nil {
+			ok = true
+		}
+	} else {
+		if userDB.Password == password {
+			ok = true
+			// Migrate to bcrypt (fire-and-forget)
+			if hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost); err == nil {
+				_, _ = database.DB.ExecContext(ctx,
+					`UPDATE users SET password = $1 WHERE id = $2`,
+					string(hash), userDB.ID)
+			}
+		}
+	}
+
+	if !ok {
+		return nil, errors.New("invalid credentials")
+	}
+
+	// 3) Generate JWT
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		secret = "devsecret" // TODO: Remove in production
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"sub": fmt.Sprintf("%d", userDB.ID),
+		"exp": time.Now().Add(24 * time.Hour).Unix(),
+	})
+	tokenStr, err := token.SignedString([]byte(secret))
+	if err != nil {
+		return nil, err
+	}
+
+	// 4) Convert userDB → db.User
+	user := &db.User{
+		ID:        userDB.ID,
+		FullName:  userDB.FullName,
+		Email:     userDB.Email,
+		Phone:     userDB.Phone,
+		RoleID:    userDB.RoleID,
+		CreatedAt: userDB.CreatedAt,
+		UpdatedAt: userDB.UpdatedAt,
+	}
+
+	// 5) Return LoginResponse
+	return &models.LoginResponse{
+		Token: tokenStr,
+		User:  user,
+	}, nil
+}
+
 // CreateCategory is the resolver for the createCategory field.
 func (r *mutationResolver) CreateCategory(ctx context.Context, categoryName string, description *string) (*db.Category, error) {
 	if categoryName == "" {
 		return nil, errors.New("category_name is required")
 	}
 
-	var descVal sql.NullString
+	var desc sql.NullString
+	if description != nil {
+		desc = sql.NullString{String: *description, Valid: true}
+	}
+
+	cat, err := database.Queries.CreateCategory(ctx, db.CreateCategoryParams{
+		CategoryName: categoryName,
+		Description:  desc,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &cat, nil
+}
+
+// UpdateCategory is the resolver for the updateCategory field.
+func (r *mutationResolver) UpdateCategory(ctx context.Context, id string, categoryName *string, description *string) (*db.Category, error) {
+	catID, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, errors.New("invalid category id")
+	}
+
+	// Fetch existing category for defaults
+	existing, err := database.Queries.GetCategory(ctx, int32(catID))
+	if err == sql.ErrNoRows {
+		return nil, errors.New("category not found")
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// Resolve new values
+	nameVal := existing.CategoryName
+	if categoryName != nil {
+		nameVal = *categoryName
+	}
+
+	descVal := existing.Description
 	if description != nil {
 		descVal = sql.NullString{String: *description, Valid: true}
 	}
 
-	categoryDB, err := database.Queries.CreateCategory(ctx, db.CreateCategoryParams{
-		CategoryName: categoryName,
+	cat, err := database.Queries.UpdateCategory(ctx, db.UpdateCategoryParams{
+		ID:           int32(catID),
+		CategoryName: nameVal,
 		Description:  descVal,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	return &categoryDB, nil
+	return &cat, nil
+}
+
+// DeleteCategory is the resolver for the deleteCategory field.
+func (r *mutationResolver) DeleteCategory(ctx context.Context, id string) (*db.Category, error) {
+	catID, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, errors.New("invalid category id")
+	}
+
+	cat, err := database.Queries.DeleteCategory(ctx, int32(catID))
+	if err == sql.ErrNoRows {
+		return nil, errors.New("category not found")
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return &cat, nil
 }
 
 // CreateCountry is the resolver for the createCountry field.
@@ -367,7 +527,7 @@ func (r *mutationResolver) CreateCity(ctx context.Context, stateID string, name 
 }
 
 // UpdateCity is the resolver for the updateCity field.
-func (r *mutationResolver) UpdateCity(ctx context.Context, id string, stateId *string, name *string) (*db.City, error) {
+func (r *mutationResolver) UpdateCity(ctx context.Context, id string, stateID *string, name *string) (*db.City, error) {
 	// Convert id string to int32
 	cityID, err := strconv.Atoi(id)
 	if err != nil {
@@ -376,8 +536,8 @@ func (r *mutationResolver) UpdateCity(ctx context.Context, id string, stateId *s
 
 	// Prepare parameters
 	var sID int32
-	if stateId != nil {
-		sidInt, err := strconv.Atoi(*stateId)
+	if stateID != nil {
+		sidInt, err := strconv.Atoi(*stateID)
 		if err != nil {
 			return nil, errors.New("invalid state id")
 		}
@@ -394,7 +554,7 @@ func (r *mutationResolver) UpdateCity(ctx context.Context, id string, stateId *s
 	updatedCity, err := database.Queries.UpdateCity(ctx, db.UpdateCityParams{
 		ID: int32(cityID),
 		StateID: func() int32 {
-			if stateId != nil {
+			if stateID != nil {
 				return sID
 			}
 			return existingCity.StateID
@@ -427,6 +587,438 @@ func (r *mutationResolver) DeleteCity(ctx context.Context, id string) (*db.City,
 	}
 
 	return &city, nil
+}
+
+// CreateTour is the resolver for the createTour field.
+func (r *mutationResolver) CreateTour(ctx context.Context, title string, description *string, categoryID string, cityID string, durationDays int, createdBy string, status string) (*db.Tour, error) {
+	if title == "" || categoryID == "" || cityID == "" || createdBy == "" || status == "" {
+		return nil, errors.New("title, category_id, city_id, created_by and status are required")
+	}
+
+	catID, err := strconv.Atoi(categoryID)
+	if err != nil {
+		return nil, errors.New("invalid category id")
+	}
+	city, err := strconv.Atoi(cityID)
+	if err != nil {
+		return nil, errors.New("invalid city id")
+	}
+	creatorID, err := strconv.Atoi(createdBy)
+	if err != nil {
+		return nil, errors.New("invalid created_by id")
+	}
+
+	var desc sql.NullString
+	if description != nil {
+		desc = sql.NullString{String: *description, Valid: true}
+	}
+
+	tour, err := database.Queries.CreateTour(ctx, db.CreateTourParams{
+		Title:        title,
+		Description:  desc,
+		CategoryID:   int32(catID),
+		CityID:       int32(city),
+		DurationDays: int32(durationDays),
+		CreatedBy:    int32(creatorID),
+		Status:       status,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &tour, nil
+}
+
+// UpdateTour is the resolver for the updateTour field.
+func (r *mutationResolver) UpdateTour(ctx context.Context, id string, title *string, description *string, categoryID *string, cityID *string, durationDays *int, createdBy *string, status *string) (*db.Tour, error) {
+	tourID, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, errors.New("invalid tour id")
+	}
+
+	// Fetch existing for defaults
+	existing, err := database.Queries.GetTour(ctx, int32(tourID))
+	if err == sql.ErrNoRows {
+		return nil, errors.New("tour not found")
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// Resolve fields
+	newTitle := existing.Title
+	if title != nil {
+		newTitle = *title
+	}
+
+	newDesc := existing.Description
+	if description != nil {
+		newDesc = sql.NullString{String: *description, Valid: true}
+	}
+
+	newCategoryID := existing.CategoryID
+	if categoryID != nil {
+		cid, err := strconv.Atoi(*categoryID)
+		if err != nil {
+			return nil, errors.New("invalid category id")
+		}
+		newCategoryID = int32(cid)
+	}
+
+	newCityID := existing.CityID
+	if cityID != nil {
+		cid, err := strconv.Atoi(*cityID)
+		if err != nil {
+			return nil, errors.New("invalid city id")
+		}
+		newCityID = int32(cid)
+	}
+
+	newDuration := existing.DurationDays
+	if durationDays != nil {
+		newDuration = int32(*durationDays)
+	}
+
+	newCreatedBy := existing.CreatedBy
+	if createdBy != nil {
+		cb, err := strconv.Atoi(*createdBy)
+		if err != nil {
+			return nil, errors.New("invalid created_by id")
+		}
+		newCreatedBy = int32(cb)
+	}
+
+	newStatus := existing.Status
+	if status != nil {
+		newStatus = *status
+	}
+
+	tour, err := database.Queries.UpdateTour(ctx, db.UpdateTourParams{
+		ID:           int32(tourID),
+		Title:        newTitle,
+		Description:  newDesc,
+		CategoryID:   newCategoryID,
+		CityID:       newCityID,
+		DurationDays: newDuration,
+		CreatedBy:    newCreatedBy,
+		Status:       newStatus,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &tour, nil
+}
+
+// DeleteTour is the resolver for the deleteTour field.
+func (r *mutationResolver) DeleteTour(ctx context.Context, id string) (*db.Tour, error) {
+	tourID, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, errors.New("invalid tour id")
+	}
+
+	tour, err := database.Queries.DeleteTour(ctx, int32(tourID))
+	if err == sql.ErrNoRows {
+		return nil, errors.New("tour not found")
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return &tour, nil
+}
+
+// CreatePackage is the resolver for the createPackage field.
+func (r *mutationResolver) CreatePackage(ctx context.Context, tourID string, packageName string, price string, currency string, occupancy *string, isFeatured *bool) (*db.Package, error) {
+	if tourID == "" || packageName == "" || price == "" || currency == "" {
+		return nil, errors.New("tour_id, package_name, price and currency are required")
+	}
+
+	tID, err := strconv.Atoi(tourID)
+	if err != nil {
+		return nil, errors.New("invalid tour id")
+	}
+
+	var occ sql.NullString
+	if occupancy != nil {
+		occ = sql.NullString{String: *occupancy, Valid: true}
+	}
+
+	feat := false
+	if isFeatured != nil {
+		feat = *isFeatured
+	}
+
+	pkg, err := database.Queries.CreatePackage(ctx, db.CreatePackageParams{
+		TourID:      int32(tID),
+		PackageName: packageName,
+		Price:       price,
+		Currency:    currency,
+		Occupancy:   occ,
+		IsFeatured:  feat,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &pkg, nil
+}
+
+// UpdatePackage is the resolver for the updatePackage field.
+func (r *mutationResolver) UpdatePackage(ctx context.Context, id string, tourID *string, packageName *string, price *string, currency *string, occupancy *string, isFeatured *bool) (*db.Package, error) {
+	pkgID, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, errors.New("invalid package id")
+	}
+
+	// existing row for defaults
+	existing, err := database.Queries.GetPackage(ctx, int32(pkgID))
+	if err == sql.ErrNoRows {
+		return nil, errors.New("package not found")
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	newTourID := existing.TourID
+	if tourID != nil {
+		tid, err := strconv.Atoi(*tourID)
+		if err != nil {
+			return nil, errors.New("invalid tour id")
+		}
+		newTourID = int32(tid)
+	}
+
+	newName := existing.PackageName
+	if packageName != nil {
+		newName = *packageName
+	}
+
+	newPrice := existing.Price
+	if price != nil {
+		newPrice = *price
+	}
+
+	newCurrency := existing.Currency
+	if currency != nil {
+		newCurrency = *currency
+	}
+
+	newOcc := existing.Occupancy
+	if occupancy != nil {
+		newOcc = sql.NullString{String: *occupancy, Valid: true}
+	}
+
+	newFeatured := existing.IsFeatured
+	if isFeatured != nil {
+		newFeatured = *isFeatured
+	}
+
+	pkg, err := database.Queries.UpdatePackage(ctx, db.UpdatePackageParams{
+		ID:          int32(pkgID),
+		TourID:      newTourID,
+		PackageName: newName,
+		Price:       newPrice,
+		Currency:    newCurrency,
+		Occupancy:   newOcc,
+		IsFeatured:  newFeatured,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &pkg, nil
+}
+
+// DeletePackage is the resolver for the deletePackage field.
+func (r *mutationResolver) DeletePackage(ctx context.Context, id string) (*db.Package, error) {
+	pkgID, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, errors.New("invalid package id")
+	}
+
+	pkg, err := database.Queries.DeletePackage(ctx, int32(pkgID))
+	if err == sql.ErrNoRows {
+		return nil, errors.New("package not found")
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return &pkg, nil
+}
+
+// CreateBooking is the resolver for the createBooking field.
+func (r *mutationResolver) CreateBooking(
+	ctx context.Context,
+	userID string,
+	packageID string,
+	totalPrice string,
+	status string,
+	travelStartDate string,
+	travelEndDate string,
+) (*db.Booking, error) {
+	if userID == "" || packageID == "" || totalPrice == "" || status == "" || travelStartDate == "" || travelEndDate == "" {
+		return nil, errors.New("user_id, package_id, total_price, status, travel_start_date and travel_end_date are required")
+	}
+
+	uID, err := strconv.Atoi(userID)
+	if err != nil {
+		return nil, errors.New("invalid user_id")
+	}
+
+	pID, err := strconv.Atoi(packageID)
+	if err != nil {
+		return nil, errors.New("invalid package_id")
+	}
+
+	// parse dates (YYYY-MM-DD)
+	startDate, err := time.Parse("2006-01-02", travelStartDate)
+	if err != nil {
+		return nil, errors.New("invalid travel_start_date, expected YYYY-MM-DD")
+	}
+
+	endDate, err := time.Parse("2006-01-02", travelEndDate)
+	if err != nil {
+		return nil, errors.New("invalid travel_end_date, expected YYYY-MM-DD")
+	}
+
+	booking, err := database.Queries.CreateBooking(ctx, db.CreateBookingParams{
+		UserID:          int32(uID),
+		PackageID:       int32(pID),
+		TotalPrice:      totalPrice,
+		Status:          status,
+		TravelStartDate: startDate,
+		TravelEndDate:   endDate,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &booking, nil
+}
+
+// UpdateBooking is the resolver for the updateBooking field.
+func (r *mutationResolver) UpdateBooking(
+	ctx context.Context,
+	id string,
+	userID *string,
+	packageID *string,
+	totalPrice *string,
+	status *string,
+	travelStartDate *string,
+	travelEndDate *string,
+) (*db.Booking, error) {
+	bID, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, errors.New("invalid booking id")
+	}
+
+	existing, err := database.Queries.GetBooking(ctx, int32(bID))
+	if err == sql.ErrNoRows {
+		return nil, errors.New("booking not found")
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	newUserID := existing.UserID
+	if userID != nil {
+		uid, err := strconv.Atoi(*userID)
+		if err != nil {
+			return nil, errors.New("invalid user_id")
+		}
+		newUserID = int32(uid)
+	}
+
+	newPackageID := existing.PackageID
+	if packageID != nil {
+		pid, err := strconv.Atoi(*packageID)
+		if err != nil {
+			return nil, errors.New("invalid package_id")
+		}
+		newPackageID = int32(pid)
+	}
+
+	newTotalPrice := existing.TotalPrice
+	if totalPrice != nil {
+		newTotalPrice = *totalPrice
+	}
+
+	newStatus := existing.Status
+	if status != nil {
+		newStatus = *status
+	}
+
+	newStartDate := existing.TravelStartDate
+	if travelStartDate != nil {
+		d, err := time.Parse("2006-01-02", *travelStartDate)
+		if err != nil {
+			return nil, errors.New("invalid travel_start_date, expected YYYY-MM-DD")
+		}
+		newStartDate = d
+	}
+
+	newEndDate := existing.TravelEndDate
+	if travelEndDate != nil {
+		d, err := time.Parse("2006-01-02", *travelEndDate)
+		if err != nil {
+			return nil, errors.New("invalid travel_end_date, expected YYYY-MM-DD")
+		}
+		newEndDate = d
+	}
+
+	booking, err := database.Queries.UpdateBooking(ctx, db.UpdateBookingParams{
+		ID:              int32(bID),
+		UserID:          newUserID,
+		PackageID:       newPackageID,
+		TotalPrice:      newTotalPrice,
+		Status:          newStatus,
+		TravelStartDate: newStartDate,
+		TravelEndDate:   newEndDate,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &booking, nil
+}
+
+// DeleteBooking is the resolver for the deleteBooking field.
+func (r *mutationResolver) DeleteBooking(ctx context.Context, id string) (*db.Booking, error) {
+	bID, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, errors.New("invalid booking id")
+	}
+
+	booking, err := database.Queries.DeleteBooking(ctx, int32(bID))
+	if err == sql.ErrNoRows {
+		return nil, errors.New("booking not found")
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return &booking, nil
+}
+
+// ID is the resolver for the id field.
+func (r *packageResolver) ID(ctx context.Context, obj *db.Package) (string, error) {
+	return fmt.Sprintf("%d", obj.ID), nil
+}
+
+// TourID is the resolver for the tour_id field.
+func (r *packageResolver) TourID(ctx context.Context, obj *db.Package) (string, error) {
+	return fmt.Sprintf("%d", obj.TourID), nil
+}
+
+// Occupancy is the resolver for the occupancy field.
+func (r *packageResolver) Occupancy(ctx context.Context, obj *db.Package) (*string, error) {
+	if !obj.Occupancy.Valid {
+		return nil, nil
+	}
+	occ := obj.Occupancy.String
+	return &occ, nil
 }
 
 // User is the resolver for the user field.
@@ -659,6 +1251,126 @@ func (r *queryResolver) CitiesByState(ctx context.Context, stateID string) ([]*d
 	return result, nil
 }
 
+// Tour is the resolver for the tour field.
+func (r *queryResolver) Tour(ctx context.Context, id string) (*db.Tour, error) {
+	tourID, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, errors.New("invalid tour id")
+	}
+
+	tour, err := database.Queries.GetTour(ctx, int32(tourID))
+	if err == sql.ErrNoRows {
+		return nil, errors.New("tour not found")
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return &tour, nil
+}
+
+// Tours is the resolver for the tours field.
+func (r *queryResolver) Tours(ctx context.Context) ([]*db.Tour, error) {
+	toursDB, err := database.Queries.ListTours(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	tours := make([]*db.Tour, 0, len(toursDB))
+	for i := range toursDB {
+		t := toursDB[i]
+		tours = append(tours, &t)
+	}
+	return tours, nil
+}
+
+// / Package is the resolver for the package field.
+func (r *queryResolver) Package(ctx context.Context, id string) (*db.Package, error) {
+	pkgID, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, errors.New("invalid package id")
+	}
+
+	pkg, err := database.Queries.GetPackage(ctx, int32(pkgID))
+	if err == sql.ErrNoRows {
+		return nil, errors.New("package not found")
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return &pkg, nil
+}
+
+// Packages is the resolver for the packages field.
+func (r *queryResolver) Packages(ctx context.Context) ([]*db.Package, error) {
+	pkgsDB, err := database.Queries.ListPackages(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	pkgs := make([]*db.Package, 0, len(pkgsDB))
+	for i := range pkgsDB {
+		p := pkgsDB[i]
+		pkgs = append(pkgs, &p)
+	}
+	return pkgs, nil
+}
+
+// PackagesByTour is the resolver for the packagesByTour field.
+func (r *queryResolver) PackagesByTour(ctx context.Context, tourID string) ([]*db.Package, error) {
+	tID, err := strconv.Atoi(tourID)
+	if err != nil {
+		return nil, errors.New("invalid tour id")
+	}
+
+	pkgsDB, err := database.Queries.ListPackagesByTour(ctx, int32(tID))
+	if err != nil {
+		return nil, err
+	}
+
+	pkgs := make([]*db.Package, 0, len(pkgsDB))
+	for i := range pkgsDB {
+		p := pkgsDB[i]
+		pkgs = append(pkgs, &p)
+	}
+	return pkgs, nil
+}
+
+// Booking is the resolver for the booking field.
+func (r *queryResolver) Booking(ctx context.Context, id string) (*db.Booking, error) {
+	bID, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, errors.New("invalid booking id")
+	}
+
+	booking, err := database.Queries.GetBooking(ctx, int32(bID))
+	if err == sql.ErrNoRows {
+		return nil, errors.New("booking not found")
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return &booking, nil
+}
+
+// Bookings is the resolver for the bookings field.
+func (r *queryResolver) Bookings(ctx context.Context) ([]*db.Booking, error) {
+	bookingsDB, err := database.Queries.ListBookings(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	bookings := make([]*db.Booking, 0, len(bookingsDB))
+	for i := range bookingsDB {
+		b := bookingsDB[i]
+		bookings = append(bookings, &b)
+	}
+
+	return bookings, nil
+}
+
 // ID is the resolver for the id field.
 func (r *stateResolver) ID(ctx context.Context, obj *db.State) (string, error) {
 	return fmt.Sprintf("%d", obj.ID), nil
@@ -667,6 +1379,35 @@ func (r *stateResolver) ID(ctx context.Context, obj *db.State) (string, error) {
 // CountryID is the resolver for the countryId field.
 func (r *stateResolver) CountryID(ctx context.Context, obj *db.State) (string, error) {
 	return fmt.Sprintf("%d", obj.CountryID), nil
+}
+
+// ID is the resolver for the id field.
+func (r *tourResolver) ID(ctx context.Context, obj *db.Tour) (string, error) {
+	return fmt.Sprintf("%d", obj.ID), nil
+}
+
+// Description is the resolver for the description field.
+func (r *tourResolver) Description(ctx context.Context, obj *db.Tour) (*string, error) {
+	if !obj.Description.Valid {
+		return nil, nil
+	}
+	desc := obj.Description.String
+	return &desc, nil
+}
+
+// CategoryID is the resolver for the category_id field.
+func (r *tourResolver) CategoryID(ctx context.Context, obj *db.Tour) (string, error) {
+	return fmt.Sprintf("%d", obj.CategoryID), nil
+}
+
+// CityID is the resolver for the city_id field.
+func (r *tourResolver) CityID(ctx context.Context, obj *db.Tour) (string, error) {
+	return fmt.Sprintf("%d", obj.CityID), nil
+}
+
+// CreatedBy is the resolver for the created_by field.
+func (r *tourResolver) CreatedBy(ctx context.Context, obj *db.Tour) (string, error) {
+	return fmt.Sprintf("%d", obj.CreatedBy), nil
 }
 
 // ID is the resolver for the id field.
@@ -692,6 +1433,9 @@ func (r *userResolver) RoleID(ctx context.Context, obj *db.User) (*string, error
 	return &roleID, nil
 }
 
+// Booking returns generated.BookingResolver implementation.
+func (r *Resolver) Booking() generated.BookingResolver { return &bookingResolver{r} }
+
 // Category returns generated.CategoryResolver implementation.
 func (r *Resolver) Category() generated.CategoryResolver { return &categoryResolver{r} }
 
@@ -704,19 +1448,28 @@ func (r *Resolver) Country() generated.CountryResolver { return &countryResolver
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
+// Package returns generated.PackageResolver implementation.
+func (r *Resolver) Package() generated.PackageResolver { return &packageResolver{r} }
+
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
 // State returns generated.StateResolver implementation.
 func (r *Resolver) State() generated.StateResolver { return &stateResolver{r} }
 
+// Tour returns generated.TourResolver implementation.
+func (r *Resolver) Tour() generated.TourResolver { return &tourResolver{r} }
+
 // User returns generated.UserResolver implementation.
 func (r *Resolver) User() generated.UserResolver { return &userResolver{r} }
 
+type bookingResolver struct{ *Resolver }
 type categoryResolver struct{ *Resolver }
 type cityResolver struct{ *Resolver }
 type countryResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
+type packageResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type stateResolver struct{ *Resolver }
+type tourResolver struct{ *Resolver }
 type userResolver struct{ *Resolver }

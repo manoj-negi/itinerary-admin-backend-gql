@@ -2,6 +2,15 @@
 
 package models
 
+import (
+	"graphql/internal/db"
+)
+
+type LoginResponse struct {
+	Token string   `json:"token"`
+	User  *db.User `json:"user"`
+}
+
 type Mutation struct {
 }
 

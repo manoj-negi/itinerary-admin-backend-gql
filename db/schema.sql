@@ -1,3 +1,9 @@
+CREATE TABLE roles (
+  id SERIAL PRIMARY KEY,
+  role_name VARCHAR(100) NOT NULL UNIQUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 CREATE TABLE users (
   id SERIAL PRIMARY KEY,
   full_name VARCHAR(255) NOT NULL,
@@ -27,19 +33,46 @@ CREATE TABLE tours (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
 CREATE TABLE countries (
   id SERIAL PRIMARY KEY,
   name VARCHAR(150) NOT NULL UNIQUE
 );
+
 CREATE TABLE states (
   id SERIAL PRIMARY KEY,
   country_id INT NOT NULL,
   name VARCHAR(150) NOT NULL,
   FOREIGN KEY (country_id) REFERENCES countries(id) ON DELETE CASCADE
 );
+
 CREATE TABLE cities (
   id SERIAL PRIMARY KEY,
   state_id INT NOT NULL,
   name VARCHAR(150) NOT NULL,
   FOREIGN KEY (state_id) REFERENCES states(id) ON DELETE CASCADE
+);
+
+CREATE TABLE packages (
+  id SERIAL PRIMARY KEY,
+  tour_id INT NOT NULL,
+  package_name VARCHAR(255) NOT NULL,
+  price NUMERIC(10,2) NOT NULL,
+  currency VARCHAR(10) NOT NULL,
+  occupancy VARCHAR(50),
+  is_featured BOOLEAN NOT NULL DEFAULT FALSE,
+  FOREIGN KEY (tour_id) REFERENCES tours(id) ON DELETE CASCADE
+);
+
+CREATE TABLE bookings (
+  id SERIAL PRIMARY KEY,
+  user_id INT NOT NULL,
+  package_id INT NOT NULL,
+  total_price NUMERIC(10,2) NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('pending','confirmed','cancelled','completed')),
+  booking_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  travel_start_date DATE NOT NULL,
+  travel_end_date DATE NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id),
+  FOREIGN KEY (package_id) REFERENCES packages(id)
 );

@@ -9,6 +9,17 @@ import (
 	"time"
 )
 
+type Booking struct {
+	ID              int32     `json:"id"`
+	UserID          int32     `json:"user_id"`
+	PackageID       int32     `json:"package_id"`
+	TotalPrice      string    `json:"total_price"`
+	Status          string    `json:"status"`
+	BookingDate     time.Time `json:"booking_date"`
+	TravelStartDate time.Time `json:"travel_start_date"`
+	TravelEndDate   time.Time `json:"travel_end_date"`
+}
+
 type Category struct {
 	ID           int32          `json:"id"`
 	CategoryName string         `json:"category_name"`
@@ -24,6 +35,22 @@ type City struct {
 type Country struct {
 	ID   int32  `json:"id"`
 	Name string `json:"name"`
+}
+
+type Package struct {
+	ID          int32          `json:"id"`
+	TourID      int32          `json:"tour_id"`
+	PackageName string         `json:"package_name"`
+	Price       string         `json:"price"`
+	Currency    string         `json:"currency"`
+	Occupancy   sql.NullString `json:"occupancy"`
+	IsFeatured  bool           `json:"is_featured"`
+}
+
+type Role struct {
+	ID        int32     `json:"id"`
+	RoleName  string    `json:"role_name"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type State struct {

@@ -11,27 +11,9 @@ import (
 )
 
 const createTour = `-- name: CreateTour :one
-INSERT INTO tours (
-  title,
-  description,
-  category_id,
-  city_id,
-  duration_days,
-  created_by,
-  status
-)
+INSERT INTO tours (title, description, category_id, city_id, duration_days, created_by, status)
 VALUES ($1, $2, $3, $4, $5, $6, $7)
-RETURNING
-  id,
-  title,
-  description,
-  category_id,
-  city_id,
-  duration_days,
-  created_by,
-  status,
-  created_at,
-  updated_at
+RETURNING id, title, description, category_id, city_id, duration_days, created_by, status, created_at, updated_at
 `
 
 type CreateTourParams struct {
@@ -73,17 +55,7 @@ func (q *Queries) CreateTour(ctx context.Context, arg CreateTourParams) (Tour, e
 const deleteTour = `-- name: DeleteTour :one
 DELETE FROM tours
 WHERE id = $1
-RETURNING
-  id,
-  title,
-  description,
-  category_id,
-  city_id,
-  duration_days,
-  created_by,
-  status,
-  created_at,
-  updated_at
+RETURNING id, title, description, category_id, city_id, duration_days, created_by, status, created_at, updated_at
 `
 
 func (q *Queries) DeleteTour(ctx context.Context, id int32) (Tour, error) {
@@ -105,17 +77,7 @@ func (q *Queries) DeleteTour(ctx context.Context, id int32) (Tour, error) {
 }
 
 const getTour = `-- name: GetTour :one
-SELECT
-  id,
-  title,
-  description,
-  category_id,
-  city_id,
-  duration_days,
-  created_by,
-  status,
-  created_at,
-  updated_at
+SELECT id, title, description, category_id, city_id, duration_days, created_by, status, created_at, updated_at
 FROM tours
 WHERE id = $1
 `
@@ -139,19 +101,9 @@ func (q *Queries) GetTour(ctx context.Context, id int32) (Tour, error) {
 }
 
 const listTours = `-- name: ListTours :many
-SELECT
-  id,
-  title,
-  description,
-  category_id,
-  city_id,
-  duration_days,
-  created_by,
-  status,
-  created_at,
-  updated_at
+SELECT id, title, description, category_id, city_id, duration_days, created_by, status, created_at, updated_at
 FROM tours
-ORDER BY created_at DESC
+ORDER BY id
 `
 
 func (q *Queries) ListTours(ctx context.Context) ([]Tour, error) {
@@ -191,46 +143,39 @@ func (q *Queries) ListTours(ctx context.Context) ([]Tour, error) {
 const updateTour = `-- name: UpdateTour :one
 UPDATE tours
 SET
-  title = COALESCE($2, title),
-  description = COALESCE($3, description),
-  category_id = COALESCE($4, category_id),
-  city_id = COALESCE($5, city_id),
-  duration_days = COALESCE($6, duration_days),
-  status = COALESCE($7, status),
-  updated_at = NOW()
-WHERE id = $1
-RETURNING
-  id,
-  title,
-  description,
-  category_id,
-  city_id,
-  duration_days,
-  created_by,
-  status,
-  created_at,
-  updated_at
+  title         = COALESCE($1, title),
+  description   = COALESCE($2, description),
+  category_id   = COALESCE($3, category_id),
+  city_id       = COALESCE($4, city_id),
+  duration_days = COALESCE($5, duration_days),
+  created_by    = COALESCE($6, created_by),
+  status        = COALESCE($7, status),
+  updated_at    = NOW()
+WHERE id = $8
+RETURNING id, title, description, category_id, city_id, duration_days, created_by, status, created_at, updated_at
 `
 
 type UpdateTourParams struct {
-	ID           int32          `json:"id"`
 	Title        string         `json:"title"`
 	Description  sql.NullString `json:"description"`
 	CategoryID   int32          `json:"category_id"`
 	CityID       int32          `json:"city_id"`
 	DurationDays int32          `json:"duration_days"`
+	CreatedBy    int32          `json:"created_by"`
 	Status       string         `json:"status"`
+	ID           int32          `json:"id"`
 }
 
 func (q *Queries) UpdateTour(ctx context.Context, arg UpdateTourParams) (Tour, error) {
 	row := q.db.QueryRowContext(ctx, updateTour,
-		arg.ID,
 		arg.Title,
 		arg.Description,
 		arg.CategoryID,
 		arg.CityID,
 		arg.DurationDays,
+		arg.CreatedBy,
 		arg.Status,
+		arg.ID,
 	)
 	var i Tour
 	err := row.Scan(

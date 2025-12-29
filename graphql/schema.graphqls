@@ -2,17 +2,17 @@ scalar Time
 
 type User {
   id: ID!
-  fullName: String!
+  full_name: String!
   email: String!
   phone: String
-  roleId: ID
-  createdAt: Time!
-  updatedAt: Time!
+  role_id: ID
+  created_at: Time!
+  updated_at: Time!
 }
 
 type Category {
   id: ID!
-  categoryName: String!
+  category_name: String!
   description: String
 }
 
@@ -33,11 +33,45 @@ type City {
   name: String!
 }
 
+type Tour {
+  id: ID!
+  title: String!
+  description: String
+  category_id: ID!
+  city_id: ID!
+  duration_days: Int!
+  created_by: ID!
+  status: String!
+  created_at: Time!
+  updated_at: Time!
+}
+
+type Package {
+  id: ID!
+  tour_id: ID!
+  package_name: String!
+  price: String!
+  currency: String!
+  occupancy: String
+  is_featured: Boolean!
+}
+
+type Booking {
+  id: ID!
+  user_id: ID!
+  package_id: ID!
+  total_price: String!
+  status: String!
+  booking_date: Time!
+  travel_start_date: String!
+  travel_end_date: String!
+}
+
 type Query {
   user(id: ID!): User
   users: [User!]!
-  category(id: ID!): Category
 
+  category(id: ID!): Category
   categories: [Category!]!
 
   country(id: ID!): Country
@@ -50,6 +84,16 @@ type Query {
   city(id: ID!): City
   cities: [City!]!
   citiesByState(stateId: ID!): [City!]!
+
+  tour(id: ID!): Tour
+  tours: [Tour!]!
+
+  package(id: ID!): Package
+  packages: [Package!]!
+  packagesByTour(tour_id: ID!): [Package!]!
+
+  booking(id: ID!): Booking
+  bookings: [Booking!]!
 }
 
 type Mutation {
@@ -57,7 +101,11 @@ type Mutation {
   updateUser(id: ID!, full_name: String, email: String, password: String, phone: String): User!
   deleteUser(id: ID!): User!
 
-  createCategory(categoryName: String!, description: String): Category!
+  login(email: String!, password: String!): LoginResponse!
+
+  createCategory(category_name: String!, description: String): Category!
+  updateCategory(id: ID!, category_name: String, description: String): Category!
+  deleteCategory(id: ID!): Category!
 
   createCountry(name :String!): Country!
   updateCountry(id: ID!, name: String): Country!
@@ -70,4 +118,21 @@ type Mutation {
   createCity(stateId: ID!, name: String!): City!
   updateCity(id: ID!, stateId: ID, name: String): City!
   deleteCity(id: ID!): City!
+
+  createTour(title: String!, description: String, category_id: ID!, city_id: ID!, duration_days: Int!, created_by: ID!, status: String!): Tour!
+  updateTour(id: ID!, title: String, description: String, category_id: ID, city_id: ID, duration_days: Int, created_by: ID, status: String): Tour!
+  deleteTour(id: ID!): Tour!
+
+  createPackage(tour_id: ID!, package_name: String!, price: String!, currency: String!, occupancy: String, is_featured: Boolean): Package!
+  updatePackage(id: ID!, tour_id: ID, package_name: String, price: String, currency: String, occupancy: String, is_featured: Boolean): Package!
+  deletePackage(id: ID!): Package!
+
+  createBooking(user_id:ID! package_id:ID! total_price:String! status:String! travel_start_date:String! travel_end_date:String!):Booking!
+  updateBooking(id:ID! user_id:ID package_id:ID total_price:String status:String travel_start_date:String travel_end_date:String):Booking!
+  deleteBooking(id:ID!):Booking!
   }
+
+type LoginResponse {
+  token: String!
+  user: User!
+}
