@@ -16,3 +16,8 @@ type Mutation struct {
 
 type Query struct {
 }
+
+type TourImageInput struct {
+	FileURL string  `json:"file_url"`
+	AltText *string `json:"alt_text,omitempty"`
+}

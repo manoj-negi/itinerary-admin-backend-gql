@@ -72,6 +72,13 @@ type Tour struct {
 	UpdatedAt    time.Time      `json:"updated_at"`
 }
 
+type TourImage struct {
+	ID      int32          `json:"id"`
+	TourID  int32          `json:"tour_id"`
+	FileUrl string         `json:"file_url"`
+	AltText sql.NullString `json:"alt_text"`
+}
+
 type User struct {
 	ID        int32          `json:"id"`
 	FullName  string         `json:"full_name"`

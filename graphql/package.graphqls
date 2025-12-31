@@ -1,0 +1,20 @@
+extend type Package {
+  tour_id: ID!
+  package_name: String!
+  price: String!
+  currency: String!
+  occupancy: String
+  is_featured: Boolean!
+}
+
+extend type Query {
+  package(id: ID!): Package
+  packages: [Package!]!
+  packagesByTour(tour_id: ID!): [Package!]!
+}
+
+extend type Mutation {
+  createPackage(tour_id: ID!, package_name: String!, price: String!, currency: String!, occupancy: String, is_featured: Boolean): Package!
+  updatePackage(id: ID!, tour_id: ID, package_name: String, price: String, currency: String, occupancy: String, is_featured: Boolean): Package!
+  deletePackage(id: ID!): Package!
+}

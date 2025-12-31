@@ -1,0 +1,20 @@
+extend type Booking {
+  user_id: ID!
+  package_id: ID!
+  total_price: String!
+  status: String!
+  booking_date: Time!
+  travel_start_date: String!
+  travel_end_date: String!
+}
+
+extend type Query {
+  booking(id: ID!): Booking
+  bookings: [Booking!]!
+}
+
+extend type Mutation {
+  createBooking(user_id:ID! package_id:ID! total_price:String! status:String! travel_start_date:String! travel_end_date:String!):Booking!
+  updateBooking(id:ID! user_id:ID package_id:ID total_price:String status:String travel_start_date:String travel_end_date:String):Booking!
+  deleteBooking(id:ID!):Booking!
+}

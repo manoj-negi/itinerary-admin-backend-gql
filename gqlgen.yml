@@ -1,6 +1,14 @@
 # Where are all the schema files located? globs are supported eg  src/**/*.graphqls
 schema:
   - graphql/schema.graphqls
+  - graphql/user.graphqls
+  - graphql/category.graphqls
+  - graphql/city.graphqls
+  - graphql/country.graphqls
+  - graphql/booking.graphqls
+  - graphql/package.graphqls
+  - graphql/state.graphqls
+  - graphql/tour.graphqls
 
 # Where should the generated server code go?
 exec:

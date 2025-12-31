@@ -1,0 +1,57 @@
+extend type Tour {
+  title: String!
+  description: String
+  category_id: ID!
+  city_id: ID!
+  duration_days: Int!
+  created_by: ID!
+  status: String!
+  created_at: Time!
+  updated_at: Time!
+  images: [TourImage!]!
+}
+
+type TourImage {
+  id: ID!
+  tour_id: ID!
+  file_url: String!
+  alt_text: String
+}
+
+input TourImageInput {
+  file_url: String!
+  alt_text: String
+}
+
+extend type Query {
+  tour(id: ID!): Tour
+  tours: [Tour!]!
+  tourImage(id: ID!): TourImage!
+}
+
+extend type Mutation {
+  createTour(
+    title: String!
+    description: String
+    category_id: ID!
+    city_id: ID!
+    duration_days: Int!
+    created_by: ID!
+    status: String!
+    images: [TourImageInput!]
+  ): Tour!
+
+  updateTour(
+    id: ID!
+    title: String
+    description: String
+    category_id: ID
+    city_id: ID
+    duration_days: Int
+    created_by: ID
+    status: String
+    images: [TourImageInput!]
+  ): Tour!
+
+  deleteTour(id: ID!): Tour!
+}

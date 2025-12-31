@@ -1,0 +1,15 @@
+extend type Category {
+  category_name: String!
+  description: String
+}
+
+extend type Query {
+  category(id: ID!): Category
+  categories: [Category!]!
+}
+
+extend type Mutation {
+  createCategory(category_name: String!, description: String): Category!
+  updateCategory(id: ID!, category_name: String, description: String): Category!
+  deleteCategory(id: ID!): Category!
+}
