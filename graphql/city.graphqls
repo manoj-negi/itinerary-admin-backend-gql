@@ -1,0 +1,16 @@
+extend type City {
+  stateId: ID!
+  name: String!
+}
+
+extend type Query {
+  city(id: ID!): City
+  cities: [City!]!
+  citiesByState(stateId: ID!): [City!]!
+}
+
+extend type Mutation {
+  createCity(stateId: ID!, name: String!): City!
+  updateCity(id: ID!, stateId: ID, name: String): City!
+  deleteCity(id: ID!): City!
+}

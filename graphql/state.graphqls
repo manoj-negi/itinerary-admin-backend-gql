@@ -1,0 +1,16 @@
+extend type State {
+  countryId: ID!
+  name: String!
+}
+
+extend type Query {
+  state(id: ID!): State
+  states: [State!]!
+  statesByCountry(countryId: ID!): [State!]!
+}
+
+extend type Mutation {
+  createState(countryId: ID!, name: String!): State!
+  updateState(id: ID!, countryId: ID, name: String): State!
+  deleteState(id: ID!): State!
+}

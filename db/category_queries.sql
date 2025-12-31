@@ -16,7 +16,7 @@ WHERE category_name = $1;
 -- name: ListCategories :many
 SELECT id, category_name, description
 FROM categories
-ORDER BY category_name;
+ORDER BY id;
 
 -- name: UpdateCategory :one
 UPDATE categories

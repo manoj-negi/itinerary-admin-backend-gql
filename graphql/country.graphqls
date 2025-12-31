@@ -1,0 +1,14 @@
+extend type Country {
+  name: String!
+}
+
+extend type Query {
+  country(id: ID!): Country
+  countries: [Country!]!
+}
+
+extend type Mutation {
+  createCountry(name :String!): Country!
+  updateCountry(id: ID!, name: String): Country!
+  deleteCountry(id: ID!): Country!
+}

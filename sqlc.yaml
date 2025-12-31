@@ -8,6 +8,9 @@ sql:
       - "db/country_queries.sql"
       - "db/state_queries.sql"
       - "db/city_queries.sql"
+      - "db/package_queries.sql"
+      - "db/booking_queries.sql"
+      - "db/tour_image_queries.sql"
 
     engine: "postgresql"
     gen:

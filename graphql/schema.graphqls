@@ -1,73 +1,28 @@
 scalar Time
 
-type User {
-  id: ID!
-  fullName: String!
-  email: String!
-  phone: String
-  roleId: ID
-  createdAt: Time!
-  updatedAt: Time!
-}
+type User { id: ID! }
 
-type Category {
-  id: ID!
-  categoryName: String!
-  description: String
-}
+type Category { id: ID! }
 
-type Country {
-  id: ID!
-  name: String!
-}
+type Country { id: ID! }
 
-type State {
-  id: ID!
-  countryId: ID!
-  name: String!
-}
+type State { id: ID! }
 
-type City {
-  id: ID!
-  stateId: ID!
-  name: String!
-}
+type City { id: ID! }
 
-type Query {
-  user(id: ID!): User
-  users: [User!]!
-  category(id: ID!): Category
+type Tour { id: ID! }
+  
+type Package { id: ID! }
 
-  categories: [Category!]!
+type Booking { id: ID! }
 
-  country(id: ID!): Country
-  countries: [Country!]!
-
-  state(id: ID!): State
-  states: [State!]!
-  statesByCountry(countryId: ID!): [State!]!
-
-  city(id: ID!): City
-  cities: [City!]!
-  citiesByState(stateId: ID!): [City!]!
-}
+type Query
 
 type Mutation {
-  createUser(full_name: String!, email: String!, password: String!, phone: String): User!
-  updateUser(id: ID!, full_name: String, email: String, password: String, phone: String): User!
-  deleteUser(id: ID!): User!
-
-  createCategory(categoryName: String!, description: String): Category!
-
-  createCountry(name :String!): Country!
-  updateCountry(id: ID!, name: String): Country!
-  deleteCountry(id: ID!): Country!
-
-  createState(countryId: ID!, name: String!): State!
-  updateState(id: ID!, countryId: ID, name: String): State!
-  deleteState(id: ID!): State!
-
-  createCity(stateId: ID!, name: String!): City!
-  updateCity(id: ID!, stateId: ID, name: String): City!
-  deleteCity(id: ID!): City!
+  login(email: String!, password: String!): LoginResponse!
   }
+
+type LoginResponse {
+  token: String!
+  user: User!
+}
