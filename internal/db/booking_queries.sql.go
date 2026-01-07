@@ -16,11 +16,10 @@ INSERT INTO bookings (
   package_id,
   total_price,
   status,
-  booking_date,
   travel_start_date,
   travel_end_date
 ) VALUES (
-  $1, $2, $3, $4, COALESCE($5, NOW()), $6, $7
+  $1, $2, $3, $4, $5, $6
 )
 RETURNING
   id, user_id, package_id, total_price, status,
@@ -28,13 +27,12 @@ RETURNING
 `
 
 type CreateBookingParams struct {
-	UserID          int32       `json:"user_id"`
-	PackageID       int32       `json:"package_id"`
-	TotalPrice      string      `json:"total_price"`
-	Status          string      `json:"status"`
-	Column5         interface{} `json:"column_5"`
-	TravelStartDate time.Time   `json:"travel_start_date"`
-	TravelEndDate   time.Time   `json:"travel_end_date"`
+	UserID          int32     `json:"user_id"`
+	PackageID       int32     `json:"package_id"`
+	TotalPrice      string    `json:"total_price"`
+	Status          string    `json:"status"`
+	TravelStartDate time.Time `json:"travel_start_date"`
+	TravelEndDate   time.Time `json:"travel_end_date"`
 }
 
 func (q *Queries) CreateBooking(ctx context.Context, arg CreateBookingParams) (Booking, error) {
@@ -43,7 +41,6 @@ func (q *Queries) CreateBooking(ctx context.Context, arg CreateBookingParams) (B
 		arg.PackageID,
 		arg.TotalPrice,
 		arg.Status,
-		arg.Column5,
 		arg.TravelStartDate,
 		arg.TravelEndDate,
 	)
@@ -156,10 +153,9 @@ SET
   package_id        = COALESCE($2, package_id),
   total_price       = COALESCE($3, total_price),
   status            = COALESCE($4, status),
-  booking_date      = COALESCE($5, booking_date),
-  travel_start_date = COALESCE($6, travel_start_date),
-  travel_end_date   = COALESCE($7, travel_end_date)
-WHERE id = $8
+  travel_start_date = COALESCE($5, travel_start_date),
+  travel_end_date   = COALESCE($6, travel_end_date)
+WHERE id = $7
 RETURNING
   id, user_id, package_id, total_price, status,
   booking_date, travel_start_date, travel_end_date
@@ -170,7 +166,6 @@ type UpdateBookingParams struct {
 	PackageID       int32     `json:"package_id"`
 	TotalPrice      string    `json:"total_price"`
 	Status          string    `json:"status"`
-	BookingDate     time.Time `json:"booking_date"`
 	TravelStartDate time.Time `json:"travel_start_date"`
 	TravelEndDate   time.Time `json:"travel_end_date"`
 	ID              int32     `json:"id"`
@@ -182,7 +177,6 @@ func (q *Queries) UpdateBooking(ctx context.Context, arg UpdateBookingParams) (B
 		arg.PackageID,
 		arg.TotalPrice,
 		arg.Status,
-		arg.BookingDate,
 		arg.TravelStartDate,
 		arg.TravelEndDate,
 		arg.ID,

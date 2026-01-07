@@ -1,21 +1,5 @@
 scalar Time
 
-type User { id: ID! }
-
-type Category { id: ID! }
-
-type Country { id: ID! }
-
-type State { id: ID! }
-
-type City { id: ID! }
-
-type Tour { id: ID! }
-  
-type Package { id: ID! }
-
-type Booking { id: ID! }
-
 type Query
 
 type Mutation {

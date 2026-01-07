@@ -9,10 +9,17 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"graphql/database"
+	"graphql/graphql/generated"
 	"graphql/internal/db"
 	"strconv"
 )
+
+// ID is the resolver for the id field.
+func (r *countryResolver) ID(ctx context.Context, obj *db.Country) (string, error) {
+	return fmt.Sprintf("%d", obj.ID), nil
+}
 
 // CreateCountry is the resolver for the createCountry field.
 func (r *mutationResolver) CreateCountry(ctx context.Context, name string) (*db.Country, error) {
@@ -110,3 +117,8 @@ func (r *queryResolver) Countries(ctx context.Context) ([]*db.Country, error) {
 
 	return countries, nil
 }
+
+// Country returns generated.CountryResolver implementation.
+func (r *Resolver) Country() generated.CountryResolver { return &countryResolver{r} }
+
+type countryResolver struct{ *Resolver }

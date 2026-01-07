@@ -6,12 +6,27 @@ import (
 	"graphql/internal/db"
 )
 
+type CategoryImageInput struct {
+	FileURL string  `json:"file_url"`
+	AltText *string `json:"alt_text,omitempty"`
+}
+
 type LoginResponse struct {
 	Token string   `json:"token"`
 	User  *db.User `json:"user"`
 }
 
 type Mutation struct {
+}
+
+type POIImageInput struct {
+	FileURL string  `json:"file_url"`
+	AltText *string `json:"alt_text,omitempty"`
+}
+
+type PackageImageInput struct {
+	FileURL string  `json:"file_url"`
+	AltText *string `json:"alt_text,omitempty"`
 }
 
 type Query struct {

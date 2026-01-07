@@ -22,26 +22,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// ID is the resolver for the id field.
-func (r *bookingResolver) ID(ctx context.Context, obj *db.Booking) (string, error) {
-	return fmt.Sprintf("%d", obj.ID), nil
-}
-
-// ID is the resolver for the id field.
-func (r *categoryResolver) ID(ctx context.Context, obj *db.Category) (string, error) {
-	return fmt.Sprintf("%d", obj.ID), nil
-}
-
-// ID is the resolver for the id field.
-func (r *cityResolver) ID(ctx context.Context, obj *db.City) (string, error) {
-	return fmt.Sprintf("%d", obj.ID), nil
-}
-
-// ID is the resolver for the id field.
-func (r *countryResolver) ID(ctx context.Context, obj *db.Country) (string, error) {
-	return fmt.Sprintf("%d", obj.ID), nil
-}
-
 // Login is the resolver for the login field.
 func (r *mutationResolver) Login(ctx context.Context, email string, password string) (*models.LoginResponse, error) {
 	if email == "" || password == "" {
@@ -114,63 +94,11 @@ func (r *mutationResolver) Login(ctx context.Context, email string, password str
 	}, nil
 }
 
-// ID is the resolver for the id field.
-func (r *packageResolver) ID(ctx context.Context, obj *db.Package) (string, error) {
-	return fmt.Sprintf("%d", obj.ID), nil
-}
-
-// ID is the resolver for the id field.
-func (r *stateResolver) ID(ctx context.Context, obj *db.State) (string, error) {
-	return fmt.Sprintf("%d", obj.ID), nil
-}
-
-// ID is the resolver for the id field.
-func (r *tourResolver) ID(ctx context.Context, obj *db.Tour) (string, error) {
-	return fmt.Sprintf("%d", obj.ID), nil
-}
-
-// ID is the resolver for the id field.
-func (r *userResolver) ID(ctx context.Context, obj *db.User) (string, error) {
-	return fmt.Sprintf("%d", obj.ID), nil
-}
-
-// Booking returns generated.BookingResolver implementation.
-func (r *Resolver) Booking() generated.BookingResolver { return &bookingResolver{r} }
-
-// Category returns generated.CategoryResolver implementation.
-func (r *Resolver) Category() generated.CategoryResolver { return &categoryResolver{r} }
-
-// City returns generated.CityResolver implementation.
-func (r *Resolver) City() generated.CityResolver { return &cityResolver{r} }
-
-// Country returns generated.CountryResolver implementation.
-func (r *Resolver) Country() generated.CountryResolver { return &countryResolver{r} }
-
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
-
-// Package returns generated.PackageResolver implementation.
-func (r *Resolver) Package() generated.PackageResolver { return &packageResolver{r} }
 
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
-// State returns generated.StateResolver implementation.
-func (r *Resolver) State() generated.StateResolver { return &stateResolver{r} }
-
-// Tour returns generated.TourResolver implementation.
-func (r *Resolver) Tour() generated.TourResolver { return &tourResolver{r} }
-
-// User returns generated.UserResolver implementation.
-func (r *Resolver) User() generated.UserResolver { return &userResolver{r} }
-
-type bookingResolver struct{ *Resolver }
-type categoryResolver struct{ *Resolver }
-type cityResolver struct{ *Resolver }
-type countryResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
-type packageResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
-type stateResolver struct{ *Resolver }
-type tourResolver struct{ *Resolver }
-type userResolver struct{ *Resolver }

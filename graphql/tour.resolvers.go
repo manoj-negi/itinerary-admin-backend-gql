@@ -257,6 +257,11 @@ func (r *queryResolver) TourImage(ctx context.Context, id string) (*db.TourImage
 	return &img, nil
 }
 
+// ID is the resolver for the id field.
+func (r *tourResolver) ID(ctx context.Context, obj *db.Tour) (string, error) {
+	return fmt.Sprintf("%d", obj.ID), nil
+}
+
 // Description is the resolver for the description field.
 func (r *tourResolver) Description(ctx context.Context, obj *db.Tour) (*string, error) {
 	if !obj.Description.Valid {
@@ -316,7 +321,11 @@ func (r *tourImageResolver) AltText(ctx context.Context, obj *db.TourImage) (*st
 	return &v, nil
 }
 
+// Tour returns generated.TourResolver implementation.
+func (r *Resolver) Tour() generated.TourResolver { return &tourResolver{r} }
+
 // TourImage returns generated.TourImageResolver implementation.
 func (r *Resolver) TourImage() generated.TourImageResolver { return &tourImageResolver{r} }
 
+type tourResolver struct{ *Resolver }
 type tourImageResolver struct{ *Resolver }

@@ -1,0 +1,48 @@
+type POI {
+  id: ID!
+  name: String!
+  description: String
+  city_id: ID!
+  type: String!
+  images: [POIImage!]!
+}
+
+type POIImage {
+  id: ID!
+  poi_id: ID!
+  file_url: String!
+  alt_text: String
+}
+
+input POIImageInput {
+  file_url: String!
+  alt_text: String
+}
+
+extend type Query {
+  poi(id: ID!): POI
+  pois: [POI!]!
+  poisByCity(city_id: ID!): [POI!]!
+  poiImage(id: ID!): POIImage!
+}
+
+extend type Mutation {
+  createPOI(
+    name: String!
+    description: String
+    city_id: ID!
+    type: String!
+    images: [POIImageInput!]
+  ): POI!
+
+  updatePOI(
+    id: ID!
+    name: String
+    description: String
+    city_id: ID
+    type: String
+    images: [POIImageInput!]
+  ): POI!
+
+  deletePOI(id: ID!): POI!
+}

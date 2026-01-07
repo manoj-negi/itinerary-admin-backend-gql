@@ -11,6 +11,10 @@ sql:
       - "db/package_queries.sql"
       - "db/booking_queries.sql"
       - "db/tour_image_queries.sql"
+      - "db/point_of_interest_queries.sql"
+      - "db/point_of_interest_image_queries.sql"
+      - "db/category_image_queries.sql"
+      - "db/package_image_queries.sql"
 
     engine: "postgresql"
     gen:
