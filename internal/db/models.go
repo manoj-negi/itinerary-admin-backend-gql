@@ -26,6 +26,13 @@ type Category struct {
 	Description  sql.NullString `json:"description"`
 }
 
+type CategoryImage struct {
+	ID         int32          `json:"id"`
+	CategoryID int32          `json:"category_id"`
+	FileUrl    string         `json:"file_url"`
+	AltText    sql.NullString `json:"alt_text"`
+}
+
 type City struct {
 	ID      int32  `json:"id"`
 	StateID int32  `json:"state_id"`
@@ -45,6 +52,28 @@ type Package struct {
 	Currency    string         `json:"currency"`
 	Occupancy   sql.NullString `json:"occupancy"`
 	IsFeatured  bool           `json:"is_featured"`
+}
+
+type PackageImage struct {
+	ID        int32          `json:"id"`
+	PackageID int32          `json:"package_id"`
+	FileUrl   string         `json:"file_url"`
+	AltText   sql.NullString `json:"alt_text"`
+}
+
+type PointOfInterestImage struct {
+	ID      int32          `json:"id"`
+	PoiID   int32          `json:"poi_id"`
+	FileUrl string         `json:"file_url"`
+	AltText sql.NullString `json:"alt_text"`
+}
+
+type PointsOfInterest struct {
+	ID          int32          `json:"id"`
+	Name        string         `json:"name"`
+	Description sql.NullString `json:"description"`
+	CityID      int32          `json:"city_id"`
+	Type        string         `json:"type"`
 }
 
 type Role struct {

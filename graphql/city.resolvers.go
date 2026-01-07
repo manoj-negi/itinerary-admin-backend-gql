@@ -11,9 +11,15 @@ import (
 	"errors"
 	"fmt"
 	"graphql/database"
+	"graphql/graphql/generated"
 	"graphql/internal/db"
 	"strconv"
 )
+
+// ID is the resolver for the id field.
+func (r *cityResolver) ID(ctx context.Context, obj *db.City) (string, error) {
+	return fmt.Sprintf("%d", obj.ID), nil
+}
 
 // StateID is the resolver for the stateId field.
 func (r *cityResolver) StateID(ctx context.Context, obj *db.City) (string, error) {
@@ -159,3 +165,8 @@ func (r *queryResolver) CitiesByState(ctx context.Context, stateID string) ([]*d
 
 	return result, nil
 }
+
+// City returns generated.CityResolver implementation.
+func (r *Resolver) City() generated.CityResolver { return &cityResolver{r} }
+
+type cityResolver struct{ *Resolver }

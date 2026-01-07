@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"graphql/database"
+	"graphql/graphql/generated"
 	"graphql/internal/db"
 	"strconv"
 
@@ -211,6 +212,11 @@ func (r *queryResolver) Users(ctx context.Context) ([]*db.User, error) {
 	return users, nil
 }
 
+// ID is the resolver for the id field.
+func (r *userResolver) ID(ctx context.Context, obj *db.User) (string, error) {
+	return fmt.Sprintf("%d", obj.ID), nil
+}
+
 // Phone is the resolver for the phone field.
 func (r *userResolver) Phone(ctx context.Context, obj *db.User) (*string, error) {
 	if !obj.Phone.Valid {
@@ -228,3 +234,8 @@ func (r *userResolver) RoleID(ctx context.Context, obj *db.User) (*string, error
 	roleID := fmt.Sprintf("%d", obj.RoleID.Int32)
 	return &roleID, nil
 }
+
+// User returns generated.UserResolver implementation.
+func (r *Resolver) User() generated.UserResolver { return &userResolver{r} }
+
+type userResolver struct{ *Resolver }

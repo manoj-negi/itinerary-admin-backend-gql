@@ -1,15 +1,41 @@
-extend type Category {
+type Category {
+  id: ID!
   category_name: String!
   description: String
+  images: [CategoryImage!]!
+}
+
+type CategoryImage {
+  id: ID!
+  category_id: ID!
+  file_url: String!
+  alt_text: String
+}
+
+input CategoryImageInput {
+  file_url: String!
+  alt_text: String
 }
 
 extend type Query {
   category(id: ID!): Category
   categories: [Category!]!
+  categoryImage(id: ID!): CategoryImage!
 }
 
 extend type Mutation {
-  createCategory(category_name: String!, description: String): Category!
-  updateCategory(id: ID!, category_name: String, description: String): Category!
+  createCategory(
+    category_name: String!
+    description: String
+    images: [CategoryImageInput!]
+  ): Category!
+
+  updateCategory(
+    id: ID!
+    category_name: String
+    description: String
+    images: [CategoryImageInput!]
+  ): Category!
+
   deleteCategory(id: ID!): Category!
 }

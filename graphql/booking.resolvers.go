@@ -11,10 +11,16 @@ import (
 	"errors"
 	"fmt"
 	"graphql/database"
+	"graphql/graphql/generated"
 	"graphql/internal/db"
 	"strconv"
 	"time"
 )
+
+// ID is the resolver for the id field.
+func (r *bookingResolver) ID(ctx context.Context, obj *db.Booking) (string, error) {
+	return fmt.Sprintf("%d", obj.ID), nil
+}
 
 // UserID is the resolver for the user_id field.
 func (r *bookingResolver) UserID(ctx context.Context, obj *db.Booking) (string, error) {
@@ -207,3 +213,8 @@ func (r *queryResolver) Bookings(ctx context.Context) ([]*db.Booking, error) {
 
 	return bookings, nil
 }
+
+// Booking returns generated.BookingResolver implementation.
+func (r *Resolver) Booking() generated.BookingResolver { return &bookingResolver{r} }
+
+type bookingResolver struct{ *Resolver }

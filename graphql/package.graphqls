@@ -1,20 +1,54 @@
-extend type Package {
+type Package {
+  id: ID!
   tour_id: ID!
   package_name: String!
   price: String!
   currency: String!
   occupancy: String
-  is_featured: Boolean!
+  is_featured: Boolean
+  images: [PackageImage!]!
+}
+
+type PackageImage {
+  id: ID!
+  package_id: ID!
+  file_url: String!
+  alt_text: String
+}
+
+input PackageImageInput {
+  file_url: String!
+  alt_text: String
 }
 
 extend type Query {
   package(id: ID!): Package
   packages: [Package!]!
   packagesByTour(tour_id: ID!): [Package!]!
+  packageImage(id: ID!): PackageImage!
 }
 
 extend type Mutation {
-  createPackage(tour_id: ID!, package_name: String!, price: String!, currency: String!, occupancy: String, is_featured: Boolean): Package!
-  updatePackage(id: ID!, tour_id: ID, package_name: String, price: String, currency: String, occupancy: String, is_featured: Boolean): Package!
+  createPackage(
+    tour_id: ID!
+    package_name: String!
+    price: String!
+    currency: String!
+    occupancy: String
+    is_featured: Boolean
+    images: [PackageImageInput!]
+  ): Package!
+
+  updatePackage(
+    id: ID!
+    tour_id: ID
+    package_name: String
+    price: String
+    currency: String
+    occupancy: String
+    is_featured: Boolean
+    images: [PackageImageInput!]
+  ): Package!
+
   deletePackage(id: ID!): Package!
 }

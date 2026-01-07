@@ -9,6 +9,7 @@ schema:
   - graphql/package.graphqls
   - graphql/state.graphqls
   - graphql/tour.graphqls
+  - graphql/poi.graphqls
 
 # Where should the generated server code go?
 exec:
@@ -54,4 +55,8 @@ models:
     model: graphql/internal/db.User
   Category:
     model: graphql/internal/db.Category
+  POI:
+    model: graphql/internal/db.PointsOfInterest
+  POIImage:
+    model: graphql/internal/db.PointOfInterestImage
 

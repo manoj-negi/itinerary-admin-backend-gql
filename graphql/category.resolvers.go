@@ -9,10 +9,18 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"graphql/database"
+	"graphql/graphql/generated"
+	"graphql/graphql/models"
 	"graphql/internal/db"
 	"strconv"
 )
+
+// ID is the resolver for the id field.
+func (r *categoryResolver) ID(ctx context.Context, obj *db.Category) (string, error) {
+	return fmt.Sprintf("%d", obj.ID), nil
+}
 
 // Description is the resolver for the description field.
 func (r *categoryResolver) Description(ctx context.Context, obj *db.Category) (*string, error) {
@@ -23,8 +31,42 @@ func (r *categoryResolver) Description(ctx context.Context, obj *db.Category) (*
 	return &desc, nil
 }
 
+// Images is the resolver for the images field.
+func (r *categoryResolver) Images(ctx context.Context, obj *db.Category) ([]*db.CategoryImage, error) {
+	imgs, err := database.Queries.ListCategoryImagesByCategory(ctx, obj.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]*db.CategoryImage, 0, len(imgs))
+	for i := range imgs {
+		img := imgs[i]
+		out = append(out, &img)
+	}
+	return out, nil
+}
+
+// ID is the resolver for the id field.
+func (r *categoryImageResolver) ID(ctx context.Context, obj *db.CategoryImage) (string, error) {
+	return fmt.Sprintf("%d", obj.ID), nil
+}
+
+// CategoryID is the resolver for the category_id field.
+func (r *categoryImageResolver) CategoryID(ctx context.Context, obj *db.CategoryImage) (string, error) {
+	return fmt.Sprintf("%d", obj.CategoryID), nil
+}
+
+// AltText is the resolver for the alt_text field.
+func (r *categoryImageResolver) AltText(ctx context.Context, obj *db.CategoryImage) (*string, error) {
+	if !obj.AltText.Valid {
+		return nil, nil
+	}
+	v := obj.AltText.String
+	return &v, nil
+}
+
 // CreateCategory is the resolver for the createCategory field.
-func (r *mutationResolver) CreateCategory(ctx context.Context, categoryName string, description *string) (*db.Category, error) {
+func (r *mutationResolver) CreateCategory(ctx context.Context, categoryName string, description *string, images []*models.CategoryImageInput) (*db.Category, error) {
 	if categoryName == "" {
 		return nil, errors.New("category_name is required")
 	}
@@ -34,6 +76,7 @@ func (r *mutationResolver) CreateCategory(ctx context.Context, categoryName stri
 		desc = sql.NullString{String: *description, Valid: true}
 	}
 
+	// 1) Category create
 	cat, err := database.Queries.CreateCategory(ctx, db.CreateCategoryParams{
 		CategoryName: categoryName,
 		Description:  desc,
@@ -42,17 +85,38 @@ func (r *mutationResolver) CreateCategory(ctx context.Context, categoryName stri
 		return nil, err
 	}
 
+	// 2) Images insert (EXACT SAME AS PACKAGE)
+	for _, img := range images {
+		if img == nil || img.FileURL == "" {
+			continue
+		}
+
+		var alt sql.NullString
+		if img.AltText != nil {
+			alt = sql.NullString{String: *img.AltText, Valid: true}
+		}
+
+		_, err := database.Queries.CreateCategoryImage(ctx, db.CreateCategoryImageParams{
+			CategoryID: cat.ID,
+			FileUrl:    img.FileURL,
+			AltText:    alt,
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return &cat, nil
 }
 
 // UpdateCategory is the resolver for the updateCategory field.
-func (r *mutationResolver) UpdateCategory(ctx context.Context, id string, categoryName *string, description *string) (*db.Category, error) {
+func (r *mutationResolver) UpdateCategory(ctx context.Context, id string, categoryName *string, description *string, images []*models.CategoryImageInput) (*db.Category, error) {
 	catID, err := strconv.Atoi(id)
 	if err != nil {
 		return nil, errors.New("invalid category id")
 	}
 
-	// Fetch existing category for defaults
+	// existing row for defaults
 	existing, err := database.Queries.GetCategory(ctx, int32(catID))
 	if err == sql.ErrNoRows {
 		return nil, errors.New("category not found")
@@ -62,23 +126,53 @@ func (r *mutationResolver) UpdateCategory(ctx context.Context, id string, catego
 	}
 
 	// Resolve new values
-	nameVal := existing.CategoryName
+	newName := existing.CategoryName
 	if categoryName != nil {
-		nameVal = *categoryName
+		newName = *categoryName
 	}
 
-	descVal := existing.Description
+	newDesc := existing.Description
 	if description != nil {
-		descVal = sql.NullString{String: *description, Valid: true}
+		newDesc = sql.NullString{String: *description, Valid: true}
 	}
 
+	// 1) Category update
 	cat, err := database.Queries.UpdateCategory(ctx, db.UpdateCategoryParams{
 		ID:           int32(catID),
-		CategoryName: nameVal,
-		Description:  descVal,
+		CategoryName: newName,
+		Description:  newDesc,
 	})
 	if err != nil {
 		return nil, err
+	}
+
+	// 2) Images replace if provided (EXACT SAME AS PACKAGE)
+	if images != nil {
+		// Delete old images
+		if err := database.Queries.DeleteCategoryImagesByCategory(ctx, cat.ID); err != nil {
+			return nil, err
+		}
+
+		// Insert new images
+		for _, img := range images {
+			if img == nil || img.FileURL == "" {
+				continue
+			}
+
+			var alt sql.NullString
+			if img.AltText != nil {
+				alt = sql.NullString{String: *img.AltText, Valid: true}
+			}
+
+			_, err := database.Queries.CreateCategoryImage(ctx, db.CreateCategoryImageParams{
+				CategoryID: cat.ID,
+				FileUrl:    img.FileURL,
+				AltText:    alt,
+			})
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	return &cat, nil
@@ -127,11 +221,36 @@ func (r *queryResolver) Categories(ctx context.Context) ([]*db.Category, error) 
 		return nil, err
 	}
 
-	// Convert []Category to []*Category
 	categories := make([]*db.Category, len(categoriesDB))
 	for i := range categoriesDB {
 		categories[i] = &categoriesDB[i]
 	}
-
 	return categories, nil
 }
+
+// CategoryImage is the resolver for the categoryImage field.
+func (r *queryResolver) CategoryImage(ctx context.Context, id string) (*db.CategoryImage, error) {
+	imgID, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, errors.New("invalid image id")
+	}
+
+	img, err := database.Queries.GetCategoryImageByID(ctx, int32(imgID))
+	if err == sql.ErrNoRows {
+		return nil, errors.New("image not found")
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return &img, nil
+}
+
+// Category returns generated.CategoryResolver implementation.
+func (r *Resolver) Category() generated.CategoryResolver { return &categoryResolver{r} }
+
+// CategoryImage returns generated.CategoryImageResolver implementation.
+func (r *Resolver) CategoryImage() generated.CategoryImageResolver { return &categoryImageResolver{r} }
+
+type categoryResolver struct{ *Resolver }
+type categoryImageResolver struct{ *Resolver }

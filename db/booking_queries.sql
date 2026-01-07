@@ -4,11 +4,10 @@ INSERT INTO bookings (
   package_id,
   total_price,
   status,
-  booking_date,
   travel_start_date,
   travel_end_date
 ) VALUES (
-  $1, $2, $3, $4, COALESCE($5, NOW()), $6, $7
+  $1, $2, $3, $4, $5, $6
 )
 RETURNING
   id, user_id, package_id, total_price, status,
@@ -42,10 +41,9 @@ SET
   package_id        = COALESCE($2, package_id),
   total_price       = COALESCE($3, total_price),
   status            = COALESCE($4, status),
-  booking_date      = COALESCE($5, booking_date),
-  travel_start_date = COALESCE($6, travel_start_date),
-  travel_end_date   = COALESCE($7, travel_end_date)
-WHERE id = $8
+  travel_start_date = COALESCE($5, travel_start_date),
+  travel_end_date   = COALESCE($6, travel_end_date)
+WHERE id = $7
 RETURNING
   id, user_id, package_id, total_price, status,
   booking_date, travel_start_date, travel_end_date;

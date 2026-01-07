@@ -11,12 +11,14 @@ import (
 	"errors"
 	"fmt"
 	"graphql/database"
+	"graphql/graphql/generated"
+	"graphql/graphql/models"
 	"graphql/internal/db"
 	"strconv"
 )
 
 // CreatePackage is the resolver for the createPackage field.
-func (r *mutationResolver) CreatePackage(ctx context.Context, tourID string, packageName string, price string, currency string, occupancy *string, isFeatured *bool) (*db.Package, error) {
+func (r *mutationResolver) CreatePackage(ctx context.Context, tourID string, packageName string, price string, currency string, occupancy *string, isFeatured *bool, images []*models.PackageImageInput) (*db.Package, error) {
 	if tourID == "" || packageName == "" || price == "" || currency == "" {
 		return nil, errors.New("tour_id, package_name, price and currency are required")
 	}
@@ -36,6 +38,7 @@ func (r *mutationResolver) CreatePackage(ctx context.Context, tourID string, pac
 		feat = *isFeatured
 	}
 
+	// 1) Package create
 	pkg, err := database.Queries.CreatePackage(ctx, db.CreatePackageParams{
 		TourID:      int32(tID),
 		PackageName: packageName,
@@ -48,11 +51,32 @@ func (r *mutationResolver) CreatePackage(ctx context.Context, tourID string, pac
 		return nil, err
 	}
 
+	// 2) Images insert (SAME AS TOUR)
+	for _, img := range images {
+		if img == nil || img.FileURL == "" {
+			continue
+		}
+
+		var alt sql.NullString
+		if img.AltText != nil {
+			alt = sql.NullString{String: *img.AltText, Valid: true}
+		}
+
+		_, err := database.Queries.CreatePackageImage(ctx, db.CreatePackageImageParams{
+			PackageID: pkg.ID,
+			FileUrl:   img.FileURL,
+			AltText:   alt,
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return &pkg, nil
 }
 
 // UpdatePackage is the resolver for the updatePackage field.
-func (r *mutationResolver) UpdatePackage(ctx context.Context, id string, tourID *string, packageName *string, price *string, currency *string, occupancy *string, isFeatured *bool) (*db.Package, error) {
+func (r *mutationResolver) UpdatePackage(ctx context.Context, id string, tourID *string, packageName *string, price *string, currency *string, occupancy *string, isFeatured *bool, images []*models.PackageImageInput) (*db.Package, error) {
 	pkgID, err := strconv.Atoi(id)
 	if err != nil {
 		return nil, errors.New("invalid package id")
@@ -101,6 +125,7 @@ func (r *mutationResolver) UpdatePackage(ctx context.Context, id string, tourID 
 		newFeatured = *isFeatured
 	}
 
+	// 1) Package update
 	pkg, err := database.Queries.UpdatePackage(ctx, db.UpdatePackageParams{
 		ID:          int32(pkgID),
 		TourID:      newTourID,
@@ -112,6 +137,35 @@ func (r *mutationResolver) UpdatePackage(ctx context.Context, id string, tourID 
 	})
 	if err != nil {
 		return nil, err
+	}
+
+	// 2) Images argument diya ho to replace karo (SAME AS TOUR)
+	if images != nil {
+		// Purane saare images delete
+		if err := database.Queries.DeletePackageImagesByPackage(ctx, pkg.ID); err != nil {
+			return nil, err
+		}
+
+		// Naye insert
+		for _, img := range images {
+			if img == nil || img.FileURL == "" {
+				continue
+			}
+
+			var alt sql.NullString
+			if img.AltText != nil {
+				alt = sql.NullString{String: *img.AltText, Valid: true}
+			}
+
+			_, err := database.Queries.CreatePackageImage(ctx, db.CreatePackageImageParams{
+				PackageID: pkg.ID,
+				FileUrl:   img.FileURL,
+				AltText:   alt,
+			})
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	return &pkg, nil
@@ -135,6 +189,11 @@ func (r *mutationResolver) DeletePackage(ctx context.Context, id string) (*db.Pa
 	return &pkg, nil
 }
 
+// ID is the resolver for the id field.
+func (r *packageResolver) ID(ctx context.Context, obj *db.Package) (string, error) {
+	return fmt.Sprintf("%d", obj.ID), nil
+}
+
 // TourID is the resolver for the tour_id field.
 func (r *packageResolver) TourID(ctx context.Context, obj *db.Package) (string, error) {
 	return fmt.Sprintf("%d", obj.TourID), nil
@@ -149,7 +208,42 @@ func (r *packageResolver) Occupancy(ctx context.Context, obj *db.Package) (*stri
 	return &occ, nil
 }
 
-// / Package is the resolver for the package field.
+// Images is the resolver for the images field.
+func (r *packageResolver) Images(ctx context.Context, obj *db.Package) ([]*db.PackageImage, error) {
+	imgs, err := database.Queries.ListPackageImagesByPackage(ctx, obj.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	// sqlc likely returns []db.PackageImage, gqlgen ko []*db.PackageImage chahiye
+	out := make([]*db.PackageImage, 0, len(imgs))
+	for i := range imgs {
+		img := imgs[i]
+		out = append(out, &img)
+	}
+	return out, nil
+}
+
+// ID is the resolver for the id field.
+func (r *packageImageResolver) ID(ctx context.Context, obj *db.PackageImage) (string, error) {
+	return fmt.Sprintf("%d", obj.ID), nil
+}
+
+// PackageID is the resolver for the package_id field.
+func (r *packageImageResolver) PackageID(ctx context.Context, obj *db.PackageImage) (string, error) {
+	return fmt.Sprintf("%d", obj.PackageID), nil
+}
+
+// AltText is the resolver for the alt_text field.
+func (r *packageImageResolver) AltText(ctx context.Context, obj *db.PackageImage) (*string, error) {
+	if !obj.AltText.Valid {
+		return nil, nil
+	}
+	v := obj.AltText.String
+	return &v, nil
+}
+
+// Package is the resolver for the package field.
 func (r *queryResolver) Package(ctx context.Context, id string) (*db.Package, error) {
 	pkgID, err := strconv.Atoi(id)
 	if err != nil {
@@ -201,3 +295,30 @@ func (r *queryResolver) PackagesByTour(ctx context.Context, tourID string) ([]*d
 	}
 	return pkgs, nil
 }
+
+// PackageImage is the resolver for the packageImage field.
+func (r *queryResolver) PackageImage(ctx context.Context, id string) (*db.PackageImage, error) {
+	imgID, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, errors.New("invalid image id")
+	}
+
+	img, err := database.Queries.GetPackageImageByID(ctx, int32(imgID))
+	if err == sql.ErrNoRows {
+		return nil, errors.New("image not found")
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return &img, nil
+}
+
+// Package returns generated.PackageResolver implementation.
+func (r *Resolver) Package() generated.PackageResolver { return &packageResolver{r} }
+
+// PackageImage returns generated.PackageImageResolver implementation.
+func (r *Resolver) PackageImage() generated.PackageImageResolver { return &packageImageResolver{r} }
+
+type packageResolver struct{ *Resolver }
+type packageImageResolver struct{ *Resolver }
