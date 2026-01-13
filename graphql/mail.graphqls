@@ -1,0 +1,16 @@
+extend type Mutation {
+  submitInquiry(input: InquiryInput!): InquiryResult!
+}
+
+input InquiryInput {
+  fullName: String!
+  email: String!
+  phone: String!
+  destination: String!
+  message: String!
+}
+
+type InquiryResult {
+  success: Boolean!
+  refId: String!
+}

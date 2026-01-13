@@ -10,6 +10,7 @@ schema:
   - graphql/state.graphqls
   - graphql/tour.graphqls
   - graphql/poi.graphqls
+  - graphql/mail.graphqls
 
 # Where should the generated server code go?
 exec:

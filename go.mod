@@ -11,6 +11,7 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/vektah/gqlparser/v2 v2.5.31
 	golang.org/x/crypto v0.46.0
+	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 )
 
 require (
@@ -21,4 +22,5 @@ require (
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/sosodev/duration v1.3.1 // indirect
 	golang.org/x/net v0.48.0 // indirect
+	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 )
