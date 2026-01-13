@@ -97,6 +97,11 @@ type ComplexityRoot struct {
 		Name func(childComplexity int) int
 	}
 
+	InquiryResult struct {
+		RefID   func(childComplexity int) int
+		Success func(childComplexity int) int
+	}
+
 	LoginResponse struct {
 		Token func(childComplexity int) int
 		User  func(childComplexity int) int
@@ -122,6 +127,7 @@ type ComplexityRoot struct {
 		DeleteTour     func(childComplexity int, id string) int
 		DeleteUser     func(childComplexity int, id string) int
 		Login          func(childComplexity int, email string, password string) int
+		SubmitInquiry  func(childComplexity int, input models.InquiryInput) int
 		UpdateBooking  func(childComplexity int, id string, userID *string, packageID *string, totalPrice *string, status *string, travelStartDate *string, travelEndDate *string) int
 		UpdateCategory func(childComplexity int, id string, categoryName *string, description *string, images []*models.CategoryImageInput) int
 		UpdateCity     func(childComplexity int, id string, stateID *string, name *string) int
@@ -290,6 +296,7 @@ type MutationResolver interface {
 	CreatePoi(ctx context.Context, name string, description *string, cityID string, typeArg string, images []*models.POIImageInput) (*db.PointsOfInterest, error)
 	UpdatePoi(ctx context.Context, id string, name *string, description *string, cityID *string, typeArg *string, images []*models.POIImageInput) (*db.PointsOfInterest, error)
 	DeletePoi(ctx context.Context, id string) (*db.PointsOfInterest, error)
+	SubmitInquiry(ctx context.Context, input models.InquiryInput) (*models.InquiryResult, error)
 }
 type POIResolver interface {
 	ID(ctx context.Context, obj *db.PointsOfInterest) (string, error)
@@ -525,6 +532,19 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Country.Name(childComplexity), true
 
+	case "InquiryResult.refId":
+		if e.complexity.InquiryResult.RefID == nil {
+			break
+		}
+
+		return e.complexity.InquiryResult.RefID(childComplexity), true
+	case "InquiryResult.success":
+		if e.complexity.InquiryResult.Success == nil {
+			break
+		}
+
+		return e.complexity.InquiryResult.Success(childComplexity), true
+
 	case "LoginResponse.token":
 		if e.complexity.LoginResponse.Token == nil {
 			break
@@ -747,6 +767,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.Login(childComplexity, args["email"].(string), args["password"].(string)), true
+	case "Mutation.submitInquiry":
+		if e.complexity.Mutation.SubmitInquiry == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_submitInquiry_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.SubmitInquiry(childComplexity, args["input"].(models.InquiryInput)), true
 	case "Mutation.updateBooking":
 		if e.complexity.Mutation.UpdateBooking == nil {
 			break
@@ -1388,6 +1419,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	ec := executionContext{opCtx, e, 0, 0, make(chan graphql.DeferredResult)}
 	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
 		ec.unmarshalInputCategoryImageInput,
+		ec.unmarshalInputInquiryInput,
 		ec.unmarshalInputPOIImageInput,
 		ec.unmarshalInputPackageImageInput,
 		ec.unmarshalInputTourImageInput,
@@ -1797,6 +1829,23 @@ extend type Mutation {
   deletePOI(id: ID!): POI!
 }
 `, BuiltIn: false},
+	{Name: "../mail.graphqls", Input: `extend type Mutation {
+  submitInquiry(input: InquiryInput!): InquiryResult!
+}
+
+input InquiryInput {
+  fullName: String!
+  email: String!
+  phone: String!
+  destination: String!
+  message: String!
+}
+
+type InquiryResult {
+  success: Boolean!
+  refId: String!
+}
+`, BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
@@ -2160,6 +2209,17 @@ func (ec *executionContext) field_Mutation_login_args(ctx context.Context, rawAr
 		return nil, err
 	}
 	args["password"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_submitInquiry_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNInquiryInput2graphqlᚋgraphqlᚋmodelsᚐInquiryInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
 	return args, nil
 }
 
@@ -3311,6 +3371,64 @@ func (ec *executionContext) _Country_name(ctx context.Context, field graphql.Col
 func (ec *executionContext) fieldContext_Country_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Country",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _InquiryResult_success(ctx context.Context, field graphql.CollectedField, obj *models.InquiryResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_InquiryResult_success,
+		func(ctx context.Context) (any, error) {
+			return obj.Success, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_InquiryResult_success(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "InquiryResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _InquiryResult_refId(ctx context.Context, field graphql.CollectedField, obj *models.InquiryResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_InquiryResult_refId,
+		func(ctx context.Context) (any, error) {
+			return obj.RefID, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_InquiryResult_refId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "InquiryResult",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -4909,6 +5027,53 @@ func (ec *executionContext) fieldContext_Mutation_deletePOI(ctx context.Context,
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_deletePOI_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_submitInquiry(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_submitInquiry,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().SubmitInquiry(ctx, fc.Args["input"].(models.InquiryInput))
+		},
+		nil,
+		ec.marshalNInquiryResult2ᚖgraphqlᚋgraphqlᚋmodelsᚐInquiryResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_submitInquiry(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_InquiryResult_success(ctx, field)
+			case "refId":
+				return ec.fieldContext_InquiryResult_refId(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type InquiryResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_submitInquiry_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -9186,6 +9351,61 @@ func (ec *executionContext) unmarshalInputCategoryImageInput(ctx context.Context
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputInquiryInput(ctx context.Context, obj any) (models.InquiryInput, error) {
+	var it models.InquiryInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"fullName", "email", "phone", "destination", "message"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "fullName":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("fullName"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.FullName = data
+		case "email":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Email = data
+		case "phone":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phone"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Phone = data
+		case "destination":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("destination"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Destination = data
+		case "message":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("message"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Message = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputPOIImageInput(ctx context.Context, obj any) (models.POIImageInput, error) {
 	var it models.POIImageInput
 	asMap := map[string]any{}
@@ -9999,6 +10219,50 @@ func (ec *executionContext) _Country(ctx context.Context, sel ast.SelectionSet, 
 	return out
 }
 
+var inquiryResultImplementors = []string{"InquiryResult"}
+
+func (ec *executionContext) _InquiryResult(ctx context.Context, sel ast.SelectionSet, obj *models.InquiryResult) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, inquiryResultImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("InquiryResult")
+		case "success":
+			out.Values[i] = ec._InquiryResult_success(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "refId":
+			out.Values[i] = ec._InquiryResult_refId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var loginResponseImplementors = []string{"LoginResponse"}
 
 func (ec *executionContext) _LoginResponse(ctx context.Context, sel ast.SelectionSet, obj *models.LoginResponse) graphql.Marshaler {
@@ -10254,6 +10518,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "deletePOI":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_deletePOI(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "submitInquiry":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_submitInquiry(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -12884,6 +13155,25 @@ func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.Selec
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNInquiryInput2graphqlᚋgraphqlᚋmodelsᚐInquiryInput(ctx context.Context, v any) (models.InquiryInput, error) {
+	res, err := ec.unmarshalInputInquiryInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNInquiryResult2graphqlᚋgraphqlᚋmodelsᚐInquiryResult(ctx context.Context, sel ast.SelectionSet, v models.InquiryResult) graphql.Marshaler {
+	return ec._InquiryResult(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNInquiryResult2ᚖgraphqlᚋgraphqlᚋmodelsᚐInquiryResult(ctx context.Context, sel ast.SelectionSet, v *models.InquiryResult) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._InquiryResult(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v any) (int, error) {

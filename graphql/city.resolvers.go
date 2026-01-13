@@ -23,7 +23,7 @@ func (r *cityResolver) ID(ctx context.Context, obj *db.City) (string, error) {
 
 // StateID is the resolver for the stateId field.
 func (r *cityResolver) StateID(ctx context.Context, obj *db.City) (string, error) {
-	return fmt.Sprintf("%d", obj.ID), nil
+	return fmt.Sprintf("%d", obj.StateID), nil
 }
 
 // CreateCity is the resolver for the createCity field.

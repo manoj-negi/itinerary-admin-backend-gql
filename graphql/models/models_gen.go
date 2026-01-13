@@ -11,6 +11,19 @@ type CategoryImageInput struct {
 	AltText *string `json:"alt_text,omitempty"`
 }
 
+type InquiryInput struct {
+	FullName    string `json:"fullName"`
+	Email       string `json:"email"`
+	Phone       string `json:"phone"`
+	Destination string `json:"destination"`
+	Message     string `json:"message"`
+}
+
+type InquiryResult struct {
+	Success bool   `json:"success"`
+	RefID   string `json:"refId"`
+}
+
 type LoginResponse struct {
 	Token string   `json:"token"`
 	User  *db.User `json:"user"`

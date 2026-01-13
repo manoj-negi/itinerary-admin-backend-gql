@@ -2,22 +2,41 @@ package main
 
 import (
 	"fmt"
-	"log"
-	"net/http"
-
 	"graphql/database"
 	"graphql/graphql"
 	"graphql/graphql/generated"
+	"log"
+	"net/http"
+
+	"github.com/joho/godotenv"
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
 )
 
+func enableCORS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		// Allow your frontend origin
+		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+
+		// Handle preflight request
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
 func main() {
 	// Initialize database connection
 	database.InitDB()
 	defer database.DB.Close()
-
+	godotenv.Load()
 	// Create GraphQL resolver
 	resolver := &graphql.Resolver{}
 
@@ -29,9 +48,7 @@ func main() {
 
 	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	http.Handle("/query", srv)
-	http.HandleFunc("/graphql", func(w http.ResponseWriter, r *http.Request) {
-		srv.ServeHTTP(w, r)
-	})
+	http.Handle("/graphql", enableCORS(srv))
 
 	fmt.Println("Server is running on http://localhost:8080")
 	fmt.Println("GraphQL playground available at http://localhost:8080/")
