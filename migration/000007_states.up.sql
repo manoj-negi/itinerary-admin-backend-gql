@@ -1,6 +1,6 @@
 CREATE TABLE states (
-  id SERIAL PRIMARY KEY,
-  country_id INT NOT NULL,
-  name VARCHAR(150) NOT NULL,
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
+  country_id UUID NOT NULL,
+  name VARCHAR(100) NOT NULL UNIQUE,
   FOREIGN KEY (country_id) REFERENCES countries(id) ON DELETE CASCADE
 );

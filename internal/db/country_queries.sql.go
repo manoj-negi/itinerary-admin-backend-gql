@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 const createCountry = `-- name: CreateCountry :one
@@ -28,7 +30,7 @@ WHERE id = $1
 RETURNING id, name
 `
 
-func (q *Queries) DeleteCountry(ctx context.Context, id int32) (Country, error) {
+func (q *Queries) DeleteCountry(ctx context.Context, id uuid.UUID) (Country, error) {
 	row := q.db.QueryRowContext(ctx, deleteCountry, id)
 	var i Country
 	err := row.Scan(&i.ID, &i.Name)
@@ -41,7 +43,7 @@ FROM countries
 WHERE id = $1
 `
 
-func (q *Queries) GetCountry(ctx context.Context, id int32) (Country, error) {
+func (q *Queries) GetCountry(ctx context.Context, id uuid.UUID) (Country, error) {
 	row := q.db.QueryRowContext(ctx, getCountry, id)
 	var i Country
 	err := row.Scan(&i.ID, &i.Name)
@@ -98,8 +100,8 @@ RETURNING id, name
 `
 
 type UpdateCountryParams struct {
-	Name string `json:"name"`
-	ID   int32  `json:"id"`
+	Name string    `json:"name"`
+	ID   uuid.UUID `json:"id"`
 }
 
 func (q *Queries) UpdateCountry(ctx context.Context, arg UpdateCountryParams) (Country, error) {

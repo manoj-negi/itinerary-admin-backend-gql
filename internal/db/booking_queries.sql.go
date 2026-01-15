@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 const createBooking = `-- name: CreateBooking :one
@@ -23,12 +25,12 @@ INSERT INTO bookings (
 )
 RETURNING
   id, user_id, package_id, total_price, status,
-  booking_date, travel_start_date, travel_end_date
+  booking_date, travel_start_date, travel_end_date, created_at, updated_at
 `
 
 type CreateBookingParams struct {
-	UserID          int32     `json:"user_id"`
-	PackageID       int32     `json:"package_id"`
+	UserID          uuid.UUID `json:"user_id"`
+	PackageID       uuid.UUID `json:"package_id"`
 	TotalPrice      string    `json:"total_price"`
 	Status          string    `json:"status"`
 	TravelStartDate time.Time `json:"travel_start_date"`
@@ -54,6 +56,8 @@ func (q *Queries) CreateBooking(ctx context.Context, arg CreateBookingParams) (B
 		&i.BookingDate,
 		&i.TravelStartDate,
 		&i.TravelEndDate,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
@@ -63,10 +67,10 @@ DELETE FROM bookings
 WHERE id = $1
 RETURNING
   id, user_id, package_id, total_price, status,
-  booking_date, travel_start_date, travel_end_date
+  booking_date, travel_start_date, travel_end_date, created_at, updated_at
 `
 
-func (q *Queries) DeleteBooking(ctx context.Context, id int32) (Booking, error) {
+func (q *Queries) DeleteBooking(ctx context.Context, id uuid.UUID) (Booking, error) {
 	row := q.db.QueryRowContext(ctx, deleteBooking, id)
 	var i Booking
 	err := row.Scan(
@@ -78,6 +82,8 @@ func (q *Queries) DeleteBooking(ctx context.Context, id int32) (Booking, error) 
 		&i.BookingDate,
 		&i.TravelStartDate,
 		&i.TravelEndDate,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
@@ -85,12 +91,12 @@ func (q *Queries) DeleteBooking(ctx context.Context, id int32) (Booking, error) 
 const getBooking = `-- name: GetBooking :one
 SELECT
   id, user_id, package_id, total_price, status,
-  booking_date, travel_start_date, travel_end_date
+  booking_date, travel_start_date, travel_end_date, created_at, updated_at
 FROM bookings
 WHERE id = $1
 `
 
-func (q *Queries) GetBooking(ctx context.Context, id int32) (Booking, error) {
+func (q *Queries) GetBooking(ctx context.Context, id uuid.UUID) (Booking, error) {
 	row := q.db.QueryRowContext(ctx, getBooking, id)
 	var i Booking
 	err := row.Scan(
@@ -102,6 +108,8 @@ func (q *Queries) GetBooking(ctx context.Context, id int32) (Booking, error) {
 		&i.BookingDate,
 		&i.TravelStartDate,
 		&i.TravelEndDate,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
@@ -109,7 +117,7 @@ func (q *Queries) GetBooking(ctx context.Context, id int32) (Booking, error) {
 const listBookings = `-- name: ListBookings :many
 SELECT
   id, user_id, package_id, total_price, status,
-  booking_date, travel_start_date, travel_end_date
+  booking_date, travel_start_date, travel_end_date, created_at, updated_at
 FROM bookings
 ORDER BY id
 `
@@ -132,6 +140,8 @@ func (q *Queries) ListBookings(ctx context.Context) ([]Booking, error) {
 			&i.BookingDate,
 			&i.TravelStartDate,
 			&i.TravelEndDate,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -158,17 +168,17 @@ SET
 WHERE id = $7
 RETURNING
   id, user_id, package_id, total_price, status,
-  booking_date, travel_start_date, travel_end_date
+  booking_date, travel_start_date, travel_end_date, created_at, updated_at
 `
 
 type UpdateBookingParams struct {
-	UserID          int32     `json:"user_id"`
-	PackageID       int32     `json:"package_id"`
+	UserID          uuid.UUID `json:"user_id"`
+	PackageID       uuid.UUID `json:"package_id"`
 	TotalPrice      string    `json:"total_price"`
 	Status          string    `json:"status"`
 	TravelStartDate time.Time `json:"travel_start_date"`
 	TravelEndDate   time.Time `json:"travel_end_date"`
-	ID              int32     `json:"id"`
+	ID              uuid.UUID `json:"id"`
 }
 
 func (q *Queries) UpdateBooking(ctx context.Context, arg UpdateBookingParams) (Booking, error) {
@@ -191,6 +201,8 @@ func (q *Queries) UpdateBooking(ctx context.Context, arg UpdateBookingParams) (B
 		&i.BookingDate,
 		&i.TravelStartDate,
 		&i.TravelEndDate,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }

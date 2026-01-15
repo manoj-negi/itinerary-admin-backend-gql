@@ -1,21 +1,23 @@
 type Booking {
-  id: ID!
-  user_id: ID!
-  package_id: ID!
+  id: UUID!
+  user_id: UUID!
+  package_id: UUID!
   total_price: String!
   status: String!
   booking_date: Time!
   travel_start_date: String!
   travel_end_date: String!
+  created_at: Time!
+  updated_at: Time!
 }
 
 extend type Query {
-  booking(id: ID!): Booking
+  booking(id: UUID!): Booking
   bookings: [Booking!]!
 }
 
 extend type Mutation {
-  createBooking(user_id:ID! package_id:ID! total_price:String! status:String! travel_start_date:String! travel_end_date:String!):Booking!
-  updateBooking(id:ID! user_id:ID package_id:ID total_price:String status:String travel_start_date:String travel_end_date:String):Booking!
-  deleteBooking(id:ID!):Booking!
+  createBooking(user_id:UUID! package_id:UUID! total_price:String! status:String! travel_start_date:String! travel_end_date:String!):Booking!
+  updateBooking(id:UUID! user_id:UUID package_id:UUID total_price:String status:String travel_start_date:String travel_end_date:String):Booking!
+  deleteBooking(id:UUID!):Booking!
 }

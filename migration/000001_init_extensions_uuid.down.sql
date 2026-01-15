@@ -1,0 +1,3 @@
+DROP FUNCTION IF EXISTS uuid_generate_v7();
+DROP EXTENSION IF EXISTS pgcrypto;
+DROP EXTENSION IF EXISTS "uuid-ossp";

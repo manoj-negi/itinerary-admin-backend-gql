@@ -9,36 +9,23 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"graphql/database"
-	"graphql/graphql/generated"
 	"graphql/internal/db"
-	"strconv"
+
+	"github.com/google/uuid"
 )
 
-// ID is the resolver for the id field.
-func (r *cityResolver) ID(ctx context.Context, obj *db.City) (string, error) {
-	return fmt.Sprintf("%d", obj.ID), nil
-}
-
-// StateID is the resolver for the stateId field.
-func (r *cityResolver) StateID(ctx context.Context, obj *db.City) (string, error) {
-	return fmt.Sprintf("%d", obj.StateID), nil
-}
-
 // CreateCity is the resolver for the createCity field.
-func (r *mutationResolver) CreateCity(ctx context.Context, stateID string, name string) (*db.City, error) {
+func (r *mutationResolver) CreateCity(ctx context.Context, stateID uuid.UUID, name string) (*db.City, error) {
+	if stateID == uuid.Nil {
+		return nil, errors.New("invalid state id")
+	}
 	if name == "" {
 		return nil, errors.New("city name is required")
 	}
 
-	sID, err := strconv.Atoi(stateID)
-	if err != nil {
-		return nil, errors.New("invalid state id")
-	}
-
 	city, err := database.Queries.CreateCity(ctx, db.CreateCityParams{
-		StateID: int32(sID),
+		StateID: stateID,
 		Name:    name,
 	})
 	if err != nil {
@@ -49,44 +36,36 @@ func (r *mutationResolver) CreateCity(ctx context.Context, stateID string, name 
 }
 
 // UpdateCity is the resolver for the updateCity field.
-func (r *mutationResolver) UpdateCity(ctx context.Context, id string, stateID *string, name *string) (*db.City, error) {
-	// Convert id string to int32
-	cityID, err := strconv.Atoi(id)
-	if err != nil {
+func (r *mutationResolver) UpdateCity(ctx context.Context, id uuid.UUID, stateID *uuid.UUID, name *string) (*db.City, error) {
+	if id == uuid.Nil {
 		return nil, errors.New("invalid city id")
 	}
 
-	// Prepare parameters
-	var sID int32
-	if stateID != nil {
-		sidInt, err := strconv.Atoi(*stateID)
-		if err != nil {
-			return nil, errors.New("invalid state id")
-		}
-		sID = int32(sidInt)
+	existingCity, err := database.Queries.GetCity(ctx, id)
+	if err == sql.ErrNoRows {
+		return nil, errors.New("city not found")
 	}
-
-	// Fetch existing city
-	existingCity, err := database.Queries.GetCity(ctx, int32(cityID))
 	if err != nil {
 		return nil, err
 	}
 
-	// Update fields if provided
+	newStateID := existingCity.StateID
+	if stateID != nil {
+		if *stateID == uuid.Nil {
+			return nil, errors.New("invalid state id")
+		}
+		newStateID = *stateID
+	}
+
+	newName := existingCity.Name
+	if name != nil {
+		newName = *name
+	}
+
 	updatedCity, err := database.Queries.UpdateCity(ctx, db.UpdateCityParams{
-		ID: int32(cityID),
-		StateID: func() int32 {
-			if stateID != nil {
-				return sID
-			}
-			return existingCity.StateID
-		}(),
-		Name: func() string {
-			if name != nil {
-				return *name
-			}
-			return existingCity.Name
-		}(),
+		ID:      id,
+		StateID: newStateID,
+		Name:    newName,
 	})
 	if err != nil {
 		return nil, err
@@ -96,14 +75,13 @@ func (r *mutationResolver) UpdateCity(ctx context.Context, id string, stateID *s
 }
 
 // DeleteCity is the resolver for the deleteCity field.
-func (r *mutationResolver) DeleteCity(ctx context.Context, id string) (*db.City, error) {
-	cityID, err := strconv.Atoi(id)
-	if err != nil {
+func (r *mutationResolver) DeleteCity(ctx context.Context, id uuid.UUID) (*db.City, error) {
+	if id == uuid.Nil {
 		return nil, errors.New("invalid city id")
 	}
 
 	// Call SQL query to delete city
-	city, err := database.Queries.DeleteCity(ctx, int32(cityID))
+	city, err := database.Queries.DeleteCity(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -112,13 +90,12 @@ func (r *mutationResolver) DeleteCity(ctx context.Context, id string) (*db.City,
 }
 
 // City is the resolver for the city field.
-func (r *queryResolver) City(ctx context.Context, id string) (*db.City, error) {
-	cityID, err := strconv.Atoi(id)
-	if err != nil {
+func (r *queryResolver) City(ctx context.Context, id uuid.UUID) (*db.City, error) {
+	if id == uuid.Nil {
 		return nil, errors.New("invalid city id")
 	}
 
-	city, err := database.Queries.GetCity(ctx, int32(cityID))
+	city, err := database.Queries.GetCity(ctx, id)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, errors.New("city not found")
@@ -146,13 +123,12 @@ func (r *queryResolver) Cities(ctx context.Context) ([]*db.City, error) {
 }
 
 // CitiesByState is the resolver for the citiesByState field.
-func (r *queryResolver) CitiesByState(ctx context.Context, stateID string) ([]*db.City, error) {
-	sID, err := strconv.Atoi(stateID)
-	if err != nil {
+func (r *queryResolver) CitiesByState(ctx context.Context, stateID uuid.UUID) ([]*db.City, error) {
+	if stateID == uuid.Nil {
 		return nil, errors.New("invalid state id")
 	}
 
-	cities, err := database.Queries.ListCitiesByState(ctx, int32(sID))
+	cities, err := database.Queries.ListCitiesByState(ctx, stateID)
 	if err != nil {
 		return nil, err
 	}
@@ -165,8 +141,3 @@ func (r *queryResolver) CitiesByState(ctx context.Context, stateID string) ([]*d
 
 	return result, nil
 }
-
-// City returns generated.CityResolver implementation.
-func (r *Resolver) City() generated.CityResolver { return &cityResolver{r} }
-
-type cityResolver struct{ *Resolver }

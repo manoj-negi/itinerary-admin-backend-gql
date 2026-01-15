@@ -1,15 +1,15 @@
 type Country {
-  id: ID!
+  id: UUID!
   name: String!
 }
 
 extend type Query {
-  country(id: ID!): Country
+  country(id: UUID!): Country
   countries: [Country!]!
 }
 
 extend type Mutation {
   createCountry(name :String!): Country!
-  updateCountry(id: ID!, name: String): Country!
-  deleteCountry(id: ID!): Country!
+  updateCountry(id: UUID!, name: String): Country!
+  deleteCountry(id: UUID!): Country!
 }

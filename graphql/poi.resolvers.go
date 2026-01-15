@@ -9,22 +9,21 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"graphql/database"
 	"graphql/graphql/generated"
 	"graphql/graphql/models"
 	"graphql/internal/db"
-	"strconv"
+
+	"github.com/google/uuid"
 )
 
 // CreatePoi is the resolver for the createPOI field.
-func (r *mutationResolver) CreatePoi(ctx context.Context, name string, description *string, cityID string, typeArg string, images []*models.POIImageInput) (*db.PointsOfInterest, error) {
-	if name == "" || cityID == "" || typeArg == "" {
+func (r *mutationResolver) CreatePoi(ctx context.Context, name string, description *string, cityID uuid.UUID, typeArg string, images []*models.POIImageInput) (*db.PointsOfInterest, error) {
+	if name == "" || cityID == uuid.Nil || typeArg == "" {
 		return nil, errors.New("name, city_id and type are required")
 	}
 
-	cID, err := strconv.Atoi(cityID)
-	if err != nil {
+	if cityID == uuid.Nil {
 		return nil, errors.New("invalid city id")
 	}
 
@@ -36,7 +35,7 @@ func (r *mutationResolver) CreatePoi(ctx context.Context, name string, descripti
 	poi, err := database.Queries.CreatePOI(ctx, db.CreatePOIParams{
 		Name:        name,
 		Description: desc,
-		CityID:      int32(cID),
+		CityID:      cityID,
 		Type:        typeArg,
 	})
 	if err != nil {
@@ -67,13 +66,12 @@ func (r *mutationResolver) CreatePoi(ctx context.Context, name string, descripti
 }
 
 // UpdatePoi is the resolver for the updatePOI field.
-func (r *mutationResolver) UpdatePoi(ctx context.Context, id string, name *string, description *string, cityID *string, typeArg *string, images []*models.POIImageInput) (*db.PointsOfInterest, error) {
-	poiID, err := strconv.Atoi(id)
-	if err != nil {
+func (r *mutationResolver) UpdatePoi(ctx context.Context, id uuid.UUID, name *string, description *string, cityID *uuid.UUID, typeArg *string, images []*models.POIImageInput) (*db.PointsOfInterest, error) {
+	if id == uuid.Nil {
 		return nil, errors.New("invalid poi id")
 	}
 
-	existing, err := database.Queries.GetPOI(ctx, int32(poiID))
+	existing, err := database.Queries.GetPOI(ctx, id)
 	if err == sql.ErrNoRows {
 		return nil, errors.New("poi not found")
 	}
@@ -93,11 +91,10 @@ func (r *mutationResolver) UpdatePoi(ctx context.Context, id string, name *strin
 
 	newCityID := existing.CityID
 	if cityID != nil {
-		cid, err := strconv.Atoi(*cityID)
-		if err != nil {
+		if *cityID == uuid.Nil {
 			return nil, errors.New("invalid city id")
 		}
-		newCityID = int32(cid)
+		newCityID = *cityID
 	}
 
 	newType := existing.Type
@@ -106,7 +103,7 @@ func (r *mutationResolver) UpdatePoi(ctx context.Context, id string, name *strin
 	}
 
 	poi, err := database.Queries.UpdatePOI(ctx, db.UpdatePOIParams{
-		ID:          int32(poiID),
+		ID:          id,
 		Name:        newName,
 		Description: newDesc,
 		CityID:      newCityID,
@@ -146,13 +143,12 @@ func (r *mutationResolver) UpdatePoi(ctx context.Context, id string, name *strin
 }
 
 // DeletePoi is the resolver for the deletePOI field.
-func (r *mutationResolver) DeletePoi(ctx context.Context, id string) (*db.PointsOfInterest, error) {
-	poiID, err := strconv.Atoi(id)
-	if err != nil {
+func (r *mutationResolver) DeletePoi(ctx context.Context, id uuid.UUID) (*db.PointsOfInterest, error) {
+	if id == uuid.Nil {
 		return nil, errors.New("invalid poi id")
 	}
 
-	poi, err := database.Queries.DeletePOI(ctx, int32(poiID))
+	poi, err := database.Queries.DeletePOI(ctx, id)
 	if err == sql.ErrNoRows {
 		return nil, errors.New("poi not found")
 	}
@@ -163,11 +159,6 @@ func (r *mutationResolver) DeletePoi(ctx context.Context, id string) (*db.Points
 	return &poi, nil
 }
 
-// ID is the resolver for the id field.
-func (r *pOIResolver) ID(ctx context.Context, obj *db.PointsOfInterest) (string, error) {
-	return fmt.Sprintf("%d", obj.ID), nil
-}
-
 // Description is the resolver for the description field.
 func (r *pOIResolver) Description(ctx context.Context, obj *db.PointsOfInterest) (*string, error) {
 	if !obj.Description.Valid {
@@ -175,11 +166,6 @@ func (r *pOIResolver) Description(ctx context.Context, obj *db.PointsOfInterest)
 	}
 	v := obj.Description.String
 	return &v, nil
-}
-
-// CityID is the resolver for the city_id field.
-func (r *pOIResolver) CityID(ctx context.Context, obj *db.PointsOfInterest) (string, error) {
-	return fmt.Sprintf("%d", obj.CityID), nil
 }
 
 // Images is the resolver for the images field.
@@ -197,16 +183,6 @@ func (r *pOIResolver) Images(ctx context.Context, obj *db.PointsOfInterest) ([]*
 	return out, nil
 }
 
-// ID is the resolver for the id field.
-func (r *pOIImageResolver) ID(ctx context.Context, obj *db.PointOfInterestImage) (string, error) {
-	return fmt.Sprintf("%d", obj.ID), nil
-}
-
-// PoiID is the resolver for the poi_id field.
-func (r *pOIImageResolver) PoiID(ctx context.Context, obj *db.PointOfInterestImage) (string, error) {
-	return fmt.Sprintf("%d", obj.PoiID), nil
-}
-
 // AltText is the resolver for the alt_text field.
 func (r *pOIImageResolver) AltText(ctx context.Context, obj *db.PointOfInterestImage) (*string, error) {
 	if !obj.AltText.Valid {
@@ -217,13 +193,12 @@ func (r *pOIImageResolver) AltText(ctx context.Context, obj *db.PointOfInterestI
 }
 
 // Poi is the resolver for the poi field.
-func (r *queryResolver) Poi(ctx context.Context, id string) (*db.PointsOfInterest, error) {
-	poiID, err := strconv.Atoi(id)
-	if err != nil {
+func (r *queryResolver) Poi(ctx context.Context, id uuid.UUID) (*db.PointsOfInterest, error) {
+	if id == uuid.Nil {
 		return nil, errors.New("invalid poi id")
 	}
 
-	poi, err := database.Queries.GetPOI(ctx, int32(poiID))
+	poi, err := database.Queries.GetPOI(ctx, id)
 	if err == sql.ErrNoRows {
 		return nil, errors.New("poi not found")
 	}
@@ -250,13 +225,12 @@ func (r *queryResolver) Pois(ctx context.Context) ([]*db.PointsOfInterest, error
 }
 
 // PoisByCity is the resolver for the poisByCity field.
-func (r *queryResolver) PoisByCity(ctx context.Context, cityID string) ([]*db.PointsOfInterest, error) {
-	cID, err := strconv.Atoi(cityID)
-	if err != nil {
+func (r *queryResolver) PoisByCity(ctx context.Context, cityID uuid.UUID) ([]*db.PointsOfInterest, error) {
+	if cityID == uuid.Nil {
 		return nil, errors.New("invalid city id")
 	}
 
-	poisDB, err := database.Queries.ListPOIsByCity(ctx, int32(cID))
+	poisDB, err := database.Queries.ListPOIsByCity(ctx, cityID)
 	if err != nil {
 		return nil, err
 	}
@@ -270,13 +244,12 @@ func (r *queryResolver) PoisByCity(ctx context.Context, cityID string) ([]*db.Po
 }
 
 // PoiImage is the resolver for the poiImage field.
-func (r *queryResolver) PoiImage(ctx context.Context, id string) (*db.PointOfInterestImage, error) {
-	imgID, err := strconv.Atoi(id)
-	if err != nil {
+func (r *queryResolver) PoiImage(ctx context.Context, id uuid.UUID) (*db.PointOfInterestImage, error) {
+	if id == uuid.Nil {
 		return nil, errors.New("invalid image id")
 	}
 
-	img, err := database.Queries.GetPOIImageByID(ctx, int32(imgID))
+	img, err := database.Queries.GetPOIImageByID(ctx, id)
 	if err == sql.ErrNoRows {
 		return nil, errors.New("image not found")
 	}

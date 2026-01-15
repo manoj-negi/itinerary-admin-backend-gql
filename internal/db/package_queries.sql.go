@@ -8,19 +8,21 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/google/uuid"
 )
 
 const createPackage = `-- name: CreatePackage :one
 INSERT INTO packages (tour_id, package_name, price, currency, occupancy, is_featured)
 VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, tour_id, package_name, price, currency, occupancy, is_featured
+RETURNING id, tour_id, package_name, price, currency, occupancy, is_featured, created_at, updated_at
 `
 
 type CreatePackageParams struct {
-	TourID      int32          `json:"tour_id"`
+	TourID      uuid.UUID      `json:"tour_id"`
 	PackageName string         `json:"package_name"`
 	Price       string         `json:"price"`
-	Currency    string         `json:"currency"`
+	Currency    sql.NullString `json:"currency"`
 	Occupancy   sql.NullString `json:"occupancy"`
 	IsFeatured  bool           `json:"is_featured"`
 }
@@ -43,6 +45,8 @@ func (q *Queries) CreatePackage(ctx context.Context, arg CreatePackageParams) (P
 		&i.Currency,
 		&i.Occupancy,
 		&i.IsFeatured,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
@@ -50,10 +54,10 @@ func (q *Queries) CreatePackage(ctx context.Context, arg CreatePackageParams) (P
 const deletePackage = `-- name: DeletePackage :one
 DELETE FROM packages
 WHERE id = $1
-RETURNING id, tour_id, package_name, price, currency, occupancy, is_featured
+RETURNING id, tour_id, package_name, price, currency, occupancy, is_featured, created_at, updated_at
 `
 
-func (q *Queries) DeletePackage(ctx context.Context, id int32) (Package, error) {
+func (q *Queries) DeletePackage(ctx context.Context, id uuid.UUID) (Package, error) {
 	row := q.db.QueryRowContext(ctx, deletePackage, id)
 	var i Package
 	err := row.Scan(
@@ -64,17 +68,19 @@ func (q *Queries) DeletePackage(ctx context.Context, id int32) (Package, error) 
 		&i.Currency,
 		&i.Occupancy,
 		&i.IsFeatured,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const getPackage = `-- name: GetPackage :one
-SELECT id, tour_id, package_name, price, currency, occupancy, is_featured
+SELECT id, tour_id, package_name, price, currency, occupancy, is_featured, created_at, updated_at
 FROM packages
 WHERE id = $1
 `
 
-func (q *Queries) GetPackage(ctx context.Context, id int32) (Package, error) {
+func (q *Queries) GetPackage(ctx context.Context, id uuid.UUID) (Package, error) {
 	row := q.db.QueryRowContext(ctx, getPackage, id)
 	var i Package
 	err := row.Scan(
@@ -85,12 +91,14 @@ func (q *Queries) GetPackage(ctx context.Context, id int32) (Package, error) {
 		&i.Currency,
 		&i.Occupancy,
 		&i.IsFeatured,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const listPackages = `-- name: ListPackages :many
-SELECT id, tour_id, package_name, price, currency, occupancy, is_featured
+SELECT id, tour_id, package_name, price, currency, occupancy, is_featured, created_at, updated_at
 FROM packages
 ORDER BY id
 `
@@ -112,6 +120,8 @@ func (q *Queries) ListPackages(ctx context.Context) ([]Package, error) {
 			&i.Currency,
 			&i.Occupancy,
 			&i.IsFeatured,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -127,13 +137,13 @@ func (q *Queries) ListPackages(ctx context.Context) ([]Package, error) {
 }
 
 const listPackagesByTour = `-- name: ListPackagesByTour :many
-SELECT id, tour_id, package_name, price, currency, occupancy, is_featured
+SELECT id, tour_id, package_name, price, currency, occupancy, is_featured, created_at, updated_at
 FROM packages
 WHERE tour_id = $1
 ORDER BY id
 `
 
-func (q *Queries) ListPackagesByTour(ctx context.Context, tourID int32) ([]Package, error) {
+func (q *Queries) ListPackagesByTour(ctx context.Context, tourID uuid.UUID) ([]Package, error) {
 	rows, err := q.db.QueryContext(ctx, listPackagesByTour, tourID)
 	if err != nil {
 		return nil, err
@@ -150,6 +160,8 @@ func (q *Queries) ListPackagesByTour(ctx context.Context, tourID int32) ([]Packa
 			&i.Currency,
 			&i.Occupancy,
 			&i.IsFeatured,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -174,17 +186,17 @@ SET
   occupancy    = COALESCE($5, occupancy),
   is_featured  = COALESCE($6, is_featured)
 WHERE id = $7
-RETURNING id, tour_id, package_name, price, currency, occupancy, is_featured
+RETURNING id, tour_id, package_name, price, currency, occupancy, is_featured, created_at, updated_at
 `
 
 type UpdatePackageParams struct {
-	TourID      int32          `json:"tour_id"`
+	TourID      uuid.UUID      `json:"tour_id"`
 	PackageName string         `json:"package_name"`
 	Price       string         `json:"price"`
-	Currency    string         `json:"currency"`
+	Currency    sql.NullString `json:"currency"`
 	Occupancy   sql.NullString `json:"occupancy"`
 	IsFeatured  bool           `json:"is_featured"`
-	ID          int32          `json:"id"`
+	ID          uuid.UUID      `json:"id"`
 }
 
 func (q *Queries) UpdatePackage(ctx context.Context, arg UpdatePackageParams) (Package, error) {
@@ -206,6 +218,8 @@ func (q *Queries) UpdatePackage(ctx context.Context, arg UpdatePackageParams) (P
 		&i.Currency,
 		&i.Occupancy,
 		&i.IsFeatured,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }

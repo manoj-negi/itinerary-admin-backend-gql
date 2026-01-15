@@ -1,15 +1,19 @@
 type Category {
-  id: ID!
+  id: UUID!
   category_name: String!
   description: String
+  created_at: Time!
+  updated_at: Time!
   images: [CategoryImage!]!
 }
 
 type CategoryImage {
-  id: ID!
-  category_id: ID!
+  id: UUID!
+  category_id: UUID!
   file_url: String!
   alt_text: String
+  created_at: Time!
+  updated_at: Time!
 }
 
 input CategoryImageInput {
@@ -18,9 +22,9 @@ input CategoryImageInput {
 }
 
 extend type Query {
-  category(id: ID!): Category
+  category(id: UUID!): Category
   categories: [Category!]!
-  categoryImage(id: ID!): CategoryImage!
+  categoryImage(id: UUID!): CategoryImage!
 }
 
 extend type Mutation {
@@ -31,11 +35,11 @@ extend type Mutation {
   ): Category!
 
   updateCategory(
-    id: ID!
+    id: UUID!
     category_name: String
     description: String
     images: [CategoryImageInput!]
   ): Category!
 
-  deleteCategory(id: ID!): Category!
+  deleteCategory(id: UUID!): Category!
 }

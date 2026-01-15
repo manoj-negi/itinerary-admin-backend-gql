@@ -50,6 +50,9 @@ autobind:
 # Time:
 #   model: github.com/99designs/gqlgen/graphql.Time
 models:
+  UUID:
+    model:
+      - github.com/99designs/gqlgen/graphql.UUID
   Time:
     model: github.com/99designs/gqlgen/graphql.Time
   User:

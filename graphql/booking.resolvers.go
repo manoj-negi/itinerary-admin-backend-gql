@@ -9,28 +9,13 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"graphql/database"
 	"graphql/graphql/generated"
 	"graphql/internal/db"
-	"strconv"
 	"time"
+
+	"github.com/google/uuid"
 )
-
-// ID is the resolver for the id field.
-func (r *bookingResolver) ID(ctx context.Context, obj *db.Booking) (string, error) {
-	return fmt.Sprintf("%d", obj.ID), nil
-}
-
-// UserID is the resolver for the user_id field.
-func (r *bookingResolver) UserID(ctx context.Context, obj *db.Booking) (string, error) {
-	return fmt.Sprintf("%d", obj.UserID), nil
-}
-
-// PackageID is the resolver for the package_id field.
-func (r *bookingResolver) PackageID(ctx context.Context, obj *db.Booking) (string, error) {
-	return fmt.Sprintf("%d", obj.PackageID), nil
-}
 
 // TravelStartDate is the resolver for the travel_start_date field.
 func (r *bookingResolver) TravelStartDate(ctx context.Context, obj *db.Booking) (string, error) {
@@ -44,19 +29,9 @@ func (r *bookingResolver) TravelEndDate(ctx context.Context, obj *db.Booking) (s
 }
 
 // CreateBooking is the resolver for the createBooking field.
-func (r *mutationResolver) CreateBooking(ctx context.Context, userID string, packageID string, totalPrice string, status string, travelStartDate string, travelEndDate string) (*db.Booking, error) {
-	if userID == "" || packageID == "" || totalPrice == "" || status == "" || travelStartDate == "" || travelEndDate == "" {
+func (r *mutationResolver) CreateBooking(ctx context.Context, userID uuid.UUID, packageID uuid.UUID, totalPrice string, status string, travelStartDate string, travelEndDate string) (*db.Booking, error) {
+	if userID == uuid.Nil || packageID == uuid.Nil || totalPrice == "" || status == "" || travelStartDate == "" || travelEndDate == "" {
 		return nil, errors.New("user_id, package_id, total_price, status, travel_start_date and travel_end_date are required")
-	}
-
-	uID, err := strconv.Atoi(userID)
-	if err != nil {
-		return nil, errors.New("invalid user_id")
-	}
-
-	pID, err := strconv.Atoi(packageID)
-	if err != nil {
-		return nil, errors.New("invalid package_id")
 	}
 
 	// parse dates (YYYY-MM-DD)
@@ -71,8 +46,8 @@ func (r *mutationResolver) CreateBooking(ctx context.Context, userID string, pac
 	}
 
 	booking, err := database.Queries.CreateBooking(ctx, db.CreateBookingParams{
-		UserID:          int32(uID),
-		PackageID:       int32(pID),
+		UserID:          userID,
+		PackageID:       packageID,
 		TotalPrice:      totalPrice,
 		Status:          status,
 		TravelStartDate: startDate,
@@ -86,13 +61,12 @@ func (r *mutationResolver) CreateBooking(ctx context.Context, userID string, pac
 }
 
 // UpdateBooking is the resolver for the updateBooking field.
-func (r *mutationResolver) UpdateBooking(ctx context.Context, id string, userID *string, packageID *string, totalPrice *string, status *string, travelStartDate *string, travelEndDate *string) (*db.Booking, error) {
-	bID, err := strconv.Atoi(id)
-	if err != nil {
+func (r *mutationResolver) UpdateBooking(ctx context.Context, id uuid.UUID, userID *uuid.UUID, packageID *uuid.UUID, totalPrice *string, status *string, travelStartDate *string, travelEndDate *string) (*db.Booking, error) {
+	if id == uuid.Nil {
 		return nil, errors.New("invalid booking id")
 	}
 
-	existing, err := database.Queries.GetBooking(ctx, int32(bID))
+	existing, err := database.Queries.GetBooking(ctx, id)
 	if err == sql.ErrNoRows {
 		return nil, errors.New("booking not found")
 	}
@@ -102,20 +76,18 @@ func (r *mutationResolver) UpdateBooking(ctx context.Context, id string, userID 
 
 	newUserID := existing.UserID
 	if userID != nil {
-		uid, err := strconv.Atoi(*userID)
-		if err != nil {
+		if *userID == uuid.Nil {
 			return nil, errors.New("invalid user_id")
 		}
-		newUserID = int32(uid)
+		newUserID = *userID
 	}
 
 	newPackageID := existing.PackageID
 	if packageID != nil {
-		pid, err := strconv.Atoi(*packageID)
-		if err != nil {
+		if *packageID == uuid.Nil {
 			return nil, errors.New("invalid package_id")
 		}
-		newPackageID = int32(pid)
+		newPackageID = *packageID
 	}
 
 	newTotalPrice := existing.TotalPrice
@@ -147,7 +119,7 @@ func (r *mutationResolver) UpdateBooking(ctx context.Context, id string, userID 
 	}
 
 	booking, err := database.Queries.UpdateBooking(ctx, db.UpdateBookingParams{
-		ID:              int32(bID),
+		ID:              id,
 		UserID:          newUserID,
 		PackageID:       newPackageID,
 		TotalPrice:      newTotalPrice,
@@ -163,13 +135,12 @@ func (r *mutationResolver) UpdateBooking(ctx context.Context, id string, userID 
 }
 
 // DeleteBooking is the resolver for the deleteBooking field.
-func (r *mutationResolver) DeleteBooking(ctx context.Context, id string) (*db.Booking, error) {
-	bID, err := strconv.Atoi(id)
-	if err != nil {
+func (r *mutationResolver) DeleteBooking(ctx context.Context, id uuid.UUID) (*db.Booking, error) {
+	if id == uuid.Nil {
 		return nil, errors.New("invalid booking id")
 	}
 
-	booking, err := database.Queries.DeleteBooking(ctx, int32(bID))
+	booking, err := database.Queries.DeleteBooking(ctx, id)
 	if err == sql.ErrNoRows {
 		return nil, errors.New("booking not found")
 	}
@@ -181,13 +152,12 @@ func (r *mutationResolver) DeleteBooking(ctx context.Context, id string) (*db.Bo
 }
 
 // Booking is the resolver for the booking field.
-func (r *queryResolver) Booking(ctx context.Context, id string) (*db.Booking, error) {
-	bID, err := strconv.Atoi(id)
-	if err != nil {
+func (r *queryResolver) Booking(ctx context.Context, id uuid.UUID) (*db.Booking, error) {
+	if id == uuid.Nil {
 		return nil, errors.New("invalid booking id")
 	}
 
-	booking, err := database.Queries.GetBooking(ctx, int32(bID))
+	booking, err := database.Queries.GetBooking(ctx, id)
 	if err == sql.ErrNoRows {
 		return nil, errors.New("booking not found")
 	}

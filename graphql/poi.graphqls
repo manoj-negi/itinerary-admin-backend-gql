@@ -1,17 +1,21 @@
 type POI {
-  id: ID!
+  id: UUID!
   name: String!
   description: String
-  city_id: ID!
+  city_id: UUID!
   type: String!
+  created_at: Time!
+  updated_at: Time!
   images: [POIImage!]!
 }
 
 type POIImage {
-  id: ID!
-  poi_id: ID!
+  id: UUID!
+  poi_id: UUID!
   file_url: String!
   alt_text: String
+  created_at: Time!
+  updated_at: Time!
 }
 
 input POIImageInput {
@@ -20,29 +24,29 @@ input POIImageInput {
 }
 
 extend type Query {
-  poi(id: ID!): POI
+  poi(id: UUID!): POI
   pois: [POI!]!
-  poisByCity(city_id: ID!): [POI!]!
-  poiImage(id: ID!): POIImage!
+  poisByCity(city_id: UUID!): [POI!]!
+  poiImage(id: UUID!): POIImage!
 }
 
 extend type Mutation {
   createPOI(
     name: String!
     description: String
-    city_id: ID!
+    city_id: UUID!
     type: String!
     images: [POIImageInput!]
   ): POI!
 
   updatePOI(
-    id: ID!
+    id: UUID!
     name: String
     description: String
-    city_id: ID
+    city_id: UUID
     type: String
     images: [POIImageInput!]
   ): POI!
 
-  deletePOI(id: ID!): POI!
+  deletePOI(id: UUID!): POI!
 }

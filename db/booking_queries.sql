@@ -11,26 +11,26 @@ INSERT INTO bookings (
 )
 RETURNING
   id, user_id, package_id, total_price, status,
-  booking_date, travel_start_date, travel_end_date;
+  booking_date, travel_start_date, travel_end_date, created_at, updated_at;
 
 -- name: DeleteBooking :one
 DELETE FROM bookings
 WHERE id = $1
 RETURNING
   id, user_id, package_id, total_price, status,
-  booking_date, travel_start_date, travel_end_date;
+  booking_date, travel_start_date, travel_end_date, created_at, updated_at;
 
 -- name: GetBooking :one
 SELECT
   id, user_id, package_id, total_price, status,
-  booking_date, travel_start_date, travel_end_date
+  booking_date, travel_start_date, travel_end_date, created_at, updated_at
 FROM bookings
 WHERE id = $1;
 
 -- name: ListBookings :many
 SELECT
   id, user_id, package_id, total_price, status,
-  booking_date, travel_start_date, travel_end_date
+  booking_date, travel_start_date, travel_end_date, created_at, updated_at
 FROM bookings
 ORDER BY id;
 
@@ -46,4 +46,4 @@ SET
 WHERE id = $7
 RETURNING
   id, user_id, package_id, total_price, status,
-  booking_date, travel_start_date, travel_end_date;
+  booking_date, travel_start_date, travel_end_date, created_at, updated_at;

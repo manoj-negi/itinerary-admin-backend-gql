@@ -8,16 +8,18 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/google/uuid"
 )
 
 const createCategoryImage = `-- name: CreateCategoryImage :one
 INSERT INTO category_images (category_id, file_url, alt_text)
 VALUES ($1, $2, $3)
-RETURNING id, category_id, file_url, alt_text
+RETURNING id, category_id, file_url, alt_text, created_at, updated_at
 `
 
 type CreateCategoryImageParams struct {
-	CategoryID int32          `json:"category_id"`
+	CategoryID uuid.UUID      `json:"category_id"`
 	FileUrl    string         `json:"file_url"`
 	AltText    sql.NullString `json:"alt_text"`
 }
@@ -30,6 +32,8 @@ func (q *Queries) CreateCategoryImage(ctx context.Context, arg CreateCategoryIma
 		&i.CategoryID,
 		&i.FileUrl,
 		&i.AltText,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
@@ -38,16 +42,16 @@ const deleteCategoryImagesByCategory = `-- name: DeleteCategoryImagesByCategory 
 DELETE FROM category_images WHERE category_id = $1
 `
 
-func (q *Queries) DeleteCategoryImagesByCategory(ctx context.Context, categoryID int32) error {
+func (q *Queries) DeleteCategoryImagesByCategory(ctx context.Context, categoryID uuid.UUID) error {
 	_, err := q.db.ExecContext(ctx, deleteCategoryImagesByCategory, categoryID)
 	return err
 }
 
 const getCategoryImageByID = `-- name: GetCategoryImageByID :one
-SELECT id, category_id, file_url, alt_text FROM category_images WHERE id = $1
+SELECT id, category_id, file_url, alt_text, created_at, updated_at FROM category_images WHERE id = $1
 `
 
-func (q *Queries) GetCategoryImageByID(ctx context.Context, id int32) (CategoryImage, error) {
+func (q *Queries) GetCategoryImageByID(ctx context.Context, id uuid.UUID) (CategoryImage, error) {
 	row := q.db.QueryRowContext(ctx, getCategoryImageByID, id)
 	var i CategoryImage
 	err := row.Scan(
@@ -55,17 +59,19 @@ func (q *Queries) GetCategoryImageByID(ctx context.Context, id int32) (CategoryI
 		&i.CategoryID,
 		&i.FileUrl,
 		&i.AltText,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const listCategoryImagesByCategory = `-- name: ListCategoryImagesByCategory :many
-SELECT id, category_id, file_url, alt_text FROM category_images 
+SELECT id, category_id, file_url, alt_text, created_at, updated_at FROM category_images 
 WHERE category_id = $1 
 ORDER BY id ASC
 `
 
-func (q *Queries) ListCategoryImagesByCategory(ctx context.Context, categoryID int32) ([]CategoryImage, error) {
+func (q *Queries) ListCategoryImagesByCategory(ctx context.Context, categoryID uuid.UUID) ([]CategoryImage, error) {
 	rows, err := q.db.QueryContext(ctx, listCategoryImagesByCategory, categoryID)
 	if err != nil {
 		return nil, err
@@ -79,6 +85,8 @@ func (q *Queries) ListCategoryImagesByCategory(ctx context.Context, categoryID i
 			&i.CategoryID,
 			&i.FileUrl,
 			&i.AltText,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -97,11 +105,11 @@ const updateCategoryImage = `-- name: UpdateCategoryImage :one
 UPDATE category_images 
 SET file_url = $2, alt_text = $3 
 WHERE id = $1 
-RETURNING id, category_id, file_url, alt_text
+RETURNING id, category_id, file_url, alt_text, created_at, updated_at
 `
 
 type UpdateCategoryImageParams struct {
-	ID      int32          `json:"id"`
+	ID      uuid.UUID      `json:"id"`
 	FileUrl string         `json:"file_url"`
 	AltText sql.NullString `json:"alt_text"`
 }
@@ -114,6 +122,8 @@ func (q *Queries) UpdateCategoryImage(ctx context.Context, arg UpdateCategoryIma
 		&i.CategoryID,
 		&i.FileUrl,
 		&i.AltText,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }

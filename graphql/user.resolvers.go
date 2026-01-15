@@ -9,12 +9,11 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"graphql/database"
 	"graphql/graphql/generated"
 	"graphql/internal/db"
-	"strconv"
 
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -60,14 +59,9 @@ func (r *mutationResolver) CreateUser(ctx context.Context, fullName string, emai
 }
 
 // UpdateUser is the resolver for the updateUser field.
-func (r *mutationResolver) UpdateUser(ctx context.Context, id string, fullName *string, email *string, password *string, phone *string) (*db.User, error) {
-	userID, err := strconv.Atoi(id)
-	if err != nil {
-		return nil, errors.New("invalid user id")
-	}
-
+func (r *mutationResolver) UpdateUser(ctx context.Context, id uuid.UUID, fullName *string, email *string, password *string, phone *string) (*db.User, error) {
 	// Fetch existing user
-	existing, err := database.Queries.GetUser(ctx, int32(userID))
+	existing, err := database.Queries.GetUser(ctx, id)
 	if err == sql.ErrNoRows {
 		return nil, errors.New("user not found")
 	}
@@ -103,7 +97,7 @@ func (r *mutationResolver) UpdateUser(ctx context.Context, id string, fullName *
 
 	// Update via sqlc
 	userDB, err := database.Queries.UpdateUser(ctx, db.UpdateUserParams{
-		ID:       int32(userID),
+		ID:       id,
 		FullName: updateFullName,
 		Email:    updateEmail,
 		Password: updatePassword, // empty = no change
@@ -129,15 +123,9 @@ func (r *mutationResolver) UpdateUser(ctx context.Context, id string, fullName *
 }
 
 // DeleteUser is the resolver for the deleteUser field.
-func (r *mutationResolver) DeleteUser(ctx context.Context, id string) (*db.User, error) {
-	// Convert GraphQL ID → int
-	userID, err := strconv.Atoi(id)
-	if err != nil {
-		return nil, errors.New("invalid user id")
-	}
-
+func (r *mutationResolver) DeleteUser(ctx context.Context, id uuid.UUID) (*db.User, error) {
 	// Call sqlc delete
-	userDB, err := database.Queries.DeleteUser(ctx, int32(userID))
+	userDB, err := database.Queries.DeleteUser(ctx, id)
 	if err == sql.ErrNoRows {
 		return nil, errors.New("user not found")
 	}
@@ -159,13 +147,8 @@ func (r *mutationResolver) DeleteUser(ctx context.Context, id string) (*db.User,
 }
 
 // User is the resolver for the user field.
-func (r *queryResolver) User(ctx context.Context, id string) (*db.User, error) {
-	userID, err := strconv.Atoi(id)
-	if err != nil {
-		return nil, errors.New("invalid user ID")
-	}
-
-	userDB, err := database.Queries.GetUser(ctx, int32(userID))
+func (r *queryResolver) User(ctx context.Context, id uuid.UUID) (*db.User, error) {
+	userDB, err := database.Queries.GetUser(ctx, id)
 	if err == sql.ErrNoRows {
 		return nil, errors.New("user not found")
 	}
@@ -212,11 +195,6 @@ func (r *queryResolver) Users(ctx context.Context) ([]*db.User, error) {
 	return users, nil
 }
 
-// ID is the resolver for the id field.
-func (r *userResolver) ID(ctx context.Context, obj *db.User) (string, error) {
-	return fmt.Sprintf("%d", obj.ID), nil
-}
-
 // Phone is the resolver for the phone field.
 func (r *userResolver) Phone(ctx context.Context, obj *db.User) (*string, error) {
 	if !obj.Phone.Valid {
@@ -227,11 +205,11 @@ func (r *userResolver) Phone(ctx context.Context, obj *db.User) (*string, error)
 }
 
 // RoleID is the resolver for the roleId field.
-func (r *userResolver) RoleID(ctx context.Context, obj *db.User) (*string, error) {
+func (r *userResolver) RoleID(ctx context.Context, obj *db.User) (*uuid.UUID, error) {
 	if !obj.RoleID.Valid {
 		return nil, nil
 	}
-	roleID := fmt.Sprintf("%d", obj.RoleID.Int32)
+	roleID := obj.RoleID.UUID
 	return &roleID, nil
 }
 

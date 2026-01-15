@@ -8,18 +8,20 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/google/uuid"
 )
 
 const createPOI = `-- name: CreatePOI :one
 INSERT INTO points_of_interest (name, description, city_id, type)
 VALUES ($1, $2, $3, $4)
-RETURNING id, name, description, city_id, type
+RETURNING id, name, description, city_id, type, created_at, updated_at
 `
 
 type CreatePOIParams struct {
 	Name        string         `json:"name"`
 	Description sql.NullString `json:"description"`
-	CityID      int32          `json:"city_id"`
+	CityID      uuid.UUID      `json:"city_id"`
 	Type        string         `json:"type"`
 }
 
@@ -37,6 +39,8 @@ func (q *Queries) CreatePOI(ctx context.Context, arg CreatePOIParams) (PointsOfI
 		&i.Description,
 		&i.CityID,
 		&i.Type,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
@@ -44,10 +48,10 @@ func (q *Queries) CreatePOI(ctx context.Context, arg CreatePOIParams) (PointsOfI
 const deletePOI = `-- name: DeletePOI :one
 DELETE FROM points_of_interest
 WHERE id = $1
-RETURNING id, name, description, city_id, type
+RETURNING id, name, description, city_id, type, created_at, updated_at
 `
 
-func (q *Queries) DeletePOI(ctx context.Context, id int32) (PointsOfInterest, error) {
+func (q *Queries) DeletePOI(ctx context.Context, id uuid.UUID) (PointsOfInterest, error) {
 	row := q.db.QueryRowContext(ctx, deletePOI, id)
 	var i PointsOfInterest
 	err := row.Scan(
@@ -56,17 +60,19 @@ func (q *Queries) DeletePOI(ctx context.Context, id int32) (PointsOfInterest, er
 		&i.Description,
 		&i.CityID,
 		&i.Type,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const getPOI = `-- name: GetPOI :one
-SELECT id, name, description, city_id, type
+SELECT id, name, description, city_id, type, created_at, updated_at
 FROM points_of_interest
 WHERE id = $1
 `
 
-func (q *Queries) GetPOI(ctx context.Context, id int32) (PointsOfInterest, error) {
+func (q *Queries) GetPOI(ctx context.Context, id uuid.UUID) (PointsOfInterest, error) {
 	row := q.db.QueryRowContext(ctx, getPOI, id)
 	var i PointsOfInterest
 	err := row.Scan(
@@ -75,12 +81,14 @@ func (q *Queries) GetPOI(ctx context.Context, id int32) (PointsOfInterest, error
 		&i.Description,
 		&i.CityID,
 		&i.Type,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const listPOIs = `-- name: ListPOIs :many
-SELECT id, name, description, city_id, type
+SELECT id, name, description, city_id, type, created_at, updated_at
 FROM points_of_interest
 ORDER BY id ASC
 `
@@ -100,6 +108,8 @@ func (q *Queries) ListPOIs(ctx context.Context) ([]PointsOfInterest, error) {
 			&i.Description,
 			&i.CityID,
 			&i.Type,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -115,13 +125,13 @@ func (q *Queries) ListPOIs(ctx context.Context) ([]PointsOfInterest, error) {
 }
 
 const listPOIsByCity = `-- name: ListPOIsByCity :many
-SELECT id, name, description, city_id, type
+SELECT id, name, description, city_id, type, created_at, updated_at
 FROM points_of_interest
 WHERE city_id = $1
 ORDER BY id ASC
 `
 
-func (q *Queries) ListPOIsByCity(ctx context.Context, cityID int32) ([]PointsOfInterest, error) {
+func (q *Queries) ListPOIsByCity(ctx context.Context, cityID uuid.UUID) ([]PointsOfInterest, error) {
 	rows, err := q.db.QueryContext(ctx, listPOIsByCity, cityID)
 	if err != nil {
 		return nil, err
@@ -136,6 +146,8 @@ func (q *Queries) ListPOIsByCity(ctx context.Context, cityID int32) ([]PointsOfI
 			&i.Description,
 			&i.CityID,
 			&i.Type,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -158,14 +170,14 @@ SET
   city_id     = COALESCE($4, city_id),
   type        = COALESCE($5, type)
 WHERE id = $1
-RETURNING id, name, description, city_id, type
+RETURNING id, name, description, city_id, type, created_at, updated_at
 `
 
 type UpdatePOIParams struct {
-	ID          int32          `json:"id"`
+	ID          uuid.UUID      `json:"id"`
 	Name        string         `json:"name"`
 	Description sql.NullString `json:"description"`
-	CityID      int32          `json:"city_id"`
+	CityID      uuid.UUID      `json:"city_id"`
 	Type        string         `json:"type"`
 }
 
@@ -184,6 +196,8 @@ func (q *Queries) UpdatePOI(ctx context.Context, arg UpdatePOIParams) (PointsOfI
 		&i.Description,
 		&i.CityID,
 		&i.Type,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }

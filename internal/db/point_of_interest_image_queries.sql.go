@@ -8,16 +8,18 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/google/uuid"
 )
 
 const createPOIImage = `-- name: CreatePOIImage :one
 INSERT INTO point_of_interest_images (poi_id, file_url, alt_text)
 VALUES ($1, $2, $3)
-RETURNING id, poi_id, file_url, alt_text
+RETURNING id, poi_id, file_url, alt_text, created_at, updated_at
 `
 
 type CreatePOIImageParams struct {
-	PoiID   int32          `json:"poi_id"`
+	PoiID   uuid.UUID      `json:"poi_id"`
 	FileUrl string         `json:"file_url"`
 	AltText sql.NullString `json:"alt_text"`
 }
@@ -30,6 +32,8 @@ func (q *Queries) CreatePOIImage(ctx context.Context, arg CreatePOIImageParams) 
 		&i.PoiID,
 		&i.FileUrl,
 		&i.AltText,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
@@ -38,16 +42,16 @@ const deletePOIImagesByPOI = `-- name: DeletePOIImagesByPOI :exec
 DELETE FROM point_of_interest_images WHERE poi_id = $1
 `
 
-func (q *Queries) DeletePOIImagesByPOI(ctx context.Context, poiID int32) error {
+func (q *Queries) DeletePOIImagesByPOI(ctx context.Context, poiID uuid.UUID) error {
 	_, err := q.db.ExecContext(ctx, deletePOIImagesByPOI, poiID)
 	return err
 }
 
 const getPOIImageByID = `-- name: GetPOIImageByID :one
-SELECT id, poi_id, file_url, alt_text FROM point_of_interest_images WHERE id = $1
+SELECT id, poi_id, file_url, alt_text, created_at, updated_at FROM point_of_interest_images WHERE id = $1
 `
 
-func (q *Queries) GetPOIImageByID(ctx context.Context, id int32) (PointOfInterestImage, error) {
+func (q *Queries) GetPOIImageByID(ctx context.Context, id uuid.UUID) (PointOfInterestImage, error) {
 	row := q.db.QueryRowContext(ctx, getPOIImageByID, id)
 	var i PointOfInterestImage
 	err := row.Scan(
@@ -55,17 +59,19 @@ func (q *Queries) GetPOIImageByID(ctx context.Context, id int32) (PointOfInteres
 		&i.PoiID,
 		&i.FileUrl,
 		&i.AltText,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const listPOIImagesByPOI = `-- name: ListPOIImagesByPOI :many
-SELECT id, poi_id, file_url, alt_text FROM point_of_interest_images 
+SELECT id, poi_id, file_url, alt_text, created_at, updated_at FROM point_of_interest_images 
 WHERE poi_id = $1 
 ORDER BY id ASC
 `
 
-func (q *Queries) ListPOIImagesByPOI(ctx context.Context, poiID int32) ([]PointOfInterestImage, error) {
+func (q *Queries) ListPOIImagesByPOI(ctx context.Context, poiID uuid.UUID) ([]PointOfInterestImage, error) {
 	rows, err := q.db.QueryContext(ctx, listPOIImagesByPOI, poiID)
 	if err != nil {
 		return nil, err
@@ -79,6 +85,8 @@ func (q *Queries) ListPOIImagesByPOI(ctx context.Context, poiID int32) ([]PointO
 			&i.PoiID,
 			&i.FileUrl,
 			&i.AltText,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -97,11 +105,11 @@ const updatePOIImage = `-- name: UpdatePOIImage :one
 UPDATE point_of_interest_images 
 SET file_url = $2, alt_text = $3 
 WHERE id = $1 
-RETURNING id, poi_id, file_url, alt_text
+RETURNING id, poi_id, file_url, alt_text, created_at, updated_at
 `
 
 type UpdatePOIImageParams struct {
-	ID      int32          `json:"id"`
+	ID      uuid.UUID      `json:"id"`
 	FileUrl string         `json:"file_url"`
 	AltText sql.NullString `json:"alt_text"`
 }
@@ -114,6 +122,8 @@ func (q *Queries) UpdatePOIImage(ctx context.Context, arg UpdatePOIImageParams) 
 		&i.PoiID,
 		&i.FileUrl,
 		&i.AltText,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }

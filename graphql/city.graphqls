@@ -1,17 +1,17 @@
 type City {
-  id: ID!
-  stateId: ID!
+  id: UUID!
+  stateId: UUID!
   name: String!
 }
 
 extend type Query {
-  city(id: ID!): City
+  city(id: UUID!): City
   cities: [City!]!
-  citiesByState(stateId: ID!): [City!]!
+  citiesByState(stateId: UUID!): [City!]!
 }
 
 extend type Mutation {
-  createCity(stateId: ID!, name: String!): City!
-  updateCity(id: ID!, stateId: ID, name: String): City!
-  deleteCity(id: ID!): City!
+  createCity(stateId: UUID!, name: String!): City!
+  updateCity(id: UUID!, stateId: UUID, name: String): City!
+  deleteCity(id: UUID!): City!
 }
