@@ -9,6 +9,8 @@ import (
 	"context"
 	"database/sql"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 const createUser = `-- name: CreateUser :one
@@ -22,15 +24,15 @@ type CreateUserParams struct {
 	Email    string         `json:"email"`
 	Password string         `json:"password"`
 	Phone    sql.NullString `json:"phone"`
-	RoleID   sql.NullInt32  `json:"role_id"`
+	RoleID   uuid.NullUUID  `json:"role_id"`
 }
 
 type CreateUserRow struct {
-	ID        int32          `json:"id"`
+	ID        uuid.UUID      `json:"id"`
 	FullName  string         `json:"full_name"`
 	Email     string         `json:"email"`
 	Phone     sql.NullString `json:"phone"`
-	RoleID    sql.NullInt32  `json:"role_id"`
+	RoleID    uuid.NullUUID  `json:"role_id"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 }
@@ -63,7 +65,7 @@ RETURNING id, full_name, email, phone, created_at, updated_at
 `
 
 type DeleteUserRow struct {
-	ID        int32          `json:"id"`
+	ID        uuid.UUID      `json:"id"`
 	FullName  string         `json:"full_name"`
 	Email     string         `json:"email"`
 	Phone     sql.NullString `json:"phone"`
@@ -71,7 +73,7 @@ type DeleteUserRow struct {
 	UpdatedAt time.Time      `json:"updated_at"`
 }
 
-func (q *Queries) DeleteUser(ctx context.Context, id int32) (DeleteUserRow, error) {
+func (q *Queries) DeleteUser(ctx context.Context, id uuid.UUID) (DeleteUserRow, error) {
 	row := q.db.QueryRowContext(ctx, deleteUser, id)
 	var i DeleteUserRow
 	err := row.Scan(
@@ -92,16 +94,16 @@ WHERE id = $1
 `
 
 type GetUserRow struct {
-	ID        int32          `json:"id"`
+	ID        uuid.UUID      `json:"id"`
 	FullName  string         `json:"full_name"`
 	Email     string         `json:"email"`
 	Phone     sql.NullString `json:"phone"`
-	RoleID    sql.NullInt32  `json:"role_id"`
+	RoleID    uuid.NullUUID  `json:"role_id"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 }
 
-func (q *Queries) GetUser(ctx context.Context, id int32) (GetUserRow, error) {
+func (q *Queries) GetUser(ctx context.Context, id uuid.UUID) (GetUserRow, error) {
 	row := q.db.QueryRowContext(ctx, getUser, id)
 	var i GetUserRow
 	err := row.Scan(
@@ -145,11 +147,11 @@ ORDER BY id
 `
 
 type ListUsersRow struct {
-	ID        int32          `json:"id"`
+	ID        uuid.UUID      `json:"id"`
 	FullName  string         `json:"full_name"`
 	Email     string         `json:"email"`
 	Phone     sql.NullString `json:"phone"`
-	RoleID    sql.NullInt32  `json:"role_id"`
+	RoleID    uuid.NullUUID  `json:"role_id"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 }
@@ -203,16 +205,16 @@ type UpdateUserParams struct {
 	Email    string         `json:"email"`
 	Password string         `json:"password"`
 	Phone    sql.NullString `json:"phone"`
-	RoleID   sql.NullInt32  `json:"role_id"`
-	ID       int32          `json:"id"`
+	RoleID   uuid.NullUUID  `json:"role_id"`
+	ID       uuid.UUID      `json:"id"`
 }
 
 type UpdateUserRow struct {
-	ID        int32          `json:"id"`
+	ID        uuid.UUID      `json:"id"`
 	FullName  string         `json:"full_name"`
 	Email     string         `json:"email"`
 	Phone     sql.NullString `json:"phone"`
-	RoleID    sql.NullInt32  `json:"role_id"`
+	RoleID    uuid.NullUUID  `json:"role_id"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 }

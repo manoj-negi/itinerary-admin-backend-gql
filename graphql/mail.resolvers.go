@@ -14,7 +14,6 @@ import (
 )
 
 // SubmitInquiry is the resolver for the submitInquiry field.
-
 func (r *mutationResolver) SubmitInquiry(ctx context.Context, input models.InquiryInput) (*models.InquiryResult, error) {
 	refId := time.Now().Format("20060102-150405")
 

@@ -7,114 +7,160 @@ package db
 import (
 	"database/sql"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type Booking struct {
-	ID              int32     `json:"id"`
-	UserID          int32     `json:"user_id"`
-	PackageID       int32     `json:"package_id"`
+	ID              uuid.UUID `json:"id"`
+	UserID          uuid.UUID `json:"user_id"`
+	PackageID       uuid.UUID `json:"package_id"`
 	TotalPrice      string    `json:"total_price"`
 	Status          string    `json:"status"`
 	BookingDate     time.Time `json:"booking_date"`
 	TravelStartDate time.Time `json:"travel_start_date"`
 	TravelEndDate   time.Time `json:"travel_end_date"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
+}
+
+type BookingPayment struct {
+	ID        uuid.UUID    `json:"id"`
+	BookingID uuid.UUID    `json:"booking_id"`
+	Amount    string       `json:"amount"`
+	Status    string       `json:"status"`
+	Method    string       `json:"method"`
+	PaidAt    sql.NullTime `json:"paid_at"`
 }
 
 type Category struct {
-	ID           int32          `json:"id"`
+	ID           uuid.UUID      `json:"id"`
 	CategoryName string         `json:"category_name"`
 	Description  sql.NullString `json:"description"`
+	CreatedAt    time.Time      `json:"created_at"`
+	UpdatedAt    time.Time      `json:"updated_at"`
 }
 
 type CategoryImage struct {
-	ID         int32          `json:"id"`
-	CategoryID int32          `json:"category_id"`
+	ID         uuid.UUID      `json:"id"`
+	CategoryID uuid.UUID      `json:"category_id"`
 	FileUrl    string         `json:"file_url"`
 	AltText    sql.NullString `json:"alt_text"`
+	CreatedAt  time.Time      `json:"created_at"`
+	UpdatedAt  time.Time      `json:"updated_at"`
 }
 
 type City struct {
-	ID      int32  `json:"id"`
-	StateID int32  `json:"state_id"`
-	Name    string `json:"name"`
+	ID      uuid.UUID `json:"id"`
+	StateID uuid.UUID `json:"state_id"`
+	Name    string    `json:"name"`
 }
 
 type Country struct {
-	ID   int32  `json:"id"`
-	Name string `json:"name"`
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+}
+
+type ItineraryDay struct {
+	ID          uuid.UUID      `json:"id"`
+	PackageID   uuid.UUID      `json:"package_id"`
+	DayNumber   int32          `json:"day_number"`
+	Title       string         `json:"title"`
+	Description sql.NullString `json:"description"`
 }
 
 type Package struct {
-	ID          int32          `json:"id"`
-	TourID      int32          `json:"tour_id"`
+	ID          uuid.UUID      `json:"id"`
+	TourID      uuid.UUID      `json:"tour_id"`
 	PackageName string         `json:"package_name"`
 	Price       string         `json:"price"`
-	Currency    string         `json:"currency"`
+	Currency    sql.NullString `json:"currency"`
 	Occupancy   sql.NullString `json:"occupancy"`
 	IsFeatured  bool           `json:"is_featured"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
 }
 
 type PackageImage struct {
-	ID        int32          `json:"id"`
-	PackageID int32          `json:"package_id"`
+	ID        uuid.UUID      `json:"id"`
+	PackageID uuid.UUID      `json:"package_id"`
 	FileUrl   string         `json:"file_url"`
 	AltText   sql.NullString `json:"alt_text"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+}
+
+type Permission struct {
+	ID             uuid.UUID `json:"id"`
+	PermissionName string    `json:"permission_name"`
 }
 
 type PointOfInterestImage struct {
-	ID      int32          `json:"id"`
-	PoiID   int32          `json:"poi_id"`
-	FileUrl string         `json:"file_url"`
-	AltText sql.NullString `json:"alt_text"`
+	ID        uuid.UUID      `json:"id"`
+	PoiID     uuid.UUID      `json:"poi_id"`
+	FileUrl   string         `json:"file_url"`
+	AltText   sql.NullString `json:"alt_text"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
 }
 
 type PointsOfInterest struct {
-	ID          int32          `json:"id"`
+	ID          uuid.UUID      `json:"id"`
 	Name        string         `json:"name"`
 	Description sql.NullString `json:"description"`
-	CityID      int32          `json:"city_id"`
+	CityID      uuid.UUID      `json:"city_id"`
 	Type        string         `json:"type"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
 }
 
 type Role struct {
-	ID        int32     `json:"id"`
+	ID        uuid.UUID `json:"id"`
 	RoleName  string    `json:"role_name"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
+type RolePermission struct {
+	ID           uuid.UUID `json:"id"`
+	RoleID       uuid.UUID `json:"role_id"`
+	PermissionID uuid.UUID `json:"permission_id"`
+}
+
 type State struct {
-	ID        int32  `json:"id"`
-	CountryID int32  `json:"country_id"`
-	Name      string `json:"name"`
+	ID        uuid.UUID `json:"id"`
+	CountryID uuid.UUID `json:"country_id"`
+	Name      string    `json:"name"`
 }
 
 type Tour struct {
-	ID           int32          `json:"id"`
+	ID           uuid.UUID      `json:"id"`
 	Title        string         `json:"title"`
 	Description  sql.NullString `json:"description"`
-	CategoryID   int32          `json:"category_id"`
-	CityID       int32          `json:"city_id"`
+	CategoryID   uuid.UUID      `json:"category_id"`
+	CityID       uuid.UUID      `json:"city_id"`
 	DurationDays int32          `json:"duration_days"`
-	CreatedBy    int32          `json:"created_by"`
+	CreatedBy    uuid.UUID      `json:"created_by"`
 	Status       string         `json:"status"`
 	CreatedAt    time.Time      `json:"created_at"`
 	UpdatedAt    time.Time      `json:"updated_at"`
 }
 
 type TourImage struct {
-	ID      int32          `json:"id"`
-	TourID  int32          `json:"tour_id"`
-	FileUrl string         `json:"file_url"`
-	AltText sql.NullString `json:"alt_text"`
+	ID        uuid.UUID      `json:"id"`
+	TourID    uuid.UUID      `json:"tour_id"`
+	FileUrl   string         `json:"file_url"`
+	AltText   sql.NullString `json:"alt_text"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
 }
 
 type User struct {
-	ID        int32          `json:"id"`
+	ID        uuid.UUID      `json:"id"`
 	FullName  string         `json:"full_name"`
 	Email     string         `json:"email"`
 	Password  string         `json:"password"`
 	Phone     sql.NullString `json:"phone"`
-	RoleID    sql.NullInt32  `json:"role_id"`
+	RoleID    uuid.NullUUID  `json:"role_id"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 }

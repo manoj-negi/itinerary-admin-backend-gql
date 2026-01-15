@@ -9,27 +9,24 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"graphql/database"
-	"graphql/graphql/generated"
 	"graphql/internal/db"
-	"strconv"
+
+	"github.com/google/uuid"
 )
 
 // CreateState is the resolver for the createState field.
-func (r *mutationResolver) CreateState(ctx context.Context, countryID string, name string) (*db.State, error) {
+func (r *mutationResolver) CreateState(ctx context.Context, countryID uuid.UUID, name string) (*db.State, error) {
 	if name == "" {
 		return nil, errors.New("state name is required")
 	}
 
-	// Parse country ID
-	cID, err := strconv.Atoi(countryID)
-	if err != nil {
+	if countryID == uuid.Nil {
 		return nil, errors.New("invalid country id")
 	}
 
 	state, err := database.Queries.CreateState(ctx, db.CreateStateParams{
-		CountryID: int32(cID),
+		CountryID: countryID,
 		Name:      name,
 	})
 	if err != nil {
@@ -40,13 +37,12 @@ func (r *mutationResolver) CreateState(ctx context.Context, countryID string, na
 }
 
 // UpdateState is the resolver for the updateState field.
-func (r *mutationResolver) UpdateState(ctx context.Context, id string, countryID *string, name *string) (*db.State, error) {
-	stateID, err := strconv.Atoi(id)
-	if err != nil {
+func (r *mutationResolver) UpdateState(ctx context.Context, id uuid.UUID, countryID *uuid.UUID, name *string) (*db.State, error) {
+	if id == uuid.Nil {
 		return nil, errors.New("invalid state ID")
 	}
 
-	existing, err := database.Queries.GetState(ctx, int32(stateID))
+	existing, err := database.Queries.GetState(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -54,11 +50,10 @@ func (r *mutationResolver) UpdateState(ctx context.Context, id string, countryID
 	// Resolve country ID
 	updateCountryID := existing.CountryID
 	if countryID != nil {
-		parsedID, err := strconv.Atoi(*countryID)
-		if err != nil {
+		if *countryID == uuid.Nil {
 			return nil, errors.New("invalid country ID")
 		}
-		updateCountryID = int32(parsedID)
+		updateCountryID = *countryID
 	}
 
 	// Resolve name
@@ -70,7 +65,7 @@ func (r *mutationResolver) UpdateState(ctx context.Context, id string, countryID
 	state, err := database.Queries.UpdateState(ctx, db.UpdateStateParams{
 		CountryID: updateCountryID,
 		Name:      updateName,
-		ID:        int32(stateID),
+		ID:        id,
 	})
 	if err != nil {
 		return nil, err
@@ -80,24 +75,22 @@ func (r *mutationResolver) UpdateState(ctx context.Context, id string, countryID
 }
 
 // DeleteState is the resolver for the deleteState field.
-func (r *mutationResolver) DeleteState(ctx context.Context, id string) (*db.State, error) {
-	stateID, err := strconv.Atoi(id)
-	if err != nil {
+func (r *mutationResolver) DeleteState(ctx context.Context, id uuid.UUID) (*db.State, error) {
+	if id == uuid.Nil {
 		return nil, errors.New("invalid state id")
 	}
 
-	state, err := database.Queries.DeleteState(ctx, int32(stateID))
+	state, err := database.Queries.DeleteState(ctx, id)
 	return &state, err
 }
 
 // State is the resolver for the state field.
-func (r *queryResolver) State(ctx context.Context, id string) (*db.State, error) {
-	stateID, err := strconv.Atoi(id)
-	if err != nil {
+func (r *queryResolver) State(ctx context.Context, id uuid.UUID) (*db.State, error) {
+	if id == uuid.Nil {
 		return nil, errors.New("invalid state id")
 	}
 
-	state, err := database.Queries.GetState(ctx, int32(stateID))
+	state, err := database.Queries.GetState(ctx, id)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -121,13 +114,12 @@ func (r *queryResolver) States(ctx context.Context) ([]*db.State, error) {
 }
 
 // StatesByCountry is the resolver for the statesByCountry field.
-func (r *queryResolver) StatesByCountry(ctx context.Context, countryID string) ([]*db.State, error) {
-	id, err := strconv.Atoi(countryID)
-	if err != nil {
+func (r *queryResolver) StatesByCountry(ctx context.Context, countryID uuid.UUID) ([]*db.State, error) {
+	if countryID == uuid.Nil {
 		return nil, errors.New("invalid country id")
 	}
 
-	states, err := database.Queries.ListStatesByCountry(ctx, int32(id))
+	states, err := database.Queries.ListStatesByCountry(ctx, countryID)
 	if err != nil {
 		return nil, err
 	}
@@ -140,18 +132,3 @@ func (r *queryResolver) StatesByCountry(ctx context.Context, countryID string) (
 
 	return result, nil
 }
-
-// ID is the resolver for the id field.
-func (r *stateResolver) ID(ctx context.Context, obj *db.State) (string, error) {
-	return fmt.Sprintf("%d", obj.ID), nil
-}
-
-// CountryID is the resolver for the countryId field.
-func (r *stateResolver) CountryID(ctx context.Context, obj *db.State) (string, error) {
-	return fmt.Sprintf("%d", obj.CountryID), nil
-}
-
-// State returns generated.StateResolver implementation.
-func (r *Resolver) State() generated.StateResolver { return &stateResolver{r} }
-
-type stateResolver struct{ *Resolver }

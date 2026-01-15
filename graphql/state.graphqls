@@ -1,17 +1,17 @@
 type State {
-  id: ID!
-  countryId: ID!
+  id: UUID!
+  countryId: UUID!
   name: String!
 }
 
 extend type Query {
-  state(id: ID!): State
+  state(id: UUID!): State
   states: [State!]!
-  statesByCountry(countryId: ID!): [State!]!
+  statesByCountry(countryId: UUID!): [State!]!
 }
 
 extend type Mutation {
-  createState(countryId: ID!, name: String!): State!
-  updateState(id: ID!, countryId: ID, name: String): State!
-  deleteState(id: ID!): State!
+  createState(countryId: UUID!, name: String!): State!
+  updateState(id: UUID!, countryId: UUID, name: String): State!
+  deleteState(id: UUID!): State!
 }

@@ -9,17 +9,11 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"graphql/database"
-	"graphql/graphql/generated"
 	"graphql/internal/db"
-	"strconv"
-)
 
-// ID is the resolver for the id field.
-func (r *countryResolver) ID(ctx context.Context, obj *db.Country) (string, error) {
-	return fmt.Sprintf("%d", obj.ID), nil
-}
+	"github.com/google/uuid"
+)
 
 // CreateCountry is the resolver for the createCountry field.
 func (r *mutationResolver) CreateCountry(ctx context.Context, name string) (*db.Country, error) {
@@ -37,23 +31,27 @@ func (r *mutationResolver) CreateCountry(ctx context.Context, name string) (*db.
 }
 
 // UpdateCountry is the resolver for the updateCountry field.
-func (r *mutationResolver) UpdateCountry(ctx context.Context, id string, name *string) (*db.Country, error) {
-	// Convert ID
-	countryID, err := strconv.Atoi(id)
-	if err != nil {
+func (r *mutationResolver) UpdateCountry(ctx context.Context, id uuid.UUID, name *string) (*db.Country, error) {
+	if id == uuid.Nil {
 		return nil, errors.New("invalid country id")
 	}
 
-	// Handle optional name
-	updateName := ""
+	existing, err := database.Queries.GetCountry(ctx, id)
+	if err == sql.ErrNoRows {
+		return nil, errors.New("country not found")
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	updateName := existing.Name
 	if name != nil {
 		updateName = *name
 	}
 
-	// Call sqlc update query
 	countryDB, err := database.Queries.UpdateCountry(ctx, db.UpdateCountryParams{
+		ID:   id,
 		Name: updateName,
-		ID:   int32(countryID),
 	})
 	if err != nil {
 		return nil, err
@@ -63,15 +61,13 @@ func (r *mutationResolver) UpdateCountry(ctx context.Context, id string, name *s
 }
 
 // DeleteCountry is the resolver for the deleteCountry field.
-func (r *mutationResolver) DeleteCountry(ctx context.Context, id string) (*db.Country, error) {
-	// Convert ID from string → int
-	countryID, err := strconv.Atoi(id)
-	if err != nil {
+func (r *mutationResolver) DeleteCountry(ctx context.Context, id uuid.UUID) (*db.Country, error) {
+	if id == uuid.Nil {
 		return nil, errors.New("invalid country id")
 	}
 
 	// Call sqlc delete query
-	countryDB, err := database.Queries.DeleteCountry(ctx, int32(countryID))
+	countryDB, err := database.Queries.DeleteCountry(ctx, id)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, errors.New("country not found")
@@ -83,15 +79,13 @@ func (r *mutationResolver) DeleteCountry(ctx context.Context, id string) (*db.Co
 }
 
 // Country is the resolver for the country field.
-func (r *queryResolver) Country(ctx context.Context, id string) (*db.Country, error) {
-	// Convert GraphQL ID (string) → int
-	countryID, err := strconv.Atoi(id)
-	if err != nil {
+func (r *queryResolver) Country(ctx context.Context, id uuid.UUID) (*db.Country, error) {
+	if id == uuid.Nil {
 		return nil, errors.New("invalid country id")
 	}
 
 	// Fetch country from database
-	countryDB, err := database.Queries.GetCountry(ctx, int32(countryID))
+	countryDB, err := database.Queries.GetCountry(ctx, id)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, errors.New("country not found")
@@ -117,8 +111,3 @@ func (r *queryResolver) Countries(ctx context.Context) ([]*db.Country, error) {
 
 	return countries, nil
 }
-
-// Country returns generated.CountryResolver implementation.
-func (r *Resolver) Country() generated.CountryResolver { return &countryResolver{r} }
-
-type countryResolver struct{ *Resolver }

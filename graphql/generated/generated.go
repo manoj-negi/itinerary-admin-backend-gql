@@ -16,6 +16,7 @@ import (
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
+	"github.com/google/uuid"
 	gqlparser "github.com/vektah/gqlparser/v2"
 	"github.com/vektah/gqlparser/v2/ast"
 )
@@ -43,15 +44,12 @@ type ResolverRoot interface {
 	Booking() BookingResolver
 	Category() CategoryResolver
 	CategoryImage() CategoryImageResolver
-	City() CityResolver
-	Country() CountryResolver
 	Mutation() MutationResolver
 	POI() POIResolver
 	POIImage() POIImageResolver
 	Package() PackageResolver
 	PackageImage() PackageImageResolver
 	Query() QueryResolver
-	State() StateResolver
 	Tour() TourResolver
 	TourImage() TourImageResolver
 	User() UserResolver
@@ -63,27 +61,33 @@ type DirectiveRoot struct {
 type ComplexityRoot struct {
 	Booking struct {
 		BookingDate     func(childComplexity int) int
+		CreatedAt       func(childComplexity int) int
 		ID              func(childComplexity int) int
 		PackageID       func(childComplexity int) int
 		Status          func(childComplexity int) int
 		TotalPrice      func(childComplexity int) int
 		TravelEndDate   func(childComplexity int) int
 		TravelStartDate func(childComplexity int) int
+		UpdatedAt       func(childComplexity int) int
 		UserID          func(childComplexity int) int
 	}
 
 	Category struct {
 		CategoryName func(childComplexity int) int
+		CreatedAt    func(childComplexity int) int
 		Description  func(childComplexity int) int
 		ID           func(childComplexity int) int
 		Images       func(childComplexity int) int
+		UpdatedAt    func(childComplexity int) int
 	}
 
 	CategoryImage struct {
 		AltText    func(childComplexity int) int
 		CategoryID func(childComplexity int) int
+		CreatedAt  func(childComplexity int) int
 		FileUrl    func(childComplexity int) int
 		ID         func(childComplexity int) int
+		UpdatedAt  func(childComplexity int) int
 	}
 
 	City struct {
@@ -108,54 +112,59 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		CreateBooking  func(childComplexity int, userID string, packageID string, totalPrice string, status string, travelStartDate string, travelEndDate string) int
+		CreateBooking  func(childComplexity int, userID uuid.UUID, packageID uuid.UUID, totalPrice string, status string, travelStartDate string, travelEndDate string) int
 		CreateCategory func(childComplexity int, categoryName string, description *string, images []*models.CategoryImageInput) int
-		CreateCity     func(childComplexity int, stateID string, name string) int
+		CreateCity     func(childComplexity int, stateID uuid.UUID, name string) int
 		CreateCountry  func(childComplexity int, name string) int
-		CreatePackage  func(childComplexity int, tourID string, packageName string, price string, currency string, occupancy *string, isFeatured *bool, images []*models.PackageImageInput) int
-		CreatePoi      func(childComplexity int, name string, description *string, cityID string, typeArg string, images []*models.POIImageInput) int
-		CreateState    func(childComplexity int, countryID string, name string) int
-		CreateTour     func(childComplexity int, title string, description *string, categoryID string, cityID string, durationDays int, createdBy string, status string, images []*models.TourImageInput) int
+		CreatePackage  func(childComplexity int, tourID uuid.UUID, packageName string, price string, currency string, occupancy *string, isFeatured *bool, images []*models.PackageImageInput) int
+		CreatePoi      func(childComplexity int, name string, description *string, cityID uuid.UUID, typeArg string, images []*models.POIImageInput) int
+		CreateState    func(childComplexity int, countryID uuid.UUID, name string) int
+		CreateTour     func(childComplexity int, title string, description *string, categoryID uuid.UUID, cityID uuid.UUID, durationDays int, createdBy uuid.UUID, status string, images []*models.TourImageInput) int
 		CreateUser     func(childComplexity int, fullName string, email string, password string, phone *string) int
-		DeleteBooking  func(childComplexity int, id string) int
-		DeleteCategory func(childComplexity int, id string) int
-		DeleteCity     func(childComplexity int, id string) int
-		DeleteCountry  func(childComplexity int, id string) int
-		DeletePackage  func(childComplexity int, id string) int
-		DeletePoi      func(childComplexity int, id string) int
-		DeleteState    func(childComplexity int, id string) int
-		DeleteTour     func(childComplexity int, id string) int
-		DeleteUser     func(childComplexity int, id string) int
+		DeleteBooking  func(childComplexity int, id uuid.UUID) int
+		DeleteCategory func(childComplexity int, id uuid.UUID) int
+		DeleteCity     func(childComplexity int, id uuid.UUID) int
+		DeleteCountry  func(childComplexity int, id uuid.UUID) int
+		DeletePackage  func(childComplexity int, id uuid.UUID) int
+		DeletePoi      func(childComplexity int, id uuid.UUID) int
+		DeleteState    func(childComplexity int, id uuid.UUID) int
+		DeleteTour     func(childComplexity int, id uuid.UUID) int
+		DeleteUser     func(childComplexity int, id uuid.UUID) int
 		Login          func(childComplexity int, email string, password string) int
 		SubmitInquiry  func(childComplexity int, input models.InquiryInput) int
-		UpdateBooking  func(childComplexity int, id string, userID *string, packageID *string, totalPrice *string, status *string, travelStartDate *string, travelEndDate *string) int
-		UpdateCategory func(childComplexity int, id string, categoryName *string, description *string, images []*models.CategoryImageInput) int
-		UpdateCity     func(childComplexity int, id string, stateID *string, name *string) int
-		UpdateCountry  func(childComplexity int, id string, name *string) int
-		UpdatePackage  func(childComplexity int, id string, tourID *string, packageName *string, price *string, currency *string, occupancy *string, isFeatured *bool, images []*models.PackageImageInput) int
-		UpdatePoi      func(childComplexity int, id string, name *string, description *string, cityID *string, typeArg *string, images []*models.POIImageInput) int
-		UpdateState    func(childComplexity int, id string, countryID *string, name *string) int
-		UpdateTour     func(childComplexity int, id string, title *string, description *string, categoryID *string, cityID *string, durationDays *int, createdBy *string, status *string, images []*models.TourImageInput) int
-		UpdateUser     func(childComplexity int, id string, fullName *string, email *string, password *string, phone *string) int
+		UpdateBooking  func(childComplexity int, id uuid.UUID, userID *uuid.UUID, packageID *uuid.UUID, totalPrice *string, status *string, travelStartDate *string, travelEndDate *string) int
+		UpdateCategory func(childComplexity int, id uuid.UUID, categoryName *string, description *string, images []*models.CategoryImageInput) int
+		UpdateCity     func(childComplexity int, id uuid.UUID, stateID *uuid.UUID, name *string) int
+		UpdateCountry  func(childComplexity int, id uuid.UUID, name *string) int
+		UpdatePackage  func(childComplexity int, id uuid.UUID, tourID *uuid.UUID, packageName *string, price *string, currency *string, occupancy *string, isFeatured *bool, images []*models.PackageImageInput) int
+		UpdatePoi      func(childComplexity int, id uuid.UUID, name *string, description *string, cityID *uuid.UUID, typeArg *string, images []*models.POIImageInput) int
+		UpdateState    func(childComplexity int, id uuid.UUID, countryID *uuid.UUID, name *string) int
+		UpdateTour     func(childComplexity int, id uuid.UUID, title *string, description *string, categoryID *uuid.UUID, cityID *uuid.UUID, durationDays *int, createdBy *uuid.UUID, status *string, images []*models.TourImageInput) int
+		UpdateUser     func(childComplexity int, id uuid.UUID, fullName *string, email *string, password *string, phone *string) int
 	}
 
 	POI struct {
 		CityID      func(childComplexity int) int
+		CreatedAt   func(childComplexity int) int
 		Description func(childComplexity int) int
 		ID          func(childComplexity int) int
 		Images      func(childComplexity int) int
 		Name        func(childComplexity int) int
 		Type        func(childComplexity int) int
+		UpdatedAt   func(childComplexity int) int
 	}
 
 	POIImage struct {
-		AltText func(childComplexity int) int
-		FileUrl func(childComplexity int) int
-		ID      func(childComplexity int) int
-		PoiID   func(childComplexity int) int
+		AltText   func(childComplexity int) int
+		CreatedAt func(childComplexity int) int
+		FileUrl   func(childComplexity int) int
+		ID        func(childComplexity int) int
+		PoiID     func(childComplexity int) int
+		UpdatedAt func(childComplexity int) int
 	}
 
 	Package struct {
+		CreatedAt   func(childComplexity int) int
 		Currency    func(childComplexity int) int
 		ID          func(childComplexity int) int
 		Images      func(childComplexity int) int
@@ -164,41 +173,44 @@ type ComplexityRoot struct {
 		PackageName func(childComplexity int) int
 		Price       func(childComplexity int) int
 		TourID      func(childComplexity int) int
+		UpdatedAt   func(childComplexity int) int
 	}
 
 	PackageImage struct {
 		AltText   func(childComplexity int) int
+		CreatedAt func(childComplexity int) int
 		FileUrl   func(childComplexity int) int
 		ID        func(childComplexity int) int
 		PackageID func(childComplexity int) int
+		UpdatedAt func(childComplexity int) int
 	}
 
 	Query struct {
-		Booking         func(childComplexity int, id string) int
+		Booking         func(childComplexity int, id uuid.UUID) int
 		Bookings        func(childComplexity int) int
 		Categories      func(childComplexity int) int
-		Category        func(childComplexity int, id string) int
-		CategoryImage   func(childComplexity int, id string) int
+		Category        func(childComplexity int, id uuid.UUID) int
+		CategoryImage   func(childComplexity int, id uuid.UUID) int
 		Cities          func(childComplexity int) int
-		CitiesByState   func(childComplexity int, stateID string) int
-		City            func(childComplexity int, id string) int
+		CitiesByState   func(childComplexity int, stateID uuid.UUID) int
+		City            func(childComplexity int, id uuid.UUID) int
 		Countries       func(childComplexity int) int
-		Country         func(childComplexity int, id string) int
-		Package         func(childComplexity int, id string) int
-		PackageImage    func(childComplexity int, id string) int
+		Country         func(childComplexity int, id uuid.UUID) int
+		Package         func(childComplexity int, id uuid.UUID) int
+		PackageImage    func(childComplexity int, id uuid.UUID) int
 		Packages        func(childComplexity int) int
-		PackagesByTour  func(childComplexity int, tourID string) int
-		Poi             func(childComplexity int, id string) int
-		PoiImage        func(childComplexity int, id string) int
+		PackagesByTour  func(childComplexity int, tourID uuid.UUID) int
+		Poi             func(childComplexity int, id uuid.UUID) int
+		PoiImage        func(childComplexity int, id uuid.UUID) int
 		Pois            func(childComplexity int) int
-		PoisByCity      func(childComplexity int, cityID string) int
-		State           func(childComplexity int, id string) int
+		PoisByCity      func(childComplexity int, cityID uuid.UUID) int
+		State           func(childComplexity int, id uuid.UUID) int
 		States          func(childComplexity int) int
-		StatesByCountry func(childComplexity int, countryID string) int
-		Tour            func(childComplexity int, id string) int
-		TourImage       func(childComplexity int, id string) int
+		StatesByCountry func(childComplexity int, countryID uuid.UUID) int
+		Tour            func(childComplexity int, id uuid.UUID) int
+		TourImage       func(childComplexity int, id uuid.UUID) int
 		Tours           func(childComplexity int) int
-		User            func(childComplexity int, id string) int
+		User            func(childComplexity int, id uuid.UUID) int
 		Users           func(childComplexity int) int
 	}
 
@@ -223,10 +235,12 @@ type ComplexityRoot struct {
 	}
 
 	TourImage struct {
-		AltText func(childComplexity int) int
-		FileUrl func(childComplexity int) int
-		ID      func(childComplexity int) int
-		TourID  func(childComplexity int) int
+		AltText   func(childComplexity int) int
+		CreatedAt func(childComplexity int) int
+		FileUrl   func(childComplexity int) int
+		ID        func(childComplexity int) int
+		TourID    func(childComplexity int) int
+		UpdatedAt func(childComplexity int) int
 	}
 
 	User struct {
@@ -241,145 +255,104 @@ type ComplexityRoot struct {
 }
 
 type BookingResolver interface {
-	ID(ctx context.Context, obj *db.Booking) (string, error)
-	UserID(ctx context.Context, obj *db.Booking) (string, error)
-	PackageID(ctx context.Context, obj *db.Booking) (string, error)
-
 	TravelStartDate(ctx context.Context, obj *db.Booking) (string, error)
 	TravelEndDate(ctx context.Context, obj *db.Booking) (string, error)
 }
 type CategoryResolver interface {
-	ID(ctx context.Context, obj *db.Category) (string, error)
-
 	Description(ctx context.Context, obj *db.Category) (*string, error)
+
 	Images(ctx context.Context, obj *db.Category) ([]*db.CategoryImage, error)
 }
 type CategoryImageResolver interface {
-	ID(ctx context.Context, obj *db.CategoryImage) (string, error)
-	CategoryID(ctx context.Context, obj *db.CategoryImage) (string, error)
-
 	AltText(ctx context.Context, obj *db.CategoryImage) (*string, error)
-}
-type CityResolver interface {
-	ID(ctx context.Context, obj *db.City) (string, error)
-	StateID(ctx context.Context, obj *db.City) (string, error)
-}
-type CountryResolver interface {
-	ID(ctx context.Context, obj *db.Country) (string, error)
 }
 type MutationResolver interface {
 	Login(ctx context.Context, email string, password string) (*models.LoginResponse, error)
 	CreateUser(ctx context.Context, fullName string, email string, password string, phone *string) (*db.User, error)
-	UpdateUser(ctx context.Context, id string, fullName *string, email *string, password *string, phone *string) (*db.User, error)
-	DeleteUser(ctx context.Context, id string) (*db.User, error)
+	UpdateUser(ctx context.Context, id uuid.UUID, fullName *string, email *string, password *string, phone *string) (*db.User, error)
+	DeleteUser(ctx context.Context, id uuid.UUID) (*db.User, error)
 	CreateCategory(ctx context.Context, categoryName string, description *string, images []*models.CategoryImageInput) (*db.Category, error)
-	UpdateCategory(ctx context.Context, id string, categoryName *string, description *string, images []*models.CategoryImageInput) (*db.Category, error)
-	DeleteCategory(ctx context.Context, id string) (*db.Category, error)
-	CreateCity(ctx context.Context, stateID string, name string) (*db.City, error)
-	UpdateCity(ctx context.Context, id string, stateID *string, name *string) (*db.City, error)
-	DeleteCity(ctx context.Context, id string) (*db.City, error)
+	UpdateCategory(ctx context.Context, id uuid.UUID, categoryName *string, description *string, images []*models.CategoryImageInput) (*db.Category, error)
+	DeleteCategory(ctx context.Context, id uuid.UUID) (*db.Category, error)
+	CreateCity(ctx context.Context, stateID uuid.UUID, name string) (*db.City, error)
+	UpdateCity(ctx context.Context, id uuid.UUID, stateID *uuid.UUID, name *string) (*db.City, error)
+	DeleteCity(ctx context.Context, id uuid.UUID) (*db.City, error)
 	CreateCountry(ctx context.Context, name string) (*db.Country, error)
-	UpdateCountry(ctx context.Context, id string, name *string) (*db.Country, error)
-	DeleteCountry(ctx context.Context, id string) (*db.Country, error)
-	CreateBooking(ctx context.Context, userID string, packageID string, totalPrice string, status string, travelStartDate string, travelEndDate string) (*db.Booking, error)
-	UpdateBooking(ctx context.Context, id string, userID *string, packageID *string, totalPrice *string, status *string, travelStartDate *string, travelEndDate *string) (*db.Booking, error)
-	DeleteBooking(ctx context.Context, id string) (*db.Booking, error)
-	CreatePackage(ctx context.Context, tourID string, packageName string, price string, currency string, occupancy *string, isFeatured *bool, images []*models.PackageImageInput) (*db.Package, error)
-	UpdatePackage(ctx context.Context, id string, tourID *string, packageName *string, price *string, currency *string, occupancy *string, isFeatured *bool, images []*models.PackageImageInput) (*db.Package, error)
-	DeletePackage(ctx context.Context, id string) (*db.Package, error)
-	CreateState(ctx context.Context, countryID string, name string) (*db.State, error)
-	UpdateState(ctx context.Context, id string, countryID *string, name *string) (*db.State, error)
-	DeleteState(ctx context.Context, id string) (*db.State, error)
-	CreateTour(ctx context.Context, title string, description *string, categoryID string, cityID string, durationDays int, createdBy string, status string, images []*models.TourImageInput) (*db.Tour, error)
-	UpdateTour(ctx context.Context, id string, title *string, description *string, categoryID *string, cityID *string, durationDays *int, createdBy *string, status *string, images []*models.TourImageInput) (*db.Tour, error)
-	DeleteTour(ctx context.Context, id string) (*db.Tour, error)
-	CreatePoi(ctx context.Context, name string, description *string, cityID string, typeArg string, images []*models.POIImageInput) (*db.PointsOfInterest, error)
-	UpdatePoi(ctx context.Context, id string, name *string, description *string, cityID *string, typeArg *string, images []*models.POIImageInput) (*db.PointsOfInterest, error)
-	DeletePoi(ctx context.Context, id string) (*db.PointsOfInterest, error)
+	UpdateCountry(ctx context.Context, id uuid.UUID, name *string) (*db.Country, error)
+	DeleteCountry(ctx context.Context, id uuid.UUID) (*db.Country, error)
+	CreateBooking(ctx context.Context, userID uuid.UUID, packageID uuid.UUID, totalPrice string, status string, travelStartDate string, travelEndDate string) (*db.Booking, error)
+	UpdateBooking(ctx context.Context, id uuid.UUID, userID *uuid.UUID, packageID *uuid.UUID, totalPrice *string, status *string, travelStartDate *string, travelEndDate *string) (*db.Booking, error)
+	DeleteBooking(ctx context.Context, id uuid.UUID) (*db.Booking, error)
+	CreatePackage(ctx context.Context, tourID uuid.UUID, packageName string, price string, currency string, occupancy *string, isFeatured *bool, images []*models.PackageImageInput) (*db.Package, error)
+	UpdatePackage(ctx context.Context, id uuid.UUID, tourID *uuid.UUID, packageName *string, price *string, currency *string, occupancy *string, isFeatured *bool, images []*models.PackageImageInput) (*db.Package, error)
+	DeletePackage(ctx context.Context, id uuid.UUID) (*db.Package, error)
+	CreateState(ctx context.Context, countryID uuid.UUID, name string) (*db.State, error)
+	UpdateState(ctx context.Context, id uuid.UUID, countryID *uuid.UUID, name *string) (*db.State, error)
+	DeleteState(ctx context.Context, id uuid.UUID) (*db.State, error)
+	CreateTour(ctx context.Context, title string, description *string, categoryID uuid.UUID, cityID uuid.UUID, durationDays int, createdBy uuid.UUID, status string, images []*models.TourImageInput) (*db.Tour, error)
+	UpdateTour(ctx context.Context, id uuid.UUID, title *string, description *string, categoryID *uuid.UUID, cityID *uuid.UUID, durationDays *int, createdBy *uuid.UUID, status *string, images []*models.TourImageInput) (*db.Tour, error)
+	DeleteTour(ctx context.Context, id uuid.UUID) (*db.Tour, error)
+	CreatePoi(ctx context.Context, name string, description *string, cityID uuid.UUID, typeArg string, images []*models.POIImageInput) (*db.PointsOfInterest, error)
+	UpdatePoi(ctx context.Context, id uuid.UUID, name *string, description *string, cityID *uuid.UUID, typeArg *string, images []*models.POIImageInput) (*db.PointsOfInterest, error)
+	DeletePoi(ctx context.Context, id uuid.UUID) (*db.PointsOfInterest, error)
 	SubmitInquiry(ctx context.Context, input models.InquiryInput) (*models.InquiryResult, error)
 }
 type POIResolver interface {
-	ID(ctx context.Context, obj *db.PointsOfInterest) (string, error)
-
 	Description(ctx context.Context, obj *db.PointsOfInterest) (*string, error)
-	CityID(ctx context.Context, obj *db.PointsOfInterest) (string, error)
 
 	Images(ctx context.Context, obj *db.PointsOfInterest) ([]*db.PointOfInterestImage, error)
 }
 type POIImageResolver interface {
-	ID(ctx context.Context, obj *db.PointOfInterestImage) (string, error)
-	PoiID(ctx context.Context, obj *db.PointOfInterestImage) (string, error)
-
 	AltText(ctx context.Context, obj *db.PointOfInterestImage) (*string, error)
 }
 type PackageResolver interface {
-	ID(ctx context.Context, obj *db.Package) (string, error)
-	TourID(ctx context.Context, obj *db.Package) (string, error)
-
+	Currency(ctx context.Context, obj *db.Package) (string, error)
 	Occupancy(ctx context.Context, obj *db.Package) (*string, error)
 
 	Images(ctx context.Context, obj *db.Package) ([]*db.PackageImage, error)
 }
 type PackageImageResolver interface {
-	ID(ctx context.Context, obj *db.PackageImage) (string, error)
-	PackageID(ctx context.Context, obj *db.PackageImage) (string, error)
-
 	AltText(ctx context.Context, obj *db.PackageImage) (*string, error)
 }
 type QueryResolver interface {
-	User(ctx context.Context, id string) (*db.User, error)
+	User(ctx context.Context, id uuid.UUID) (*db.User, error)
 	Users(ctx context.Context) ([]*db.User, error)
-	Category(ctx context.Context, id string) (*db.Category, error)
+	Category(ctx context.Context, id uuid.UUID) (*db.Category, error)
 	Categories(ctx context.Context) ([]*db.Category, error)
-	CategoryImage(ctx context.Context, id string) (*db.CategoryImage, error)
-	City(ctx context.Context, id string) (*db.City, error)
+	CategoryImage(ctx context.Context, id uuid.UUID) (*db.CategoryImage, error)
+	City(ctx context.Context, id uuid.UUID) (*db.City, error)
 	Cities(ctx context.Context) ([]*db.City, error)
-	CitiesByState(ctx context.Context, stateID string) ([]*db.City, error)
-	Country(ctx context.Context, id string) (*db.Country, error)
+	CitiesByState(ctx context.Context, stateID uuid.UUID) ([]*db.City, error)
+	Country(ctx context.Context, id uuid.UUID) (*db.Country, error)
 	Countries(ctx context.Context) ([]*db.Country, error)
-	Booking(ctx context.Context, id string) (*db.Booking, error)
+	Booking(ctx context.Context, id uuid.UUID) (*db.Booking, error)
 	Bookings(ctx context.Context) ([]*db.Booking, error)
-	Package(ctx context.Context, id string) (*db.Package, error)
+	Package(ctx context.Context, id uuid.UUID) (*db.Package, error)
 	Packages(ctx context.Context) ([]*db.Package, error)
-	PackagesByTour(ctx context.Context, tourID string) ([]*db.Package, error)
-	PackageImage(ctx context.Context, id string) (*db.PackageImage, error)
-	State(ctx context.Context, id string) (*db.State, error)
+	PackagesByTour(ctx context.Context, tourID uuid.UUID) ([]*db.Package, error)
+	PackageImage(ctx context.Context, id uuid.UUID) (*db.PackageImage, error)
+	State(ctx context.Context, id uuid.UUID) (*db.State, error)
 	States(ctx context.Context) ([]*db.State, error)
-	StatesByCountry(ctx context.Context, countryID string) ([]*db.State, error)
-	Tour(ctx context.Context, id string) (*db.Tour, error)
+	StatesByCountry(ctx context.Context, countryID uuid.UUID) ([]*db.State, error)
+	Tour(ctx context.Context, id uuid.UUID) (*db.Tour, error)
 	Tours(ctx context.Context) ([]*db.Tour, error)
-	TourImage(ctx context.Context, id string) (*db.TourImage, error)
-	Poi(ctx context.Context, id string) (*db.PointsOfInterest, error)
+	TourImage(ctx context.Context, id uuid.UUID) (*db.TourImage, error)
+	Poi(ctx context.Context, id uuid.UUID) (*db.PointsOfInterest, error)
 	Pois(ctx context.Context) ([]*db.PointsOfInterest, error)
-	PoisByCity(ctx context.Context, cityID string) ([]*db.PointsOfInterest, error)
-	PoiImage(ctx context.Context, id string) (*db.PointOfInterestImage, error)
-}
-type StateResolver interface {
-	ID(ctx context.Context, obj *db.State) (string, error)
-	CountryID(ctx context.Context, obj *db.State) (string, error)
+	PoisByCity(ctx context.Context, cityID uuid.UUID) ([]*db.PointsOfInterest, error)
+	PoiImage(ctx context.Context, id uuid.UUID) (*db.PointOfInterestImage, error)
 }
 type TourResolver interface {
-	ID(ctx context.Context, obj *db.Tour) (string, error)
-
 	Description(ctx context.Context, obj *db.Tour) (*string, error)
-	CategoryID(ctx context.Context, obj *db.Tour) (string, error)
-	CityID(ctx context.Context, obj *db.Tour) (string, error)
-
-	CreatedBy(ctx context.Context, obj *db.Tour) (string, error)
 
 	Images(ctx context.Context, obj *db.Tour) ([]*db.TourImage, error)
 }
 type TourImageResolver interface {
-	ID(ctx context.Context, obj *db.TourImage) (string, error)
-	TourID(ctx context.Context, obj *db.TourImage) (string, error)
-
 	AltText(ctx context.Context, obj *db.TourImage) (*string, error)
 }
 type UserResolver interface {
-	ID(ctx context.Context, obj *db.User) (string, error)
-
 	Phone(ctx context.Context, obj *db.User) (*string, error)
-	RoleID(ctx context.Context, obj *db.User) (*string, error)
+	RoleID(ctx context.Context, obj *db.User) (*uuid.UUID, error)
 }
 
 type executableSchema struct {
@@ -407,6 +380,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Booking.BookingDate(childComplexity), true
+	case "Booking.created_at":
+		if e.complexity.Booking.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.Booking.CreatedAt(childComplexity), true
 	case "Booking.id":
 		if e.complexity.Booking.ID == nil {
 			break
@@ -443,6 +422,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Booking.TravelStartDate(childComplexity), true
+	case "Booking.updated_at":
+		if e.complexity.Booking.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.Booking.UpdatedAt(childComplexity), true
 	case "Booking.user_id":
 		if e.complexity.Booking.UserID == nil {
 			break
@@ -456,6 +441,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Category.CategoryName(childComplexity), true
+	case "Category.created_at":
+		if e.complexity.Category.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.Category.CreatedAt(childComplexity), true
 	case "Category.description":
 		if e.complexity.Category.Description == nil {
 			break
@@ -474,6 +465,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Category.Images(childComplexity), true
+	case "Category.updated_at":
+		if e.complexity.Category.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.Category.UpdatedAt(childComplexity), true
 
 	case "CategoryImage.alt_text":
 		if e.complexity.CategoryImage.AltText == nil {
@@ -487,6 +484,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.CategoryImage.CategoryID(childComplexity), true
+	case "CategoryImage.created_at":
+		if e.complexity.CategoryImage.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.CategoryImage.CreatedAt(childComplexity), true
 	case "CategoryImage.file_url":
 		if e.complexity.CategoryImage.FileUrl == nil {
 			break
@@ -499,6 +502,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.CategoryImage.ID(childComplexity), true
+	case "CategoryImage.updated_at":
+		if e.complexity.CategoryImage.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.CategoryImage.UpdatedAt(childComplexity), true
 
 	case "City.id":
 		if e.complexity.City.ID == nil {
@@ -568,7 +577,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateBooking(childComplexity, args["user_id"].(string), args["package_id"].(string), args["total_price"].(string), args["status"].(string), args["travel_start_date"].(string), args["travel_end_date"].(string)), true
+		return e.complexity.Mutation.CreateBooking(childComplexity, args["user_id"].(uuid.UUID), args["package_id"].(uuid.UUID), args["total_price"].(string), args["status"].(string), args["travel_start_date"].(string), args["travel_end_date"].(string)), true
 	case "Mutation.createCategory":
 		if e.complexity.Mutation.CreateCategory == nil {
 			break
@@ -590,7 +599,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateCity(childComplexity, args["stateId"].(string), args["name"].(string)), true
+		return e.complexity.Mutation.CreateCity(childComplexity, args["stateId"].(uuid.UUID), args["name"].(string)), true
 	case "Mutation.createCountry":
 		if e.complexity.Mutation.CreateCountry == nil {
 			break
@@ -612,7 +621,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreatePackage(childComplexity, args["tour_id"].(string), args["package_name"].(string), args["price"].(string), args["currency"].(string), args["occupancy"].(*string), args["is_featured"].(*bool), args["images"].([]*models.PackageImageInput)), true
+		return e.complexity.Mutation.CreatePackage(childComplexity, args["tour_id"].(uuid.UUID), args["package_name"].(string), args["price"].(string), args["currency"].(string), args["occupancy"].(*string), args["is_featured"].(*bool), args["images"].([]*models.PackageImageInput)), true
 	case "Mutation.createPOI":
 		if e.complexity.Mutation.CreatePoi == nil {
 			break
@@ -623,7 +632,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreatePoi(childComplexity, args["name"].(string), args["description"].(*string), args["city_id"].(string), args["type"].(string), args["images"].([]*models.POIImageInput)), true
+		return e.complexity.Mutation.CreatePoi(childComplexity, args["name"].(string), args["description"].(*string), args["city_id"].(uuid.UUID), args["type"].(string), args["images"].([]*models.POIImageInput)), true
 	case "Mutation.createState":
 		if e.complexity.Mutation.CreateState == nil {
 			break
@@ -634,7 +643,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateState(childComplexity, args["countryId"].(string), args["name"].(string)), true
+		return e.complexity.Mutation.CreateState(childComplexity, args["countryId"].(uuid.UUID), args["name"].(string)), true
 	case "Mutation.createTour":
 		if e.complexity.Mutation.CreateTour == nil {
 			break
@@ -645,7 +654,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateTour(childComplexity, args["title"].(string), args["description"].(*string), args["category_id"].(string), args["city_id"].(string), args["duration_days"].(int), args["created_by"].(string), args["status"].(string), args["images"].([]*models.TourImageInput)), true
+		return e.complexity.Mutation.CreateTour(childComplexity, args["title"].(string), args["description"].(*string), args["category_id"].(uuid.UUID), args["city_id"].(uuid.UUID), args["duration_days"].(int), args["created_by"].(uuid.UUID), args["status"].(string), args["images"].([]*models.TourImageInput)), true
 	case "Mutation.createUser":
 		if e.complexity.Mutation.CreateUser == nil {
 			break
@@ -667,7 +676,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.DeleteBooking(childComplexity, args["id"].(string)), true
+		return e.complexity.Mutation.DeleteBooking(childComplexity, args["id"].(uuid.UUID)), true
 	case "Mutation.deleteCategory":
 		if e.complexity.Mutation.DeleteCategory == nil {
 			break
@@ -678,7 +687,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.DeleteCategory(childComplexity, args["id"].(string)), true
+		return e.complexity.Mutation.DeleteCategory(childComplexity, args["id"].(uuid.UUID)), true
 	case "Mutation.deleteCity":
 		if e.complexity.Mutation.DeleteCity == nil {
 			break
@@ -689,7 +698,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.DeleteCity(childComplexity, args["id"].(string)), true
+		return e.complexity.Mutation.DeleteCity(childComplexity, args["id"].(uuid.UUID)), true
 	case "Mutation.deleteCountry":
 		if e.complexity.Mutation.DeleteCountry == nil {
 			break
@@ -700,7 +709,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.DeleteCountry(childComplexity, args["id"].(string)), true
+		return e.complexity.Mutation.DeleteCountry(childComplexity, args["id"].(uuid.UUID)), true
 	case "Mutation.deletePackage":
 		if e.complexity.Mutation.DeletePackage == nil {
 			break
@@ -711,7 +720,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.DeletePackage(childComplexity, args["id"].(string)), true
+		return e.complexity.Mutation.DeletePackage(childComplexity, args["id"].(uuid.UUID)), true
 	case "Mutation.deletePOI":
 		if e.complexity.Mutation.DeletePoi == nil {
 			break
@@ -722,7 +731,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.DeletePoi(childComplexity, args["id"].(string)), true
+		return e.complexity.Mutation.DeletePoi(childComplexity, args["id"].(uuid.UUID)), true
 	case "Mutation.deleteState":
 		if e.complexity.Mutation.DeleteState == nil {
 			break
@@ -733,7 +742,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.DeleteState(childComplexity, args["id"].(string)), true
+		return e.complexity.Mutation.DeleteState(childComplexity, args["id"].(uuid.UUID)), true
 	case "Mutation.deleteTour":
 		if e.complexity.Mutation.DeleteTour == nil {
 			break
@@ -744,7 +753,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.DeleteTour(childComplexity, args["id"].(string)), true
+		return e.complexity.Mutation.DeleteTour(childComplexity, args["id"].(uuid.UUID)), true
 	case "Mutation.deleteUser":
 		if e.complexity.Mutation.DeleteUser == nil {
 			break
@@ -755,7 +764,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.DeleteUser(childComplexity, args["id"].(string)), true
+		return e.complexity.Mutation.DeleteUser(childComplexity, args["id"].(uuid.UUID)), true
 	case "Mutation.login":
 		if e.complexity.Mutation.Login == nil {
 			break
@@ -788,7 +797,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateBooking(childComplexity, args["id"].(string), args["user_id"].(*string), args["package_id"].(*string), args["total_price"].(*string), args["status"].(*string), args["travel_start_date"].(*string), args["travel_end_date"].(*string)), true
+		return e.complexity.Mutation.UpdateBooking(childComplexity, args["id"].(uuid.UUID), args["user_id"].(*uuid.UUID), args["package_id"].(*uuid.UUID), args["total_price"].(*string), args["status"].(*string), args["travel_start_date"].(*string), args["travel_end_date"].(*string)), true
 	case "Mutation.updateCategory":
 		if e.complexity.Mutation.UpdateCategory == nil {
 			break
@@ -799,7 +808,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateCategory(childComplexity, args["id"].(string), args["category_name"].(*string), args["description"].(*string), args["images"].([]*models.CategoryImageInput)), true
+		return e.complexity.Mutation.UpdateCategory(childComplexity, args["id"].(uuid.UUID), args["category_name"].(*string), args["description"].(*string), args["images"].([]*models.CategoryImageInput)), true
 	case "Mutation.updateCity":
 		if e.complexity.Mutation.UpdateCity == nil {
 			break
@@ -810,7 +819,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateCity(childComplexity, args["id"].(string), args["stateId"].(*string), args["name"].(*string)), true
+		return e.complexity.Mutation.UpdateCity(childComplexity, args["id"].(uuid.UUID), args["stateId"].(*uuid.UUID), args["name"].(*string)), true
 	case "Mutation.updateCountry":
 		if e.complexity.Mutation.UpdateCountry == nil {
 			break
@@ -821,7 +830,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateCountry(childComplexity, args["id"].(string), args["name"].(*string)), true
+		return e.complexity.Mutation.UpdateCountry(childComplexity, args["id"].(uuid.UUID), args["name"].(*string)), true
 	case "Mutation.updatePackage":
 		if e.complexity.Mutation.UpdatePackage == nil {
 			break
@@ -832,7 +841,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdatePackage(childComplexity, args["id"].(string), args["tour_id"].(*string), args["package_name"].(*string), args["price"].(*string), args["currency"].(*string), args["occupancy"].(*string), args["is_featured"].(*bool), args["images"].([]*models.PackageImageInput)), true
+		return e.complexity.Mutation.UpdatePackage(childComplexity, args["id"].(uuid.UUID), args["tour_id"].(*uuid.UUID), args["package_name"].(*string), args["price"].(*string), args["currency"].(*string), args["occupancy"].(*string), args["is_featured"].(*bool), args["images"].([]*models.PackageImageInput)), true
 	case "Mutation.updatePOI":
 		if e.complexity.Mutation.UpdatePoi == nil {
 			break
@@ -843,7 +852,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdatePoi(childComplexity, args["id"].(string), args["name"].(*string), args["description"].(*string), args["city_id"].(*string), args["type"].(*string), args["images"].([]*models.POIImageInput)), true
+		return e.complexity.Mutation.UpdatePoi(childComplexity, args["id"].(uuid.UUID), args["name"].(*string), args["description"].(*string), args["city_id"].(*uuid.UUID), args["type"].(*string), args["images"].([]*models.POIImageInput)), true
 	case "Mutation.updateState":
 		if e.complexity.Mutation.UpdateState == nil {
 			break
@@ -854,7 +863,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateState(childComplexity, args["id"].(string), args["countryId"].(*string), args["name"].(*string)), true
+		return e.complexity.Mutation.UpdateState(childComplexity, args["id"].(uuid.UUID), args["countryId"].(*uuid.UUID), args["name"].(*string)), true
 	case "Mutation.updateTour":
 		if e.complexity.Mutation.UpdateTour == nil {
 			break
@@ -865,7 +874,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateTour(childComplexity, args["id"].(string), args["title"].(*string), args["description"].(*string), args["category_id"].(*string), args["city_id"].(*string), args["duration_days"].(*int), args["created_by"].(*string), args["status"].(*string), args["images"].([]*models.TourImageInput)), true
+		return e.complexity.Mutation.UpdateTour(childComplexity, args["id"].(uuid.UUID), args["title"].(*string), args["description"].(*string), args["category_id"].(*uuid.UUID), args["city_id"].(*uuid.UUID), args["duration_days"].(*int), args["created_by"].(*uuid.UUID), args["status"].(*string), args["images"].([]*models.TourImageInput)), true
 	case "Mutation.updateUser":
 		if e.complexity.Mutation.UpdateUser == nil {
 			break
@@ -876,7 +885,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateUser(childComplexity, args["id"].(string), args["full_name"].(*string), args["email"].(*string), args["password"].(*string), args["phone"].(*string)), true
+		return e.complexity.Mutation.UpdateUser(childComplexity, args["id"].(uuid.UUID), args["full_name"].(*string), args["email"].(*string), args["password"].(*string), args["phone"].(*string)), true
 
 	case "POI.city_id":
 		if e.complexity.POI.CityID == nil {
@@ -884,6 +893,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.POI.CityID(childComplexity), true
+	case "POI.created_at":
+		if e.complexity.POI.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.POI.CreatedAt(childComplexity), true
 	case "POI.description":
 		if e.complexity.POI.Description == nil {
 			break
@@ -914,6 +929,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.POI.Type(childComplexity), true
+	case "POI.updated_at":
+		if e.complexity.POI.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.POI.UpdatedAt(childComplexity), true
 
 	case "POIImage.alt_text":
 		if e.complexity.POIImage.AltText == nil {
@@ -921,6 +942,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.POIImage.AltText(childComplexity), true
+	case "POIImage.created_at":
+		if e.complexity.POIImage.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.POIImage.CreatedAt(childComplexity), true
 	case "POIImage.file_url":
 		if e.complexity.POIImage.FileUrl == nil {
 			break
@@ -939,7 +966,19 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.POIImage.PoiID(childComplexity), true
+	case "POIImage.updated_at":
+		if e.complexity.POIImage.UpdatedAt == nil {
+			break
+		}
 
+		return e.complexity.POIImage.UpdatedAt(childComplexity), true
+
+	case "Package.created_at":
+		if e.complexity.Package.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.Package.CreatedAt(childComplexity), true
 	case "Package.currency":
 		if e.complexity.Package.Currency == nil {
 			break
@@ -988,6 +1027,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Package.TourID(childComplexity), true
+	case "Package.updated_at":
+		if e.complexity.Package.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.Package.UpdatedAt(childComplexity), true
 
 	case "PackageImage.alt_text":
 		if e.complexity.PackageImage.AltText == nil {
@@ -995,6 +1040,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.PackageImage.AltText(childComplexity), true
+	case "PackageImage.created_at":
+		if e.complexity.PackageImage.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.PackageImage.CreatedAt(childComplexity), true
 	case "PackageImage.file_url":
 		if e.complexity.PackageImage.FileUrl == nil {
 			break
@@ -1013,6 +1064,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.PackageImage.PackageID(childComplexity), true
+	case "PackageImage.updated_at":
+		if e.complexity.PackageImage.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.PackageImage.UpdatedAt(childComplexity), true
 
 	case "Query.booking":
 		if e.complexity.Query.Booking == nil {
@@ -1024,7 +1081,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Query.Booking(childComplexity, args["id"].(string)), true
+		return e.complexity.Query.Booking(childComplexity, args["id"].(uuid.UUID)), true
 	case "Query.bookings":
 		if e.complexity.Query.Bookings == nil {
 			break
@@ -1047,7 +1104,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Query.Category(childComplexity, args["id"].(string)), true
+		return e.complexity.Query.Category(childComplexity, args["id"].(uuid.UUID)), true
 	case "Query.categoryImage":
 		if e.complexity.Query.CategoryImage == nil {
 			break
@@ -1058,7 +1115,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Query.CategoryImage(childComplexity, args["id"].(string)), true
+		return e.complexity.Query.CategoryImage(childComplexity, args["id"].(uuid.UUID)), true
 	case "Query.cities":
 		if e.complexity.Query.Cities == nil {
 			break
@@ -1075,7 +1132,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Query.CitiesByState(childComplexity, args["stateId"].(string)), true
+		return e.complexity.Query.CitiesByState(childComplexity, args["stateId"].(uuid.UUID)), true
 	case "Query.city":
 		if e.complexity.Query.City == nil {
 			break
@@ -1086,7 +1143,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Query.City(childComplexity, args["id"].(string)), true
+		return e.complexity.Query.City(childComplexity, args["id"].(uuid.UUID)), true
 	case "Query.countries":
 		if e.complexity.Query.Countries == nil {
 			break
@@ -1103,7 +1160,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Query.Country(childComplexity, args["id"].(string)), true
+		return e.complexity.Query.Country(childComplexity, args["id"].(uuid.UUID)), true
 	case "Query.package":
 		if e.complexity.Query.Package == nil {
 			break
@@ -1114,7 +1171,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Query.Package(childComplexity, args["id"].(string)), true
+		return e.complexity.Query.Package(childComplexity, args["id"].(uuid.UUID)), true
 	case "Query.packageImage":
 		if e.complexity.Query.PackageImage == nil {
 			break
@@ -1125,7 +1182,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Query.PackageImage(childComplexity, args["id"].(string)), true
+		return e.complexity.Query.PackageImage(childComplexity, args["id"].(uuid.UUID)), true
 	case "Query.packages":
 		if e.complexity.Query.Packages == nil {
 			break
@@ -1142,7 +1199,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Query.PackagesByTour(childComplexity, args["tour_id"].(string)), true
+		return e.complexity.Query.PackagesByTour(childComplexity, args["tour_id"].(uuid.UUID)), true
 	case "Query.poi":
 		if e.complexity.Query.Poi == nil {
 			break
@@ -1153,7 +1210,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Query.Poi(childComplexity, args["id"].(string)), true
+		return e.complexity.Query.Poi(childComplexity, args["id"].(uuid.UUID)), true
 	case "Query.poiImage":
 		if e.complexity.Query.PoiImage == nil {
 			break
@@ -1164,7 +1221,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Query.PoiImage(childComplexity, args["id"].(string)), true
+		return e.complexity.Query.PoiImage(childComplexity, args["id"].(uuid.UUID)), true
 	case "Query.pois":
 		if e.complexity.Query.Pois == nil {
 			break
@@ -1181,7 +1238,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Query.PoisByCity(childComplexity, args["city_id"].(string)), true
+		return e.complexity.Query.PoisByCity(childComplexity, args["city_id"].(uuid.UUID)), true
 	case "Query.state":
 		if e.complexity.Query.State == nil {
 			break
@@ -1192,7 +1249,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Query.State(childComplexity, args["id"].(string)), true
+		return e.complexity.Query.State(childComplexity, args["id"].(uuid.UUID)), true
 	case "Query.states":
 		if e.complexity.Query.States == nil {
 			break
@@ -1209,7 +1266,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Query.StatesByCountry(childComplexity, args["countryId"].(string)), true
+		return e.complexity.Query.StatesByCountry(childComplexity, args["countryId"].(uuid.UUID)), true
 	case "Query.tour":
 		if e.complexity.Query.Tour == nil {
 			break
@@ -1220,7 +1277,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Query.Tour(childComplexity, args["id"].(string)), true
+		return e.complexity.Query.Tour(childComplexity, args["id"].(uuid.UUID)), true
 	case "Query.tourImage":
 		if e.complexity.Query.TourImage == nil {
 			break
@@ -1231,7 +1288,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Query.TourImage(childComplexity, args["id"].(string)), true
+		return e.complexity.Query.TourImage(childComplexity, args["id"].(uuid.UUID)), true
 	case "Query.tours":
 		if e.complexity.Query.Tours == nil {
 			break
@@ -1248,7 +1305,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Query.User(childComplexity, args["id"].(string)), true
+		return e.complexity.Query.User(childComplexity, args["id"].(uuid.UUID)), true
 	case "Query.users":
 		if e.complexity.Query.Users == nil {
 			break
@@ -1348,6 +1405,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.TourImage.AltText(childComplexity), true
+	case "TourImage.created_at":
+		if e.complexity.TourImage.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.TourImage.CreatedAt(childComplexity), true
 	case "TourImage.file_url":
 		if e.complexity.TourImage.FileUrl == nil {
 			break
@@ -1366,6 +1429,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.TourImage.TourID(childComplexity), true
+	case "TourImage.updated_at":
+		if e.complexity.TourImage.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.TourImage.UpdatedAt(childComplexity), true
 
 	case "User.created_at":
 		if e.complexity.User.CreatedAt == nil {
@@ -1521,6 +1590,7 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 
 var sources = []*ast.Source{
 	{Name: "../schema.graphqls", Input: `scalar Time
+scalar UUID
 
 type Query
 
@@ -1534,38 +1604,42 @@ type LoginResponse {
 }
 `, BuiltIn: false},
 	{Name: "../user.graphqls", Input: `type User {
-  id: ID!
+  id: UUID!
   full_name: String!
   email: String!
   phone: String
-  role_id: ID
+  role_id: UUID
   created_at: Time!
   updated_at: Time!
 }
 
 extend type Query {
-  user(id: ID!): User
+  user(id: UUID!): User
   users: [User!]!
 }
 
 extend type Mutation {
   createUser(full_name: String!, email: String!, password: String!, phone: String): User!
-  updateUser(id: ID!, full_name: String, email: String, password: String, phone: String): User!
-  deleteUser(id: ID!): User!
+  updateUser(id: UUID!, full_name: String, email: String, password: String, phone: String): User!
+  deleteUser(id: UUID!): User!
 }
 `, BuiltIn: false},
 	{Name: "../category.graphqls", Input: `type Category {
-  id: ID!
+  id: UUID!
   category_name: String!
   description: String
+  created_at: Time!
+  updated_at: Time!
   images: [CategoryImage!]!
 }
 
 type CategoryImage {
-  id: ID!
-  category_id: ID!
+  id: UUID!
+  category_id: UUID!
   file_url: String!
   alt_text: String
+  created_at: Time!
+  updated_at: Time!
 }
 
 input CategoryImageInput {
@@ -1574,9 +1648,9 @@ input CategoryImageInput {
 }
 
 extend type Query {
-  category(id: ID!): Category
+  category(id: UUID!): Category
   categories: [Category!]!
-  categoryImage(id: ID!): CategoryImage!
+  categoryImage(id: UUID!): CategoryImage!
 }
 
 extend type Mutation {
@@ -1587,84 +1661,90 @@ extend type Mutation {
   ): Category!
 
   updateCategory(
-    id: ID!
+    id: UUID!
     category_name: String
     description: String
     images: [CategoryImageInput!]
   ): Category!
 
-  deleteCategory(id: ID!): Category!
+  deleteCategory(id: UUID!): Category!
 }
 `, BuiltIn: false},
 	{Name: "../city.graphqls", Input: `type City {
-  id: ID!
-  stateId: ID!
+  id: UUID!
+  stateId: UUID!
   name: String!
 }
 
 extend type Query {
-  city(id: ID!): City
+  city(id: UUID!): City
   cities: [City!]!
-  citiesByState(stateId: ID!): [City!]!
+  citiesByState(stateId: UUID!): [City!]!
 }
 
 extend type Mutation {
-  createCity(stateId: ID!, name: String!): City!
-  updateCity(id: ID!, stateId: ID, name: String): City!
-  deleteCity(id: ID!): City!
+  createCity(stateId: UUID!, name: String!): City!
+  updateCity(id: UUID!, stateId: UUID, name: String): City!
+  deleteCity(id: UUID!): City!
 }`, BuiltIn: false},
 	{Name: "../country.graphqls", Input: `type Country {
-  id: ID!
+  id: UUID!
   name: String!
 }
 
 extend type Query {
-  country(id: ID!): Country
+  country(id: UUID!): Country
   countries: [Country!]!
 }
 
 extend type Mutation {
   createCountry(name :String!): Country!
-  updateCountry(id: ID!, name: String): Country!
-  deleteCountry(id: ID!): Country!
+  updateCountry(id: UUID!, name: String): Country!
+  deleteCountry(id: UUID!): Country!
 }`, BuiltIn: false},
 	{Name: "../booking.graphqls", Input: `type Booking {
-  id: ID!
-  user_id: ID!
-  package_id: ID!
+  id: UUID!
+  user_id: UUID!
+  package_id: UUID!
   total_price: String!
   status: String!
   booking_date: Time!
   travel_start_date: String!
   travel_end_date: String!
+  created_at: Time!
+  updated_at: Time!
 }
 
 extend type Query {
-  booking(id: ID!): Booking
+  booking(id: UUID!): Booking
   bookings: [Booking!]!
 }
 
 extend type Mutation {
-  createBooking(user_id:ID! package_id:ID! total_price:String! status:String! travel_start_date:String! travel_end_date:String!):Booking!
-  updateBooking(id:ID! user_id:ID package_id:ID total_price:String status:String travel_start_date:String travel_end_date:String):Booking!
-  deleteBooking(id:ID!):Booking!
+  createBooking(user_id:UUID! package_id:UUID! total_price:String! status:String! travel_start_date:String! travel_end_date:String!):Booking!
+  updateBooking(id:UUID! user_id:UUID package_id:UUID total_price:String status:String travel_start_date:String travel_end_date:String):Booking!
+  deleteBooking(id:UUID!):Booking!
 }`, BuiltIn: false},
 	{Name: "../package.graphqls", Input: `type Package {
-  id: ID!
-  tour_id: ID!
+  id: UUID!
+  tour_id: UUID!
   package_name: String!
   price: String!
   currency: String!
   occupancy: String
   is_featured: Boolean
+  created_at: Time!
+  updated_at: Time!
   images: [PackageImage!]!
 }
 
 type PackageImage {
-  id: ID!
-  package_id: ID!
+  id: UUID!
+  package_id: UUID!
   file_url: String!
   alt_text: String
+  created_at: Time!
+  updated_at: Time!
 }
 
 input PackageImageInput {
@@ -1673,15 +1753,15 @@ input PackageImageInput {
 }
 
 extend type Query {
-  package(id: ID!): Package
+  package(id: UUID!): Package
   packages: [Package!]!
-  packagesByTour(tour_id: ID!): [Package!]!
-  packageImage(id: ID!): PackageImage!
+  packagesByTour(tour_id: UUID!): [Package!]!
+  packageImage(id: UUID!): PackageImage!
 }
 
 extend type Mutation {
   createPackage(
-    tour_id: ID!
+    tour_id: UUID!
     package_name: String!
     price: String!
     currency: String!
@@ -1691,8 +1771,8 @@ extend type Mutation {
   ): Package!
 
   updatePackage(
-    id: ID!
-    tour_id: ID
+    id: UUID!
+    tour_id: UUID
     package_name: String
     price: String
     currency: String
@@ -1701,34 +1781,34 @@ extend type Mutation {
     images: [PackageImageInput!]
   ): Package!
 
-  deletePackage(id: ID!): Package!
+  deletePackage(id: UUID!): Package!
 }
 `, BuiltIn: false},
 	{Name: "../state.graphqls", Input: `type State {
-  id: ID!
-  countryId: ID!
+  id: UUID!
+  countryId: UUID!
   name: String!
 }
 
 extend type Query {
-  state(id: ID!): State
+  state(id: UUID!): State
   states: [State!]!
-  statesByCountry(countryId: ID!): [State!]!
+  statesByCountry(countryId: UUID!): [State!]!
 }
 
 extend type Mutation {
-  createState(countryId: ID!, name: String!): State!
-  updateState(id: ID!, countryId: ID, name: String): State!
-  deleteState(id: ID!): State!
+  createState(countryId: UUID!, name: String!): State!
+  updateState(id: UUID!, countryId: UUID, name: String): State!
+  deleteState(id: UUID!): State!
 }`, BuiltIn: false},
 	{Name: "../tour.graphqls", Input: `type Tour {
-  id: ID!
+  id: UUID!
   title: String!
   description: String
-  category_id: ID!
-  city_id: ID!
+  category_id: UUID!
+  city_id: UUID!
   duration_days: Int!
-  created_by: ID!
+  created_by: UUID!
   status: String!
   created_at: Time!
   updated_at: Time!
@@ -1736,10 +1816,12 @@ extend type Mutation {
 }
 
 type TourImage {
-  id: ID!
-  tour_id: ID!
+  id: UUID!
+  tour_id: UUID!
   file_url: String!
   alt_text: String
+  created_at: Time!
+  updated_at: Time!
 }
 
 input TourImageInput {
@@ -1748,52 +1830,56 @@ input TourImageInput {
 }
 
 extend type Query {
-  tour(id: ID!): Tour
+  tour(id: UUID!): Tour
   tours: [Tour!]!
-  tourImage(id: ID!): TourImage!
+  tourImage(id: UUID!): TourImage!
 }
 
 extend type Mutation {
   createTour(
     title: String!
     description: String
-    category_id: ID!
-    city_id: ID!
+    category_id: UUID!
+    city_id: UUID!
     duration_days: Int!
-    created_by: ID!
+    created_by: UUID!
     status: String!
     images: [TourImageInput!]
   ): Tour!
 
   updateTour(
-    id: ID!
+    id: UUID!
     title: String
     description: String
-    category_id: ID
-    city_id: ID
+    category_id: UUID
+    city_id: UUID
     duration_days: Int
-    created_by: ID
+    created_by: UUID
     status: String
     images: [TourImageInput!]
   ): Tour!
 
-  deleteTour(id: ID!): Tour!
+  deleteTour(id: UUID!): Tour!
 }
 `, BuiltIn: false},
 	{Name: "../poi.graphqls", Input: `type POI {
-  id: ID!
+  id: UUID!
   name: String!
   description: String
-  city_id: ID!
+  city_id: UUID!
   type: String!
+  created_at: Time!
+  updated_at: Time!
   images: [POIImage!]!
 }
 
 type POIImage {
-  id: ID!
-  poi_id: ID!
+  id: UUID!
+  poi_id: UUID!
   file_url: String!
   alt_text: String
+  created_at: Time!
+  updated_at: Time!
 }
 
 input POIImageInput {
@@ -1802,31 +1888,31 @@ input POIImageInput {
 }
 
 extend type Query {
-  poi(id: ID!): POI
+  poi(id: UUID!): POI
   pois: [POI!]!
-  poisByCity(city_id: ID!): [POI!]!
-  poiImage(id: ID!): POIImage!
+  poisByCity(city_id: UUID!): [POI!]!
+  poiImage(id: UUID!): POIImage!
 }
 
 extend type Mutation {
   createPOI(
     name: String!
     description: String
-    city_id: ID!
+    city_id: UUID!
     type: String!
     images: [POIImageInput!]
   ): POI!
 
   updatePOI(
-    id: ID!
+    id: UUID!
     name: String
     description: String
-    city_id: ID
+    city_id: UUID
     type: String
     images: [POIImageInput!]
   ): POI!
 
-  deletePOI(id: ID!): POI!
+  deletePOI(id: UUID!): POI!
 }
 `, BuiltIn: false},
 	{Name: "../mail.graphqls", Input: `extend type Mutation {
@@ -1856,12 +1942,12 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 func (ec *executionContext) field_Mutation_createBooking_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "user_id", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "user_id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
 	args["user_id"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "package_id", ec.unmarshalNID2string)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "package_id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -1913,7 +1999,7 @@ func (ec *executionContext) field_Mutation_createCategory_args(ctx context.Conte
 func (ec *executionContext) field_Mutation_createCity_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "stateId", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "stateId", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -1950,7 +2036,7 @@ func (ec *executionContext) field_Mutation_createPOI_args(ctx context.Context, r
 		return nil, err
 	}
 	args["description"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "city_id", ec.unmarshalNID2string)
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "city_id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -1971,7 +2057,7 @@ func (ec *executionContext) field_Mutation_createPOI_args(ctx context.Context, r
 func (ec *executionContext) field_Mutation_createPackage_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "tour_id", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "tour_id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -2012,7 +2098,7 @@ func (ec *executionContext) field_Mutation_createPackage_args(ctx context.Contex
 func (ec *executionContext) field_Mutation_createState_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "countryId", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "countryId", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -2038,12 +2124,12 @@ func (ec *executionContext) field_Mutation_createTour_args(ctx context.Context, 
 		return nil, err
 	}
 	args["description"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "category_id", ec.unmarshalNID2string)
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "category_id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
 	args["category_id"] = arg2
-	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "city_id", ec.unmarshalNID2string)
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "city_id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -2053,7 +2139,7 @@ func (ec *executionContext) field_Mutation_createTour_args(ctx context.Context, 
 		return nil, err
 	}
 	args["duration_days"] = arg4
-	arg5, err := graphql.ProcessArgField(ctx, rawArgs, "created_by", ec.unmarshalNID2string)
+	arg5, err := graphql.ProcessArgField(ctx, rawArgs, "created_by", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -2100,7 +2186,7 @@ func (ec *executionContext) field_Mutation_createUser_args(ctx context.Context, 
 func (ec *executionContext) field_Mutation_deleteBooking_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -2111,7 +2197,7 @@ func (ec *executionContext) field_Mutation_deleteBooking_args(ctx context.Contex
 func (ec *executionContext) field_Mutation_deleteCategory_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -2122,7 +2208,7 @@ func (ec *executionContext) field_Mutation_deleteCategory_args(ctx context.Conte
 func (ec *executionContext) field_Mutation_deleteCity_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -2133,7 +2219,7 @@ func (ec *executionContext) field_Mutation_deleteCity_args(ctx context.Context, 
 func (ec *executionContext) field_Mutation_deleteCountry_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -2144,7 +2230,7 @@ func (ec *executionContext) field_Mutation_deleteCountry_args(ctx context.Contex
 func (ec *executionContext) field_Mutation_deletePOI_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -2155,7 +2241,7 @@ func (ec *executionContext) field_Mutation_deletePOI_args(ctx context.Context, r
 func (ec *executionContext) field_Mutation_deletePackage_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -2166,7 +2252,7 @@ func (ec *executionContext) field_Mutation_deletePackage_args(ctx context.Contex
 func (ec *executionContext) field_Mutation_deleteState_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -2177,7 +2263,7 @@ func (ec *executionContext) field_Mutation_deleteState_args(ctx context.Context,
 func (ec *executionContext) field_Mutation_deleteTour_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -2188,7 +2274,7 @@ func (ec *executionContext) field_Mutation_deleteTour_args(ctx context.Context, 
 func (ec *executionContext) field_Mutation_deleteUser_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -2226,17 +2312,17 @@ func (ec *executionContext) field_Mutation_submitInquiry_args(ctx context.Contex
 func (ec *executionContext) field_Mutation_updateBooking_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
 	args["id"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "user_id", ec.unmarshalOID2ᚖstring)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "user_id", ec.unmarshalOUUID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
 	args["user_id"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "package_id", ec.unmarshalOID2ᚖstring)
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "package_id", ec.unmarshalOUUID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -2267,7 +2353,7 @@ func (ec *executionContext) field_Mutation_updateBooking_args(ctx context.Contex
 func (ec *executionContext) field_Mutation_updateCategory_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -2293,12 +2379,12 @@ func (ec *executionContext) field_Mutation_updateCategory_args(ctx context.Conte
 func (ec *executionContext) field_Mutation_updateCity_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
 	args["id"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "stateId", ec.unmarshalOID2ᚖstring)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "stateId", ec.unmarshalOUUID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -2314,7 +2400,7 @@ func (ec *executionContext) field_Mutation_updateCity_args(ctx context.Context, 
 func (ec *executionContext) field_Mutation_updateCountry_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -2330,7 +2416,7 @@ func (ec *executionContext) field_Mutation_updateCountry_args(ctx context.Contex
 func (ec *executionContext) field_Mutation_updatePOI_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -2345,7 +2431,7 @@ func (ec *executionContext) field_Mutation_updatePOI_args(ctx context.Context, r
 		return nil, err
 	}
 	args["description"] = arg2
-	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "city_id", ec.unmarshalOID2ᚖstring)
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "city_id", ec.unmarshalOUUID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -2366,12 +2452,12 @@ func (ec *executionContext) field_Mutation_updatePOI_args(ctx context.Context, r
 func (ec *executionContext) field_Mutation_updatePackage_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
 	args["id"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "tour_id", ec.unmarshalOID2ᚖstring)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "tour_id", ec.unmarshalOUUID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -2412,12 +2498,12 @@ func (ec *executionContext) field_Mutation_updatePackage_args(ctx context.Contex
 func (ec *executionContext) field_Mutation_updateState_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
 	args["id"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "countryId", ec.unmarshalOID2ᚖstring)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "countryId", ec.unmarshalOUUID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -2433,7 +2519,7 @@ func (ec *executionContext) field_Mutation_updateState_args(ctx context.Context,
 func (ec *executionContext) field_Mutation_updateTour_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -2448,12 +2534,12 @@ func (ec *executionContext) field_Mutation_updateTour_args(ctx context.Context, 
 		return nil, err
 	}
 	args["description"] = arg2
-	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "category_id", ec.unmarshalOID2ᚖstring)
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "category_id", ec.unmarshalOUUID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
 	args["category_id"] = arg3
-	arg4, err := graphql.ProcessArgField(ctx, rawArgs, "city_id", ec.unmarshalOID2ᚖstring)
+	arg4, err := graphql.ProcessArgField(ctx, rawArgs, "city_id", ec.unmarshalOUUID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -2463,7 +2549,7 @@ func (ec *executionContext) field_Mutation_updateTour_args(ctx context.Context, 
 		return nil, err
 	}
 	args["duration_days"] = arg5
-	arg6, err := graphql.ProcessArgField(ctx, rawArgs, "created_by", ec.unmarshalOID2ᚖstring)
+	arg6, err := graphql.ProcessArgField(ctx, rawArgs, "created_by", ec.unmarshalOUUID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -2484,7 +2570,7 @@ func (ec *executionContext) field_Mutation_updateTour_args(ctx context.Context, 
 func (ec *executionContext) field_Mutation_updateUser_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -2526,7 +2612,7 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 func (ec *executionContext) field_Query_booking_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -2537,7 +2623,7 @@ func (ec *executionContext) field_Query_booking_args(ctx context.Context, rawArg
 func (ec *executionContext) field_Query_categoryImage_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -2548,7 +2634,7 @@ func (ec *executionContext) field_Query_categoryImage_args(ctx context.Context, 
 func (ec *executionContext) field_Query_category_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -2559,7 +2645,7 @@ func (ec *executionContext) field_Query_category_args(ctx context.Context, rawAr
 func (ec *executionContext) field_Query_citiesByState_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "stateId", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "stateId", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -2570,7 +2656,7 @@ func (ec *executionContext) field_Query_citiesByState_args(ctx context.Context, 
 func (ec *executionContext) field_Query_city_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -2581,7 +2667,7 @@ func (ec *executionContext) field_Query_city_args(ctx context.Context, rawArgs m
 func (ec *executionContext) field_Query_country_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -2592,7 +2678,7 @@ func (ec *executionContext) field_Query_country_args(ctx context.Context, rawArg
 func (ec *executionContext) field_Query_packageImage_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -2603,7 +2689,7 @@ func (ec *executionContext) field_Query_packageImage_args(ctx context.Context, r
 func (ec *executionContext) field_Query_package_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -2614,7 +2700,7 @@ func (ec *executionContext) field_Query_package_args(ctx context.Context, rawArg
 func (ec *executionContext) field_Query_packagesByTour_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "tour_id", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "tour_id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -2625,7 +2711,7 @@ func (ec *executionContext) field_Query_packagesByTour_args(ctx context.Context,
 func (ec *executionContext) field_Query_poiImage_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -2636,7 +2722,7 @@ func (ec *executionContext) field_Query_poiImage_args(ctx context.Context, rawAr
 func (ec *executionContext) field_Query_poi_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -2647,7 +2733,7 @@ func (ec *executionContext) field_Query_poi_args(ctx context.Context, rawArgs ma
 func (ec *executionContext) field_Query_poisByCity_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "city_id", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "city_id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -2658,7 +2744,7 @@ func (ec *executionContext) field_Query_poisByCity_args(ctx context.Context, raw
 func (ec *executionContext) field_Query_state_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -2669,7 +2755,7 @@ func (ec *executionContext) field_Query_state_args(ctx context.Context, rawArgs 
 func (ec *executionContext) field_Query_statesByCountry_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "countryId", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "countryId", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -2680,7 +2766,7 @@ func (ec *executionContext) field_Query_statesByCountry_args(ctx context.Context
 func (ec *executionContext) field_Query_tourImage_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -2691,7 +2777,7 @@ func (ec *executionContext) field_Query_tourImage_args(ctx context.Context, rawA
 func (ec *executionContext) field_Query_tour_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -2702,7 +2788,7 @@ func (ec *executionContext) field_Query_tour_args(ctx context.Context, rawArgs m
 func (ec *executionContext) field_Query_user_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -2769,10 +2855,10 @@ func (ec *executionContext) _Booking_id(ctx context.Context, field graphql.Colle
 		field,
 		ec.fieldContext_Booking_id,
 		func(ctx context.Context) (any, error) {
-			return ec.resolvers.Booking().ID(ctx, obj)
+			return obj.ID, nil
 		},
 		nil,
-		ec.marshalNID2string,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
 		true,
 		true,
 	)
@@ -2782,10 +2868,10 @@ func (ec *executionContext) fieldContext_Booking_id(_ context.Context, field gra
 	fc = &graphql.FieldContext{
 		Object:     "Booking",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
+			return nil, errors.New("field of type UUID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -2798,10 +2884,10 @@ func (ec *executionContext) _Booking_user_id(ctx context.Context, field graphql.
 		field,
 		ec.fieldContext_Booking_user_id,
 		func(ctx context.Context) (any, error) {
-			return ec.resolvers.Booking().UserID(ctx, obj)
+			return obj.UserID, nil
 		},
 		nil,
-		ec.marshalNID2string,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
 		true,
 		true,
 	)
@@ -2811,10 +2897,10 @@ func (ec *executionContext) fieldContext_Booking_user_id(_ context.Context, fiel
 	fc = &graphql.FieldContext{
 		Object:     "Booking",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
+			return nil, errors.New("field of type UUID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -2827,10 +2913,10 @@ func (ec *executionContext) _Booking_package_id(ctx context.Context, field graph
 		field,
 		ec.fieldContext_Booking_package_id,
 		func(ctx context.Context) (any, error) {
-			return ec.resolvers.Booking().PackageID(ctx, obj)
+			return obj.PackageID, nil
 		},
 		nil,
-		ec.marshalNID2string,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
 		true,
 		true,
 	)
@@ -2840,10 +2926,10 @@ func (ec *executionContext) fieldContext_Booking_package_id(_ context.Context, f
 	fc = &graphql.FieldContext{
 		Object:     "Booking",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
+			return nil, errors.New("field of type UUID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -2994,6 +3080,64 @@ func (ec *executionContext) fieldContext_Booking_travel_end_date(_ context.Conte
 	return fc, nil
 }
 
+func (ec *executionContext) _Booking_created_at(ctx context.Context, field graphql.CollectedField, obj *db.Booking) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Booking_created_at,
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Booking_created_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Booking",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Booking_updated_at(ctx context.Context, field graphql.CollectedField, obj *db.Booking) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Booking_updated_at,
+		func(ctx context.Context) (any, error) {
+			return obj.UpdatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Booking_updated_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Booking",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Category_id(ctx context.Context, field graphql.CollectedField, obj *db.Category) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -3001,10 +3145,10 @@ func (ec *executionContext) _Category_id(ctx context.Context, field graphql.Coll
 		field,
 		ec.fieldContext_Category_id,
 		func(ctx context.Context) (any, error) {
-			return ec.resolvers.Category().ID(ctx, obj)
+			return obj.ID, nil
 		},
 		nil,
-		ec.marshalNID2string,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
 		true,
 		true,
 	)
@@ -3014,10 +3158,10 @@ func (ec *executionContext) fieldContext_Category_id(_ context.Context, field gr
 	fc = &graphql.FieldContext{
 		Object:     "Category",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
+			return nil, errors.New("field of type UUID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -3081,6 +3225,64 @@ func (ec *executionContext) fieldContext_Category_description(_ context.Context,
 	return fc, nil
 }
 
+func (ec *executionContext) _Category_created_at(ctx context.Context, field graphql.CollectedField, obj *db.Category) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Category_created_at,
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Category_created_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Category",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Category_updated_at(ctx context.Context, field graphql.CollectedField, obj *db.Category) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Category_updated_at,
+		func(ctx context.Context) (any, error) {
+			return obj.UpdatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Category_updated_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Category",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Category_images(ctx context.Context, field graphql.CollectedField, obj *db.Category) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -3113,6 +3315,10 @@ func (ec *executionContext) fieldContext_Category_images(_ context.Context, fiel
 				return ec.fieldContext_CategoryImage_file_url(ctx, field)
 			case "alt_text":
 				return ec.fieldContext_CategoryImage_alt_text(ctx, field)
+			case "created_at":
+				return ec.fieldContext_CategoryImage_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_CategoryImage_updated_at(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type CategoryImage", field.Name)
 		},
@@ -3127,10 +3333,10 @@ func (ec *executionContext) _CategoryImage_id(ctx context.Context, field graphql
 		field,
 		ec.fieldContext_CategoryImage_id,
 		func(ctx context.Context) (any, error) {
-			return ec.resolvers.CategoryImage().ID(ctx, obj)
+			return obj.ID, nil
 		},
 		nil,
-		ec.marshalNID2string,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
 		true,
 		true,
 	)
@@ -3140,10 +3346,10 @@ func (ec *executionContext) fieldContext_CategoryImage_id(_ context.Context, fie
 	fc = &graphql.FieldContext{
 		Object:     "CategoryImage",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
+			return nil, errors.New("field of type UUID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -3156,10 +3362,10 @@ func (ec *executionContext) _CategoryImage_category_id(ctx context.Context, fiel
 		field,
 		ec.fieldContext_CategoryImage_category_id,
 		func(ctx context.Context) (any, error) {
-			return ec.resolvers.CategoryImage().CategoryID(ctx, obj)
+			return obj.CategoryID, nil
 		},
 		nil,
-		ec.marshalNID2string,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
 		true,
 		true,
 	)
@@ -3169,10 +3375,10 @@ func (ec *executionContext) fieldContext_CategoryImage_category_id(_ context.Con
 	fc = &graphql.FieldContext{
 		Object:     "CategoryImage",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
+			return nil, errors.New("field of type UUID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -3236,6 +3442,64 @@ func (ec *executionContext) fieldContext_CategoryImage_alt_text(_ context.Contex
 	return fc, nil
 }
 
+func (ec *executionContext) _CategoryImage_created_at(ctx context.Context, field graphql.CollectedField, obj *db.CategoryImage) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CategoryImage_created_at,
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CategoryImage_created_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CategoryImage",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CategoryImage_updated_at(ctx context.Context, field graphql.CollectedField, obj *db.CategoryImage) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CategoryImage_updated_at,
+		func(ctx context.Context) (any, error) {
+			return obj.UpdatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CategoryImage_updated_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CategoryImage",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _City_id(ctx context.Context, field graphql.CollectedField, obj *db.City) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -3243,10 +3507,10 @@ func (ec *executionContext) _City_id(ctx context.Context, field graphql.Collecte
 		field,
 		ec.fieldContext_City_id,
 		func(ctx context.Context) (any, error) {
-			return ec.resolvers.City().ID(ctx, obj)
+			return obj.ID, nil
 		},
 		nil,
-		ec.marshalNID2string,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
 		true,
 		true,
 	)
@@ -3256,10 +3520,10 @@ func (ec *executionContext) fieldContext_City_id(_ context.Context, field graphq
 	fc = &graphql.FieldContext{
 		Object:     "City",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
+			return nil, errors.New("field of type UUID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -3272,10 +3536,10 @@ func (ec *executionContext) _City_stateId(ctx context.Context, field graphql.Col
 		field,
 		ec.fieldContext_City_stateId,
 		func(ctx context.Context) (any, error) {
-			return ec.resolvers.City().StateID(ctx, obj)
+			return obj.StateID, nil
 		},
 		nil,
-		ec.marshalNID2string,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
 		true,
 		true,
 	)
@@ -3285,10 +3549,10 @@ func (ec *executionContext) fieldContext_City_stateId(_ context.Context, field g
 	fc = &graphql.FieldContext{
 		Object:     "City",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
+			return nil, errors.New("field of type UUID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -3330,10 +3594,10 @@ func (ec *executionContext) _Country_id(ctx context.Context, field graphql.Colle
 		field,
 		ec.fieldContext_Country_id,
 		func(ctx context.Context) (any, error) {
-			return ec.resolvers.Country().ID(ctx, obj)
+			return obj.ID, nil
 		},
 		nil,
-		ec.marshalNID2string,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
 		true,
 		true,
 	)
@@ -3343,10 +3607,10 @@ func (ec *executionContext) fieldContext_Country_id(_ context.Context, field gra
 	fc = &graphql.FieldContext{
 		Object:     "Country",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
+			return nil, errors.New("field of type UUID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -3625,7 +3889,7 @@ func (ec *executionContext) _Mutation_updateUser(ctx context.Context, field grap
 		ec.fieldContext_Mutation_updateUser,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().UpdateUser(ctx, fc.Args["id"].(string), fc.Args["full_name"].(*string), fc.Args["email"].(*string), fc.Args["password"].(*string), fc.Args["phone"].(*string))
+			return ec.resolvers.Mutation().UpdateUser(ctx, fc.Args["id"].(uuid.UUID), fc.Args["full_name"].(*string), fc.Args["email"].(*string), fc.Args["password"].(*string), fc.Args["phone"].(*string))
 		},
 		nil,
 		ec.marshalNUser2ᚖgraphqlᚋinternalᚋdbᚐUser,
@@ -3682,7 +3946,7 @@ func (ec *executionContext) _Mutation_deleteUser(ctx context.Context, field grap
 		ec.fieldContext_Mutation_deleteUser,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().DeleteUser(ctx, fc.Args["id"].(string))
+			return ec.resolvers.Mutation().DeleteUser(ctx, fc.Args["id"].(uuid.UUID))
 		},
 		nil,
 		ec.marshalNUser2ᚖgraphqlᚋinternalᚋdbᚐUser,
@@ -3762,6 +4026,10 @@ func (ec *executionContext) fieldContext_Mutation_createCategory(ctx context.Con
 				return ec.fieldContext_Category_category_name(ctx, field)
 			case "description":
 				return ec.fieldContext_Category_description(ctx, field)
+			case "created_at":
+				return ec.fieldContext_Category_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_Category_updated_at(ctx, field)
 			case "images":
 				return ec.fieldContext_Category_images(ctx, field)
 			}
@@ -3790,7 +4058,7 @@ func (ec *executionContext) _Mutation_updateCategory(ctx context.Context, field 
 		ec.fieldContext_Mutation_updateCategory,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().UpdateCategory(ctx, fc.Args["id"].(string), fc.Args["category_name"].(*string), fc.Args["description"].(*string), fc.Args["images"].([]*models.CategoryImageInput))
+			return ec.resolvers.Mutation().UpdateCategory(ctx, fc.Args["id"].(uuid.UUID), fc.Args["category_name"].(*string), fc.Args["description"].(*string), fc.Args["images"].([]*models.CategoryImageInput))
 		},
 		nil,
 		ec.marshalNCategory2ᚖgraphqlᚋinternalᚋdbᚐCategory,
@@ -3813,6 +4081,10 @@ func (ec *executionContext) fieldContext_Mutation_updateCategory(ctx context.Con
 				return ec.fieldContext_Category_category_name(ctx, field)
 			case "description":
 				return ec.fieldContext_Category_description(ctx, field)
+			case "created_at":
+				return ec.fieldContext_Category_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_Category_updated_at(ctx, field)
 			case "images":
 				return ec.fieldContext_Category_images(ctx, field)
 			}
@@ -3841,7 +4113,7 @@ func (ec *executionContext) _Mutation_deleteCategory(ctx context.Context, field 
 		ec.fieldContext_Mutation_deleteCategory,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().DeleteCategory(ctx, fc.Args["id"].(string))
+			return ec.resolvers.Mutation().DeleteCategory(ctx, fc.Args["id"].(uuid.UUID))
 		},
 		nil,
 		ec.marshalNCategory2ᚖgraphqlᚋinternalᚋdbᚐCategory,
@@ -3864,6 +4136,10 @@ func (ec *executionContext) fieldContext_Mutation_deleteCategory(ctx context.Con
 				return ec.fieldContext_Category_category_name(ctx, field)
 			case "description":
 				return ec.fieldContext_Category_description(ctx, field)
+			case "created_at":
+				return ec.fieldContext_Category_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_Category_updated_at(ctx, field)
 			case "images":
 				return ec.fieldContext_Category_images(ctx, field)
 			}
@@ -3892,7 +4168,7 @@ func (ec *executionContext) _Mutation_createCity(ctx context.Context, field grap
 		ec.fieldContext_Mutation_createCity,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().CreateCity(ctx, fc.Args["stateId"].(string), fc.Args["name"].(string))
+			return ec.resolvers.Mutation().CreateCity(ctx, fc.Args["stateId"].(uuid.UUID), fc.Args["name"].(string))
 		},
 		nil,
 		ec.marshalNCity2ᚖgraphqlᚋinternalᚋdbᚐCity,
@@ -3941,7 +4217,7 @@ func (ec *executionContext) _Mutation_updateCity(ctx context.Context, field grap
 		ec.fieldContext_Mutation_updateCity,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().UpdateCity(ctx, fc.Args["id"].(string), fc.Args["stateId"].(*string), fc.Args["name"].(*string))
+			return ec.resolvers.Mutation().UpdateCity(ctx, fc.Args["id"].(uuid.UUID), fc.Args["stateId"].(*uuid.UUID), fc.Args["name"].(*string))
 		},
 		nil,
 		ec.marshalNCity2ᚖgraphqlᚋinternalᚋdbᚐCity,
@@ -3990,7 +4266,7 @@ func (ec *executionContext) _Mutation_deleteCity(ctx context.Context, field grap
 		ec.fieldContext_Mutation_deleteCity,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().DeleteCity(ctx, fc.Args["id"].(string))
+			return ec.resolvers.Mutation().DeleteCity(ctx, fc.Args["id"].(uuid.UUID))
 		},
 		nil,
 		ec.marshalNCity2ᚖgraphqlᚋinternalᚋdbᚐCity,
@@ -4086,7 +4362,7 @@ func (ec *executionContext) _Mutation_updateCountry(ctx context.Context, field g
 		ec.fieldContext_Mutation_updateCountry,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().UpdateCountry(ctx, fc.Args["id"].(string), fc.Args["name"].(*string))
+			return ec.resolvers.Mutation().UpdateCountry(ctx, fc.Args["id"].(uuid.UUID), fc.Args["name"].(*string))
 		},
 		nil,
 		ec.marshalNCountry2ᚖgraphqlᚋinternalᚋdbᚐCountry,
@@ -4133,7 +4409,7 @@ func (ec *executionContext) _Mutation_deleteCountry(ctx context.Context, field g
 		ec.fieldContext_Mutation_deleteCountry,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().DeleteCountry(ctx, fc.Args["id"].(string))
+			return ec.resolvers.Mutation().DeleteCountry(ctx, fc.Args["id"].(uuid.UUID))
 		},
 		nil,
 		ec.marshalNCountry2ᚖgraphqlᚋinternalᚋdbᚐCountry,
@@ -4180,7 +4456,7 @@ func (ec *executionContext) _Mutation_createBooking(ctx context.Context, field g
 		ec.fieldContext_Mutation_createBooking,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().CreateBooking(ctx, fc.Args["user_id"].(string), fc.Args["package_id"].(string), fc.Args["total_price"].(string), fc.Args["status"].(string), fc.Args["travel_start_date"].(string), fc.Args["travel_end_date"].(string))
+			return ec.resolvers.Mutation().CreateBooking(ctx, fc.Args["user_id"].(uuid.UUID), fc.Args["package_id"].(uuid.UUID), fc.Args["total_price"].(string), fc.Args["status"].(string), fc.Args["travel_start_date"].(string), fc.Args["travel_end_date"].(string))
 		},
 		nil,
 		ec.marshalNBooking2ᚖgraphqlᚋinternalᚋdbᚐBooking,
@@ -4213,6 +4489,10 @@ func (ec *executionContext) fieldContext_Mutation_createBooking(ctx context.Cont
 				return ec.fieldContext_Booking_travel_start_date(ctx, field)
 			case "travel_end_date":
 				return ec.fieldContext_Booking_travel_end_date(ctx, field)
+			case "created_at":
+				return ec.fieldContext_Booking_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_Booking_updated_at(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Booking", field.Name)
 		},
@@ -4239,7 +4519,7 @@ func (ec *executionContext) _Mutation_updateBooking(ctx context.Context, field g
 		ec.fieldContext_Mutation_updateBooking,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().UpdateBooking(ctx, fc.Args["id"].(string), fc.Args["user_id"].(*string), fc.Args["package_id"].(*string), fc.Args["total_price"].(*string), fc.Args["status"].(*string), fc.Args["travel_start_date"].(*string), fc.Args["travel_end_date"].(*string))
+			return ec.resolvers.Mutation().UpdateBooking(ctx, fc.Args["id"].(uuid.UUID), fc.Args["user_id"].(*uuid.UUID), fc.Args["package_id"].(*uuid.UUID), fc.Args["total_price"].(*string), fc.Args["status"].(*string), fc.Args["travel_start_date"].(*string), fc.Args["travel_end_date"].(*string))
 		},
 		nil,
 		ec.marshalNBooking2ᚖgraphqlᚋinternalᚋdbᚐBooking,
@@ -4272,6 +4552,10 @@ func (ec *executionContext) fieldContext_Mutation_updateBooking(ctx context.Cont
 				return ec.fieldContext_Booking_travel_start_date(ctx, field)
 			case "travel_end_date":
 				return ec.fieldContext_Booking_travel_end_date(ctx, field)
+			case "created_at":
+				return ec.fieldContext_Booking_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_Booking_updated_at(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Booking", field.Name)
 		},
@@ -4298,7 +4582,7 @@ func (ec *executionContext) _Mutation_deleteBooking(ctx context.Context, field g
 		ec.fieldContext_Mutation_deleteBooking,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().DeleteBooking(ctx, fc.Args["id"].(string))
+			return ec.resolvers.Mutation().DeleteBooking(ctx, fc.Args["id"].(uuid.UUID))
 		},
 		nil,
 		ec.marshalNBooking2ᚖgraphqlᚋinternalᚋdbᚐBooking,
@@ -4331,6 +4615,10 @@ func (ec *executionContext) fieldContext_Mutation_deleteBooking(ctx context.Cont
 				return ec.fieldContext_Booking_travel_start_date(ctx, field)
 			case "travel_end_date":
 				return ec.fieldContext_Booking_travel_end_date(ctx, field)
+			case "created_at":
+				return ec.fieldContext_Booking_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_Booking_updated_at(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Booking", field.Name)
 		},
@@ -4357,7 +4645,7 @@ func (ec *executionContext) _Mutation_createPackage(ctx context.Context, field g
 		ec.fieldContext_Mutation_createPackage,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().CreatePackage(ctx, fc.Args["tour_id"].(string), fc.Args["package_name"].(string), fc.Args["price"].(string), fc.Args["currency"].(string), fc.Args["occupancy"].(*string), fc.Args["is_featured"].(*bool), fc.Args["images"].([]*models.PackageImageInput))
+			return ec.resolvers.Mutation().CreatePackage(ctx, fc.Args["tour_id"].(uuid.UUID), fc.Args["package_name"].(string), fc.Args["price"].(string), fc.Args["currency"].(string), fc.Args["occupancy"].(*string), fc.Args["is_featured"].(*bool), fc.Args["images"].([]*models.PackageImageInput))
 		},
 		nil,
 		ec.marshalNPackage2ᚖgraphqlᚋinternalᚋdbᚐPackage,
@@ -4388,6 +4676,10 @@ func (ec *executionContext) fieldContext_Mutation_createPackage(ctx context.Cont
 				return ec.fieldContext_Package_occupancy(ctx, field)
 			case "is_featured":
 				return ec.fieldContext_Package_is_featured(ctx, field)
+			case "created_at":
+				return ec.fieldContext_Package_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_Package_updated_at(ctx, field)
 			case "images":
 				return ec.fieldContext_Package_images(ctx, field)
 			}
@@ -4416,7 +4708,7 @@ func (ec *executionContext) _Mutation_updatePackage(ctx context.Context, field g
 		ec.fieldContext_Mutation_updatePackage,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().UpdatePackage(ctx, fc.Args["id"].(string), fc.Args["tour_id"].(*string), fc.Args["package_name"].(*string), fc.Args["price"].(*string), fc.Args["currency"].(*string), fc.Args["occupancy"].(*string), fc.Args["is_featured"].(*bool), fc.Args["images"].([]*models.PackageImageInput))
+			return ec.resolvers.Mutation().UpdatePackage(ctx, fc.Args["id"].(uuid.UUID), fc.Args["tour_id"].(*uuid.UUID), fc.Args["package_name"].(*string), fc.Args["price"].(*string), fc.Args["currency"].(*string), fc.Args["occupancy"].(*string), fc.Args["is_featured"].(*bool), fc.Args["images"].([]*models.PackageImageInput))
 		},
 		nil,
 		ec.marshalNPackage2ᚖgraphqlᚋinternalᚋdbᚐPackage,
@@ -4447,6 +4739,10 @@ func (ec *executionContext) fieldContext_Mutation_updatePackage(ctx context.Cont
 				return ec.fieldContext_Package_occupancy(ctx, field)
 			case "is_featured":
 				return ec.fieldContext_Package_is_featured(ctx, field)
+			case "created_at":
+				return ec.fieldContext_Package_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_Package_updated_at(ctx, field)
 			case "images":
 				return ec.fieldContext_Package_images(ctx, field)
 			}
@@ -4475,7 +4771,7 @@ func (ec *executionContext) _Mutation_deletePackage(ctx context.Context, field g
 		ec.fieldContext_Mutation_deletePackage,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().DeletePackage(ctx, fc.Args["id"].(string))
+			return ec.resolvers.Mutation().DeletePackage(ctx, fc.Args["id"].(uuid.UUID))
 		},
 		nil,
 		ec.marshalNPackage2ᚖgraphqlᚋinternalᚋdbᚐPackage,
@@ -4506,6 +4802,10 @@ func (ec *executionContext) fieldContext_Mutation_deletePackage(ctx context.Cont
 				return ec.fieldContext_Package_occupancy(ctx, field)
 			case "is_featured":
 				return ec.fieldContext_Package_is_featured(ctx, field)
+			case "created_at":
+				return ec.fieldContext_Package_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_Package_updated_at(ctx, field)
 			case "images":
 				return ec.fieldContext_Package_images(ctx, field)
 			}
@@ -4534,7 +4834,7 @@ func (ec *executionContext) _Mutation_createState(ctx context.Context, field gra
 		ec.fieldContext_Mutation_createState,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().CreateState(ctx, fc.Args["countryId"].(string), fc.Args["name"].(string))
+			return ec.resolvers.Mutation().CreateState(ctx, fc.Args["countryId"].(uuid.UUID), fc.Args["name"].(string))
 		},
 		nil,
 		ec.marshalNState2ᚖgraphqlᚋinternalᚋdbᚐState,
@@ -4583,7 +4883,7 @@ func (ec *executionContext) _Mutation_updateState(ctx context.Context, field gra
 		ec.fieldContext_Mutation_updateState,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().UpdateState(ctx, fc.Args["id"].(string), fc.Args["countryId"].(*string), fc.Args["name"].(*string))
+			return ec.resolvers.Mutation().UpdateState(ctx, fc.Args["id"].(uuid.UUID), fc.Args["countryId"].(*uuid.UUID), fc.Args["name"].(*string))
 		},
 		nil,
 		ec.marshalNState2ᚖgraphqlᚋinternalᚋdbᚐState,
@@ -4632,7 +4932,7 @@ func (ec *executionContext) _Mutation_deleteState(ctx context.Context, field gra
 		ec.fieldContext_Mutation_deleteState,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().DeleteState(ctx, fc.Args["id"].(string))
+			return ec.resolvers.Mutation().DeleteState(ctx, fc.Args["id"].(uuid.UUID))
 		},
 		nil,
 		ec.marshalNState2ᚖgraphqlᚋinternalᚋdbᚐState,
@@ -4681,7 +4981,7 @@ func (ec *executionContext) _Mutation_createTour(ctx context.Context, field grap
 		ec.fieldContext_Mutation_createTour,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().CreateTour(ctx, fc.Args["title"].(string), fc.Args["description"].(*string), fc.Args["category_id"].(string), fc.Args["city_id"].(string), fc.Args["duration_days"].(int), fc.Args["created_by"].(string), fc.Args["status"].(string), fc.Args["images"].([]*models.TourImageInput))
+			return ec.resolvers.Mutation().CreateTour(ctx, fc.Args["title"].(string), fc.Args["description"].(*string), fc.Args["category_id"].(uuid.UUID), fc.Args["city_id"].(uuid.UUID), fc.Args["duration_days"].(int), fc.Args["created_by"].(uuid.UUID), fc.Args["status"].(string), fc.Args["images"].([]*models.TourImageInput))
 		},
 		nil,
 		ec.marshalNTour2ᚖgraphqlᚋinternalᚋdbᚐTour,
@@ -4746,7 +5046,7 @@ func (ec *executionContext) _Mutation_updateTour(ctx context.Context, field grap
 		ec.fieldContext_Mutation_updateTour,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().UpdateTour(ctx, fc.Args["id"].(string), fc.Args["title"].(*string), fc.Args["description"].(*string), fc.Args["category_id"].(*string), fc.Args["city_id"].(*string), fc.Args["duration_days"].(*int), fc.Args["created_by"].(*string), fc.Args["status"].(*string), fc.Args["images"].([]*models.TourImageInput))
+			return ec.resolvers.Mutation().UpdateTour(ctx, fc.Args["id"].(uuid.UUID), fc.Args["title"].(*string), fc.Args["description"].(*string), fc.Args["category_id"].(*uuid.UUID), fc.Args["city_id"].(*uuid.UUID), fc.Args["duration_days"].(*int), fc.Args["created_by"].(*uuid.UUID), fc.Args["status"].(*string), fc.Args["images"].([]*models.TourImageInput))
 		},
 		nil,
 		ec.marshalNTour2ᚖgraphqlᚋinternalᚋdbᚐTour,
@@ -4811,7 +5111,7 @@ func (ec *executionContext) _Mutation_deleteTour(ctx context.Context, field grap
 		ec.fieldContext_Mutation_deleteTour,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().DeleteTour(ctx, fc.Args["id"].(string))
+			return ec.resolvers.Mutation().DeleteTour(ctx, fc.Args["id"].(uuid.UUID))
 		},
 		nil,
 		ec.marshalNTour2ᚖgraphqlᚋinternalᚋdbᚐTour,
@@ -4876,7 +5176,7 @@ func (ec *executionContext) _Mutation_createPOI(ctx context.Context, field graph
 		ec.fieldContext_Mutation_createPOI,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().CreatePoi(ctx, fc.Args["name"].(string), fc.Args["description"].(*string), fc.Args["city_id"].(string), fc.Args["type"].(string), fc.Args["images"].([]*models.POIImageInput))
+			return ec.resolvers.Mutation().CreatePoi(ctx, fc.Args["name"].(string), fc.Args["description"].(*string), fc.Args["city_id"].(uuid.UUID), fc.Args["type"].(string), fc.Args["images"].([]*models.POIImageInput))
 		},
 		nil,
 		ec.marshalNPOI2ᚖgraphqlᚋinternalᚋdbᚐPointsOfInterest,
@@ -4903,6 +5203,10 @@ func (ec *executionContext) fieldContext_Mutation_createPOI(ctx context.Context,
 				return ec.fieldContext_POI_city_id(ctx, field)
 			case "type":
 				return ec.fieldContext_POI_type(ctx, field)
+			case "created_at":
+				return ec.fieldContext_POI_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_POI_updated_at(ctx, field)
 			case "images":
 				return ec.fieldContext_POI_images(ctx, field)
 			}
@@ -4931,7 +5235,7 @@ func (ec *executionContext) _Mutation_updatePOI(ctx context.Context, field graph
 		ec.fieldContext_Mutation_updatePOI,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().UpdatePoi(ctx, fc.Args["id"].(string), fc.Args["name"].(*string), fc.Args["description"].(*string), fc.Args["city_id"].(*string), fc.Args["type"].(*string), fc.Args["images"].([]*models.POIImageInput))
+			return ec.resolvers.Mutation().UpdatePoi(ctx, fc.Args["id"].(uuid.UUID), fc.Args["name"].(*string), fc.Args["description"].(*string), fc.Args["city_id"].(*uuid.UUID), fc.Args["type"].(*string), fc.Args["images"].([]*models.POIImageInput))
 		},
 		nil,
 		ec.marshalNPOI2ᚖgraphqlᚋinternalᚋdbᚐPointsOfInterest,
@@ -4958,6 +5262,10 @@ func (ec *executionContext) fieldContext_Mutation_updatePOI(ctx context.Context,
 				return ec.fieldContext_POI_city_id(ctx, field)
 			case "type":
 				return ec.fieldContext_POI_type(ctx, field)
+			case "created_at":
+				return ec.fieldContext_POI_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_POI_updated_at(ctx, field)
 			case "images":
 				return ec.fieldContext_POI_images(ctx, field)
 			}
@@ -4986,7 +5294,7 @@ func (ec *executionContext) _Mutation_deletePOI(ctx context.Context, field graph
 		ec.fieldContext_Mutation_deletePOI,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().DeletePoi(ctx, fc.Args["id"].(string))
+			return ec.resolvers.Mutation().DeletePoi(ctx, fc.Args["id"].(uuid.UUID))
 		},
 		nil,
 		ec.marshalNPOI2ᚖgraphqlᚋinternalᚋdbᚐPointsOfInterest,
@@ -5013,6 +5321,10 @@ func (ec *executionContext) fieldContext_Mutation_deletePOI(ctx context.Context,
 				return ec.fieldContext_POI_city_id(ctx, field)
 			case "type":
 				return ec.fieldContext_POI_type(ctx, field)
+			case "created_at":
+				return ec.fieldContext_POI_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_POI_updated_at(ctx, field)
 			case "images":
 				return ec.fieldContext_POI_images(ctx, field)
 			}
@@ -5087,10 +5399,10 @@ func (ec *executionContext) _POI_id(ctx context.Context, field graphql.Collected
 		field,
 		ec.fieldContext_POI_id,
 		func(ctx context.Context) (any, error) {
-			return ec.resolvers.POI().ID(ctx, obj)
+			return obj.ID, nil
 		},
 		nil,
-		ec.marshalNID2string,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
 		true,
 		true,
 	)
@@ -5100,10 +5412,10 @@ func (ec *executionContext) fieldContext_POI_id(_ context.Context, field graphql
 	fc = &graphql.FieldContext{
 		Object:     "POI",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
+			return nil, errors.New("field of type UUID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -5174,10 +5486,10 @@ func (ec *executionContext) _POI_city_id(ctx context.Context, field graphql.Coll
 		field,
 		ec.fieldContext_POI_city_id,
 		func(ctx context.Context) (any, error) {
-			return ec.resolvers.POI().CityID(ctx, obj)
+			return obj.CityID, nil
 		},
 		nil,
-		ec.marshalNID2string,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
 		true,
 		true,
 	)
@@ -5187,10 +5499,10 @@ func (ec *executionContext) fieldContext_POI_city_id(_ context.Context, field gr
 	fc = &graphql.FieldContext{
 		Object:     "POI",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
+			return nil, errors.New("field of type UUID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -5220,6 +5532,64 @@ func (ec *executionContext) fieldContext_POI_type(_ context.Context, field graph
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _POI_created_at(ctx context.Context, field graphql.CollectedField, obj *db.PointsOfInterest) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_POI_created_at,
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_POI_created_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "POI",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _POI_updated_at(ctx context.Context, field graphql.CollectedField, obj *db.PointsOfInterest) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_POI_updated_at,
+		func(ctx context.Context) (any, error) {
+			return obj.UpdatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_POI_updated_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "POI",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
 		},
 	}
 	return fc, nil
@@ -5257,6 +5627,10 @@ func (ec *executionContext) fieldContext_POI_images(_ context.Context, field gra
 				return ec.fieldContext_POIImage_file_url(ctx, field)
 			case "alt_text":
 				return ec.fieldContext_POIImage_alt_text(ctx, field)
+			case "created_at":
+				return ec.fieldContext_POIImage_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_POIImage_updated_at(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type POIImage", field.Name)
 		},
@@ -5271,10 +5645,10 @@ func (ec *executionContext) _POIImage_id(ctx context.Context, field graphql.Coll
 		field,
 		ec.fieldContext_POIImage_id,
 		func(ctx context.Context) (any, error) {
-			return ec.resolvers.POIImage().ID(ctx, obj)
+			return obj.ID, nil
 		},
 		nil,
-		ec.marshalNID2string,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
 		true,
 		true,
 	)
@@ -5284,10 +5658,10 @@ func (ec *executionContext) fieldContext_POIImage_id(_ context.Context, field gr
 	fc = &graphql.FieldContext{
 		Object:     "POIImage",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
+			return nil, errors.New("field of type UUID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -5300,10 +5674,10 @@ func (ec *executionContext) _POIImage_poi_id(ctx context.Context, field graphql.
 		field,
 		ec.fieldContext_POIImage_poi_id,
 		func(ctx context.Context) (any, error) {
-			return ec.resolvers.POIImage().PoiID(ctx, obj)
+			return obj.PoiID, nil
 		},
 		nil,
-		ec.marshalNID2string,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
 		true,
 		true,
 	)
@@ -5313,10 +5687,10 @@ func (ec *executionContext) fieldContext_POIImage_poi_id(_ context.Context, fiel
 	fc = &graphql.FieldContext{
 		Object:     "POIImage",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
+			return nil, errors.New("field of type UUID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -5380,6 +5754,64 @@ func (ec *executionContext) fieldContext_POIImage_alt_text(_ context.Context, fi
 	return fc, nil
 }
 
+func (ec *executionContext) _POIImage_created_at(ctx context.Context, field graphql.CollectedField, obj *db.PointOfInterestImage) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_POIImage_created_at,
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_POIImage_created_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "POIImage",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _POIImage_updated_at(ctx context.Context, field graphql.CollectedField, obj *db.PointOfInterestImage) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_POIImage_updated_at,
+		func(ctx context.Context) (any, error) {
+			return obj.UpdatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_POIImage_updated_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "POIImage",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Package_id(ctx context.Context, field graphql.CollectedField, obj *db.Package) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -5387,10 +5819,10 @@ func (ec *executionContext) _Package_id(ctx context.Context, field graphql.Colle
 		field,
 		ec.fieldContext_Package_id,
 		func(ctx context.Context) (any, error) {
-			return ec.resolvers.Package().ID(ctx, obj)
+			return obj.ID, nil
 		},
 		nil,
-		ec.marshalNID2string,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
 		true,
 		true,
 	)
@@ -5400,10 +5832,10 @@ func (ec *executionContext) fieldContext_Package_id(_ context.Context, field gra
 	fc = &graphql.FieldContext{
 		Object:     "Package",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
+			return nil, errors.New("field of type UUID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -5416,10 +5848,10 @@ func (ec *executionContext) _Package_tour_id(ctx context.Context, field graphql.
 		field,
 		ec.fieldContext_Package_tour_id,
 		func(ctx context.Context) (any, error) {
-			return ec.resolvers.Package().TourID(ctx, obj)
+			return obj.TourID, nil
 		},
 		nil,
-		ec.marshalNID2string,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
 		true,
 		true,
 	)
@@ -5429,10 +5861,10 @@ func (ec *executionContext) fieldContext_Package_tour_id(_ context.Context, fiel
 	fc = &graphql.FieldContext{
 		Object:     "Package",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
+			return nil, errors.New("field of type UUID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -5503,7 +5935,7 @@ func (ec *executionContext) _Package_currency(ctx context.Context, field graphql
 		field,
 		ec.fieldContext_Package_currency,
 		func(ctx context.Context) (any, error) {
-			return obj.Currency, nil
+			return ec.resolvers.Package().Currency(ctx, obj)
 		},
 		nil,
 		ec.marshalNString2string,
@@ -5516,8 +5948,8 @@ func (ec *executionContext) fieldContext_Package_currency(_ context.Context, fie
 	fc = &graphql.FieldContext{
 		Object:     "Package",
 		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
 		},
@@ -5583,6 +6015,64 @@ func (ec *executionContext) fieldContext_Package_is_featured(_ context.Context, 
 	return fc, nil
 }
 
+func (ec *executionContext) _Package_created_at(ctx context.Context, field graphql.CollectedField, obj *db.Package) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Package_created_at,
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Package_created_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Package",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Package_updated_at(ctx context.Context, field graphql.CollectedField, obj *db.Package) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Package_updated_at,
+		func(ctx context.Context) (any, error) {
+			return obj.UpdatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Package_updated_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Package",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Package_images(ctx context.Context, field graphql.CollectedField, obj *db.Package) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -5615,6 +6105,10 @@ func (ec *executionContext) fieldContext_Package_images(_ context.Context, field
 				return ec.fieldContext_PackageImage_file_url(ctx, field)
 			case "alt_text":
 				return ec.fieldContext_PackageImage_alt_text(ctx, field)
+			case "created_at":
+				return ec.fieldContext_PackageImage_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_PackageImage_updated_at(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type PackageImage", field.Name)
 		},
@@ -5629,10 +6123,10 @@ func (ec *executionContext) _PackageImage_id(ctx context.Context, field graphql.
 		field,
 		ec.fieldContext_PackageImage_id,
 		func(ctx context.Context) (any, error) {
-			return ec.resolvers.PackageImage().ID(ctx, obj)
+			return obj.ID, nil
 		},
 		nil,
-		ec.marshalNID2string,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
 		true,
 		true,
 	)
@@ -5642,10 +6136,10 @@ func (ec *executionContext) fieldContext_PackageImage_id(_ context.Context, fiel
 	fc = &graphql.FieldContext{
 		Object:     "PackageImage",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
+			return nil, errors.New("field of type UUID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -5658,10 +6152,10 @@ func (ec *executionContext) _PackageImage_package_id(ctx context.Context, field 
 		field,
 		ec.fieldContext_PackageImage_package_id,
 		func(ctx context.Context) (any, error) {
-			return ec.resolvers.PackageImage().PackageID(ctx, obj)
+			return obj.PackageID, nil
 		},
 		nil,
-		ec.marshalNID2string,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
 		true,
 		true,
 	)
@@ -5671,10 +6165,10 @@ func (ec *executionContext) fieldContext_PackageImage_package_id(_ context.Conte
 	fc = &graphql.FieldContext{
 		Object:     "PackageImage",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
+			return nil, errors.New("field of type UUID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -5738,6 +6232,64 @@ func (ec *executionContext) fieldContext_PackageImage_alt_text(_ context.Context
 	return fc, nil
 }
 
+func (ec *executionContext) _PackageImage_created_at(ctx context.Context, field graphql.CollectedField, obj *db.PackageImage) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PackageImage_created_at,
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PackageImage_created_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PackageImage",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PackageImage_updated_at(ctx context.Context, field graphql.CollectedField, obj *db.PackageImage) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PackageImage_updated_at,
+		func(ctx context.Context) (any, error) {
+			return obj.UpdatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PackageImage_updated_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PackageImage",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_user(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -5746,7 +6298,7 @@ func (ec *executionContext) _Query_user(ctx context.Context, field graphql.Colle
 		ec.fieldContext_Query_user,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().User(ctx, fc.Args["id"].(string))
+			return ec.resolvers.Query().User(ctx, fc.Args["id"].(uuid.UUID))
 		},
 		nil,
 		ec.marshalOUser2ᚖgraphqlᚋinternalᚋdbᚐUser,
@@ -5848,7 +6400,7 @@ func (ec *executionContext) _Query_category(ctx context.Context, field graphql.C
 		ec.fieldContext_Query_category,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().Category(ctx, fc.Args["id"].(string))
+			return ec.resolvers.Query().Category(ctx, fc.Args["id"].(uuid.UUID))
 		},
 		nil,
 		ec.marshalOCategory2ᚖgraphqlᚋinternalᚋdbᚐCategory,
@@ -5871,6 +6423,10 @@ func (ec *executionContext) fieldContext_Query_category(ctx context.Context, fie
 				return ec.fieldContext_Category_category_name(ctx, field)
 			case "description":
 				return ec.fieldContext_Category_description(ctx, field)
+			case "created_at":
+				return ec.fieldContext_Category_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_Category_updated_at(ctx, field)
 			case "images":
 				return ec.fieldContext_Category_images(ctx, field)
 			}
@@ -5921,6 +6477,10 @@ func (ec *executionContext) fieldContext_Query_categories(_ context.Context, fie
 				return ec.fieldContext_Category_category_name(ctx, field)
 			case "description":
 				return ec.fieldContext_Category_description(ctx, field)
+			case "created_at":
+				return ec.fieldContext_Category_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_Category_updated_at(ctx, field)
 			case "images":
 				return ec.fieldContext_Category_images(ctx, field)
 			}
@@ -5938,7 +6498,7 @@ func (ec *executionContext) _Query_categoryImage(ctx context.Context, field grap
 		ec.fieldContext_Query_categoryImage,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().CategoryImage(ctx, fc.Args["id"].(string))
+			return ec.resolvers.Query().CategoryImage(ctx, fc.Args["id"].(uuid.UUID))
 		},
 		nil,
 		ec.marshalNCategoryImage2ᚖgraphqlᚋinternalᚋdbᚐCategoryImage,
@@ -5963,6 +6523,10 @@ func (ec *executionContext) fieldContext_Query_categoryImage(ctx context.Context
 				return ec.fieldContext_CategoryImage_file_url(ctx, field)
 			case "alt_text":
 				return ec.fieldContext_CategoryImage_alt_text(ctx, field)
+			case "created_at":
+				return ec.fieldContext_CategoryImage_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_CategoryImage_updated_at(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type CategoryImage", field.Name)
 		},
@@ -5989,7 +6553,7 @@ func (ec *executionContext) _Query_city(ctx context.Context, field graphql.Colle
 		ec.fieldContext_Query_city,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().City(ctx, fc.Args["id"].(string))
+			return ec.resolvers.Query().City(ctx, fc.Args["id"].(uuid.UUID))
 		},
 		nil,
 		ec.marshalOCity2ᚖgraphqlᚋinternalᚋdbᚐCity,
@@ -6075,7 +6639,7 @@ func (ec *executionContext) _Query_citiesByState(ctx context.Context, field grap
 		ec.fieldContext_Query_citiesByState,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().CitiesByState(ctx, fc.Args["stateId"].(string))
+			return ec.resolvers.Query().CitiesByState(ctx, fc.Args["stateId"].(uuid.UUID))
 		},
 		nil,
 		ec.marshalNCity2ᚕᚖgraphqlᚋinternalᚋdbᚐCityᚄ,
@@ -6124,7 +6688,7 @@ func (ec *executionContext) _Query_country(ctx context.Context, field graphql.Co
 		ec.fieldContext_Query_country,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().Country(ctx, fc.Args["id"].(string))
+			return ec.resolvers.Query().Country(ctx, fc.Args["id"].(uuid.UUID))
 		},
 		nil,
 		ec.marshalOCountry2ᚖgraphqlᚋinternalᚋdbᚐCountry,
@@ -6206,7 +6770,7 @@ func (ec *executionContext) _Query_booking(ctx context.Context, field graphql.Co
 		ec.fieldContext_Query_booking,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().Booking(ctx, fc.Args["id"].(string))
+			return ec.resolvers.Query().Booking(ctx, fc.Args["id"].(uuid.UUID))
 		},
 		nil,
 		ec.marshalOBooking2ᚖgraphqlᚋinternalᚋdbᚐBooking,
@@ -6239,6 +6803,10 @@ func (ec *executionContext) fieldContext_Query_booking(ctx context.Context, fiel
 				return ec.fieldContext_Booking_travel_start_date(ctx, field)
 			case "travel_end_date":
 				return ec.fieldContext_Booking_travel_end_date(ctx, field)
+			case "created_at":
+				return ec.fieldContext_Booking_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_Booking_updated_at(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Booking", field.Name)
 		},
@@ -6297,6 +6865,10 @@ func (ec *executionContext) fieldContext_Query_bookings(_ context.Context, field
 				return ec.fieldContext_Booking_travel_start_date(ctx, field)
 			case "travel_end_date":
 				return ec.fieldContext_Booking_travel_end_date(ctx, field)
+			case "created_at":
+				return ec.fieldContext_Booking_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_Booking_updated_at(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Booking", field.Name)
 		},
@@ -6312,7 +6884,7 @@ func (ec *executionContext) _Query_package(ctx context.Context, field graphql.Co
 		ec.fieldContext_Query_package,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().Package(ctx, fc.Args["id"].(string))
+			return ec.resolvers.Query().Package(ctx, fc.Args["id"].(uuid.UUID))
 		},
 		nil,
 		ec.marshalOPackage2ᚖgraphqlᚋinternalᚋdbᚐPackage,
@@ -6343,6 +6915,10 @@ func (ec *executionContext) fieldContext_Query_package(ctx context.Context, fiel
 				return ec.fieldContext_Package_occupancy(ctx, field)
 			case "is_featured":
 				return ec.fieldContext_Package_is_featured(ctx, field)
+			case "created_at":
+				return ec.fieldContext_Package_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_Package_updated_at(ctx, field)
 			case "images":
 				return ec.fieldContext_Package_images(ctx, field)
 			}
@@ -6401,6 +6977,10 @@ func (ec *executionContext) fieldContext_Query_packages(_ context.Context, field
 				return ec.fieldContext_Package_occupancy(ctx, field)
 			case "is_featured":
 				return ec.fieldContext_Package_is_featured(ctx, field)
+			case "created_at":
+				return ec.fieldContext_Package_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_Package_updated_at(ctx, field)
 			case "images":
 				return ec.fieldContext_Package_images(ctx, field)
 			}
@@ -6418,7 +6998,7 @@ func (ec *executionContext) _Query_packagesByTour(ctx context.Context, field gra
 		ec.fieldContext_Query_packagesByTour,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().PackagesByTour(ctx, fc.Args["tour_id"].(string))
+			return ec.resolvers.Query().PackagesByTour(ctx, fc.Args["tour_id"].(uuid.UUID))
 		},
 		nil,
 		ec.marshalNPackage2ᚕᚖgraphqlᚋinternalᚋdbᚐPackageᚄ,
@@ -6449,6 +7029,10 @@ func (ec *executionContext) fieldContext_Query_packagesByTour(ctx context.Contex
 				return ec.fieldContext_Package_occupancy(ctx, field)
 			case "is_featured":
 				return ec.fieldContext_Package_is_featured(ctx, field)
+			case "created_at":
+				return ec.fieldContext_Package_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_Package_updated_at(ctx, field)
 			case "images":
 				return ec.fieldContext_Package_images(ctx, field)
 			}
@@ -6477,7 +7061,7 @@ func (ec *executionContext) _Query_packageImage(ctx context.Context, field graph
 		ec.fieldContext_Query_packageImage,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().PackageImage(ctx, fc.Args["id"].(string))
+			return ec.resolvers.Query().PackageImage(ctx, fc.Args["id"].(uuid.UUID))
 		},
 		nil,
 		ec.marshalNPackageImage2ᚖgraphqlᚋinternalᚋdbᚐPackageImage,
@@ -6502,6 +7086,10 @@ func (ec *executionContext) fieldContext_Query_packageImage(ctx context.Context,
 				return ec.fieldContext_PackageImage_file_url(ctx, field)
 			case "alt_text":
 				return ec.fieldContext_PackageImage_alt_text(ctx, field)
+			case "created_at":
+				return ec.fieldContext_PackageImage_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_PackageImage_updated_at(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type PackageImage", field.Name)
 		},
@@ -6528,7 +7116,7 @@ func (ec *executionContext) _Query_state(ctx context.Context, field graphql.Coll
 		ec.fieldContext_Query_state,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().State(ctx, fc.Args["id"].(string))
+			return ec.resolvers.Query().State(ctx, fc.Args["id"].(uuid.UUID))
 		},
 		nil,
 		ec.marshalOState2ᚖgraphqlᚋinternalᚋdbᚐState,
@@ -6614,7 +7202,7 @@ func (ec *executionContext) _Query_statesByCountry(ctx context.Context, field gr
 		ec.fieldContext_Query_statesByCountry,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().StatesByCountry(ctx, fc.Args["countryId"].(string))
+			return ec.resolvers.Query().StatesByCountry(ctx, fc.Args["countryId"].(uuid.UUID))
 		},
 		nil,
 		ec.marshalNState2ᚕᚖgraphqlᚋinternalᚋdbᚐStateᚄ,
@@ -6663,7 +7251,7 @@ func (ec *executionContext) _Query_tour(ctx context.Context, field graphql.Colle
 		ec.fieldContext_Query_tour,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().Tour(ctx, fc.Args["id"].(string))
+			return ec.resolvers.Query().Tour(ctx, fc.Args["id"].(uuid.UUID))
 		},
 		nil,
 		ec.marshalOTour2ᚖgraphqlᚋinternalᚋdbᚐTour,
@@ -6781,7 +7369,7 @@ func (ec *executionContext) _Query_tourImage(ctx context.Context, field graphql.
 		ec.fieldContext_Query_tourImage,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().TourImage(ctx, fc.Args["id"].(string))
+			return ec.resolvers.Query().TourImage(ctx, fc.Args["id"].(uuid.UUID))
 		},
 		nil,
 		ec.marshalNTourImage2ᚖgraphqlᚋinternalᚋdbᚐTourImage,
@@ -6806,6 +7394,10 @@ func (ec *executionContext) fieldContext_Query_tourImage(ctx context.Context, fi
 				return ec.fieldContext_TourImage_file_url(ctx, field)
 			case "alt_text":
 				return ec.fieldContext_TourImage_alt_text(ctx, field)
+			case "created_at":
+				return ec.fieldContext_TourImage_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_TourImage_updated_at(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type TourImage", field.Name)
 		},
@@ -6832,7 +7424,7 @@ func (ec *executionContext) _Query_poi(ctx context.Context, field graphql.Collec
 		ec.fieldContext_Query_poi,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().Poi(ctx, fc.Args["id"].(string))
+			return ec.resolvers.Query().Poi(ctx, fc.Args["id"].(uuid.UUID))
 		},
 		nil,
 		ec.marshalOPOI2ᚖgraphqlᚋinternalᚋdbᚐPointsOfInterest,
@@ -6859,6 +7451,10 @@ func (ec *executionContext) fieldContext_Query_poi(ctx context.Context, field gr
 				return ec.fieldContext_POI_city_id(ctx, field)
 			case "type":
 				return ec.fieldContext_POI_type(ctx, field)
+			case "created_at":
+				return ec.fieldContext_POI_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_POI_updated_at(ctx, field)
 			case "images":
 				return ec.fieldContext_POI_images(ctx, field)
 			}
@@ -6913,6 +7509,10 @@ func (ec *executionContext) fieldContext_Query_pois(_ context.Context, field gra
 				return ec.fieldContext_POI_city_id(ctx, field)
 			case "type":
 				return ec.fieldContext_POI_type(ctx, field)
+			case "created_at":
+				return ec.fieldContext_POI_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_POI_updated_at(ctx, field)
 			case "images":
 				return ec.fieldContext_POI_images(ctx, field)
 			}
@@ -6930,7 +7530,7 @@ func (ec *executionContext) _Query_poisByCity(ctx context.Context, field graphql
 		ec.fieldContext_Query_poisByCity,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().PoisByCity(ctx, fc.Args["city_id"].(string))
+			return ec.resolvers.Query().PoisByCity(ctx, fc.Args["city_id"].(uuid.UUID))
 		},
 		nil,
 		ec.marshalNPOI2ᚕᚖgraphqlᚋinternalᚋdbᚐPointsOfInterestᚄ,
@@ -6957,6 +7557,10 @@ func (ec *executionContext) fieldContext_Query_poisByCity(ctx context.Context, f
 				return ec.fieldContext_POI_city_id(ctx, field)
 			case "type":
 				return ec.fieldContext_POI_type(ctx, field)
+			case "created_at":
+				return ec.fieldContext_POI_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_POI_updated_at(ctx, field)
 			case "images":
 				return ec.fieldContext_POI_images(ctx, field)
 			}
@@ -6985,7 +7589,7 @@ func (ec *executionContext) _Query_poiImage(ctx context.Context, field graphql.C
 		ec.fieldContext_Query_poiImage,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().PoiImage(ctx, fc.Args["id"].(string))
+			return ec.resolvers.Query().PoiImage(ctx, fc.Args["id"].(uuid.UUID))
 		},
 		nil,
 		ec.marshalNPOIImage2ᚖgraphqlᚋinternalᚋdbᚐPointOfInterestImage,
@@ -7010,6 +7614,10 @@ func (ec *executionContext) fieldContext_Query_poiImage(ctx context.Context, fie
 				return ec.fieldContext_POIImage_file_url(ctx, field)
 			case "alt_text":
 				return ec.fieldContext_POIImage_alt_text(ctx, field)
+			case "created_at":
+				return ec.fieldContext_POIImage_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_POIImage_updated_at(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type POIImage", field.Name)
 		},
@@ -7143,10 +7751,10 @@ func (ec *executionContext) _State_id(ctx context.Context, field graphql.Collect
 		field,
 		ec.fieldContext_State_id,
 		func(ctx context.Context) (any, error) {
-			return ec.resolvers.State().ID(ctx, obj)
+			return obj.ID, nil
 		},
 		nil,
-		ec.marshalNID2string,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
 		true,
 		true,
 	)
@@ -7156,10 +7764,10 @@ func (ec *executionContext) fieldContext_State_id(_ context.Context, field graph
 	fc = &graphql.FieldContext{
 		Object:     "State",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
+			return nil, errors.New("field of type UUID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -7172,10 +7780,10 @@ func (ec *executionContext) _State_countryId(ctx context.Context, field graphql.
 		field,
 		ec.fieldContext_State_countryId,
 		func(ctx context.Context) (any, error) {
-			return ec.resolvers.State().CountryID(ctx, obj)
+			return obj.CountryID, nil
 		},
 		nil,
-		ec.marshalNID2string,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
 		true,
 		true,
 	)
@@ -7185,10 +7793,10 @@ func (ec *executionContext) fieldContext_State_countryId(_ context.Context, fiel
 	fc = &graphql.FieldContext{
 		Object:     "State",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
+			return nil, errors.New("field of type UUID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -7230,10 +7838,10 @@ func (ec *executionContext) _Tour_id(ctx context.Context, field graphql.Collecte
 		field,
 		ec.fieldContext_Tour_id,
 		func(ctx context.Context) (any, error) {
-			return ec.resolvers.Tour().ID(ctx, obj)
+			return obj.ID, nil
 		},
 		nil,
-		ec.marshalNID2string,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
 		true,
 		true,
 	)
@@ -7243,10 +7851,10 @@ func (ec *executionContext) fieldContext_Tour_id(_ context.Context, field graphq
 	fc = &graphql.FieldContext{
 		Object:     "Tour",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
+			return nil, errors.New("field of type UUID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -7317,10 +7925,10 @@ func (ec *executionContext) _Tour_category_id(ctx context.Context, field graphql
 		field,
 		ec.fieldContext_Tour_category_id,
 		func(ctx context.Context) (any, error) {
-			return ec.resolvers.Tour().CategoryID(ctx, obj)
+			return obj.CategoryID, nil
 		},
 		nil,
-		ec.marshalNID2string,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
 		true,
 		true,
 	)
@@ -7330,10 +7938,10 @@ func (ec *executionContext) fieldContext_Tour_category_id(_ context.Context, fie
 	fc = &graphql.FieldContext{
 		Object:     "Tour",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
+			return nil, errors.New("field of type UUID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -7346,10 +7954,10 @@ func (ec *executionContext) _Tour_city_id(ctx context.Context, field graphql.Col
 		field,
 		ec.fieldContext_Tour_city_id,
 		func(ctx context.Context) (any, error) {
-			return ec.resolvers.Tour().CityID(ctx, obj)
+			return obj.CityID, nil
 		},
 		nil,
-		ec.marshalNID2string,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
 		true,
 		true,
 	)
@@ -7359,10 +7967,10 @@ func (ec *executionContext) fieldContext_Tour_city_id(_ context.Context, field g
 	fc = &graphql.FieldContext{
 		Object:     "Tour",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
+			return nil, errors.New("field of type UUID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -7404,10 +8012,10 @@ func (ec *executionContext) _Tour_created_by(ctx context.Context, field graphql.
 		field,
 		ec.fieldContext_Tour_created_by,
 		func(ctx context.Context) (any, error) {
-			return ec.resolvers.Tour().CreatedBy(ctx, obj)
+			return obj.CreatedBy, nil
 		},
 		nil,
-		ec.marshalNID2string,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
 		true,
 		true,
 	)
@@ -7417,10 +8025,10 @@ func (ec *executionContext) fieldContext_Tour_created_by(_ context.Context, fiel
 	fc = &graphql.FieldContext{
 		Object:     "Tour",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
+			return nil, errors.New("field of type UUID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -7545,6 +8153,10 @@ func (ec *executionContext) fieldContext_Tour_images(_ context.Context, field gr
 				return ec.fieldContext_TourImage_file_url(ctx, field)
 			case "alt_text":
 				return ec.fieldContext_TourImage_alt_text(ctx, field)
+			case "created_at":
+				return ec.fieldContext_TourImage_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_TourImage_updated_at(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type TourImage", field.Name)
 		},
@@ -7559,10 +8171,10 @@ func (ec *executionContext) _TourImage_id(ctx context.Context, field graphql.Col
 		field,
 		ec.fieldContext_TourImage_id,
 		func(ctx context.Context) (any, error) {
-			return ec.resolvers.TourImage().ID(ctx, obj)
+			return obj.ID, nil
 		},
 		nil,
-		ec.marshalNID2string,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
 		true,
 		true,
 	)
@@ -7572,10 +8184,10 @@ func (ec *executionContext) fieldContext_TourImage_id(_ context.Context, field g
 	fc = &graphql.FieldContext{
 		Object:     "TourImage",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
+			return nil, errors.New("field of type UUID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -7588,10 +8200,10 @@ func (ec *executionContext) _TourImage_tour_id(ctx context.Context, field graphq
 		field,
 		ec.fieldContext_TourImage_tour_id,
 		func(ctx context.Context) (any, error) {
-			return ec.resolvers.TourImage().TourID(ctx, obj)
+			return obj.TourID, nil
 		},
 		nil,
-		ec.marshalNID2string,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
 		true,
 		true,
 	)
@@ -7601,10 +8213,10 @@ func (ec *executionContext) fieldContext_TourImage_tour_id(_ context.Context, fi
 	fc = &graphql.FieldContext{
 		Object:     "TourImage",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
+			return nil, errors.New("field of type UUID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -7668,6 +8280,64 @@ func (ec *executionContext) fieldContext_TourImage_alt_text(_ context.Context, f
 	return fc, nil
 }
 
+func (ec *executionContext) _TourImage_created_at(ctx context.Context, field graphql.CollectedField, obj *db.TourImage) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_TourImage_created_at,
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_TourImage_created_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TourImage",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TourImage_updated_at(ctx context.Context, field graphql.CollectedField, obj *db.TourImage) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_TourImage_updated_at,
+		func(ctx context.Context) (any, error) {
+			return obj.UpdatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_TourImage_updated_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TourImage",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _User_id(ctx context.Context, field graphql.CollectedField, obj *db.User) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -7675,10 +8345,10 @@ func (ec *executionContext) _User_id(ctx context.Context, field graphql.Collecte
 		field,
 		ec.fieldContext_User_id,
 		func(ctx context.Context) (any, error) {
-			return ec.resolvers.User().ID(ctx, obj)
+			return obj.ID, nil
 		},
 		nil,
-		ec.marshalNID2string,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
 		true,
 		true,
 	)
@@ -7688,10 +8358,10 @@ func (ec *executionContext) fieldContext_User_id(_ context.Context, field graphq
 	fc = &graphql.FieldContext{
 		Object:     "User",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
+			return nil, errors.New("field of type UUID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -7794,7 +8464,7 @@ func (ec *executionContext) _User_role_id(ctx context.Context, field graphql.Col
 			return ec.resolvers.User().RoleID(ctx, obj)
 		},
 		nil,
-		ec.marshalOID2ᚖstring,
+		ec.marshalOUUID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID,
 		true,
 		false,
 	)
@@ -7807,7 +8477,7 @@ func (ec *executionContext) fieldContext_User_role_id(_ context.Context, field g
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
+			return nil, errors.New("field of type UUID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -9528,113 +10198,20 @@ func (ec *executionContext) _Booking(ctx context.Context, sel ast.SelectionSet, 
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Booking")
 		case "id":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Booking_id(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._Booking_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
 			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "user_id":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Booking_user_id(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._Booking_user_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
 			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "package_id":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Booking_package_id(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._Booking_package_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
 			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "total_price":
 			out.Values[i] = ec._Booking_total_price(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -9722,6 +10299,16 @@ func (ec *executionContext) _Booking(ctx context.Context, sel ast.SelectionSet, 
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "created_at":
+			out.Values[i] = ec._Booking_created_at(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "updated_at":
+			out.Values[i] = ec._Booking_updated_at(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -9757,41 +10344,10 @@ func (ec *executionContext) _Category(ctx context.Context, sel ast.SelectionSet,
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Category")
 		case "id":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Category_id(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._Category_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
 			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "category_name":
 			out.Values[i] = ec._Category_category_name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -9830,6 +10386,16 @@ func (ec *executionContext) _Category(ctx context.Context, sel ast.SelectionSet,
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "created_at":
+			out.Values[i] = ec._Category_created_at(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "updated_at":
+			out.Values[i] = ec._Category_updated_at(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
 		case "images":
 			field := field
 
@@ -9901,77 +10467,15 @@ func (ec *executionContext) _CategoryImage(ctx context.Context, sel ast.Selectio
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("CategoryImage")
 		case "id":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._CategoryImage_id(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._CategoryImage_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
 			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "category_id":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._CategoryImage_category_id(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._CategoryImage_category_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
 			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "file_url":
 			out.Values[i] = ec._CategoryImage_file_url(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -10010,6 +10514,16 @@ func (ec *executionContext) _CategoryImage(ctx context.Context, sel ast.Selectio
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "created_at":
+			out.Values[i] = ec._CategoryImage_created_at(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "updated_at":
+			out.Values[i] = ec._CategoryImage_updated_at(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -10045,81 +10559,19 @@ func (ec *executionContext) _City(ctx context.Context, sel ast.SelectionSet, obj
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("City")
 		case "id":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._City_id(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._City_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
 			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "stateId":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._City_stateId(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._City_stateId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
 			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "name":
 			out.Values[i] = ec._City_name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&out.Invalids, 1)
+				out.Invalids++
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -10156,45 +10608,14 @@ func (ec *executionContext) _Country(ctx context.Context, sel ast.SelectionSet, 
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Country")
 		case "id":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Country_id(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._Country_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
 			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "name":
 			out.Values[i] = ec._Country_name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&out.Invalids, 1)
+				out.Invalids++
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -10564,41 +10985,10 @@ func (ec *executionContext) _POI(ctx context.Context, sel ast.SelectionSet, obj 
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("POI")
 		case "id":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._POI_id(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._POI_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
 			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "name":
 			out.Values[i] = ec._POI_name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -10638,43 +11028,22 @@ func (ec *executionContext) _POI(ctx context.Context, sel ast.SelectionSet, obj 
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "city_id":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._POI_city_id(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._POI_city_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
 			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "type":
 			out.Values[i] = ec._POI_type(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "created_at":
+			out.Values[i] = ec._POI_created_at(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "updated_at":
+			out.Values[i] = ec._POI_updated_at(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&out.Invalids, 1)
 			}
@@ -10749,77 +11118,15 @@ func (ec *executionContext) _POIImage(ctx context.Context, sel ast.SelectionSet,
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("POIImage")
 		case "id":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._POIImage_id(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._POIImage_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
 			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "poi_id":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._POIImage_poi_id(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._POIImage_poi_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
 			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "file_url":
 			out.Values[i] = ec._POIImage_file_url(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -10858,6 +11165,16 @@ func (ec *executionContext) _POIImage(ctx context.Context, sel ast.SelectionSet,
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "created_at":
+			out.Values[i] = ec._POIImage_created_at(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "updated_at":
+			out.Values[i] = ec._POIImage_updated_at(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -10893,77 +11210,15 @@ func (ec *executionContext) _Package(ctx context.Context, sel ast.SelectionSet, 
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Package")
 		case "id":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Package_id(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._Package_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
 			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "tour_id":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Package_tour_id(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._Package_tour_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
 			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "package_name":
 			out.Values[i] = ec._Package_package_name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -10975,10 +11230,41 @@ func (ec *executionContext) _Package(ctx context.Context, sel ast.SelectionSet, 
 				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "currency":
-			out.Values[i] = ec._Package_currency(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&out.Invalids, 1)
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Package_currency(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
 			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "occupancy":
 			field := field
 
@@ -11014,6 +11300,16 @@ func (ec *executionContext) _Package(ctx context.Context, sel ast.SelectionSet, 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "is_featured":
 			out.Values[i] = ec._Package_is_featured(ctx, field, obj)
+		case "created_at":
+			out.Values[i] = ec._Package_created_at(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "updated_at":
+			out.Values[i] = ec._Package_updated_at(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
 		case "images":
 			field := field
 
@@ -11085,77 +11381,15 @@ func (ec *executionContext) _PackageImage(ctx context.Context, sel ast.Selection
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("PackageImage")
 		case "id":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._PackageImage_id(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._PackageImage_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
 			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "package_id":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._PackageImage_package_id(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._PackageImage_package_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
 			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "file_url":
 			out.Values[i] = ec._PackageImage_file_url(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -11194,6 +11428,16 @@ func (ec *executionContext) _PackageImage(ctx context.Context, sel ast.Selection
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "created_at":
+			out.Values[i] = ec._PackageImage_created_at(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "updated_at":
+			out.Values[i] = ec._PackageImage_updated_at(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -11824,81 +12068,19 @@ func (ec *executionContext) _State(ctx context.Context, sel ast.SelectionSet, ob
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("State")
 		case "id":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._State_id(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._State_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
 			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "countryId":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._State_countryId(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._State_countryId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
 			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "name":
 			out.Values[i] = ec._State_name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&out.Invalids, 1)
+				out.Invalids++
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -11935,41 +12117,10 @@ func (ec *executionContext) _Tour(ctx context.Context, sel ast.SelectionSet, obj
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Tour")
 		case "id":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Tour_id(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._Tour_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
 			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "title":
 			out.Values[i] = ec._Tour_title(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -12009,118 +12160,25 @@ func (ec *executionContext) _Tour(ctx context.Context, sel ast.SelectionSet, obj
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "category_id":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Tour_category_id(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._Tour_category_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
 			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "city_id":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Tour_city_id(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._Tour_city_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
 			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "duration_days":
 			out.Values[i] = ec._Tour_duration_days(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "created_by":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Tour_created_by(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._Tour_created_by(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
 			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "status":
 			out.Values[i] = ec._Tour_status(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -12207,77 +12265,15 @@ func (ec *executionContext) _TourImage(ctx context.Context, sel ast.SelectionSet
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("TourImage")
 		case "id":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._TourImage_id(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._TourImage_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
 			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "tour_id":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._TourImage_tour_id(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._TourImage_tour_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
 			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "file_url":
 			out.Values[i] = ec._TourImage_file_url(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -12316,6 +12312,16 @@ func (ec *executionContext) _TourImage(ctx context.Context, sel ast.SelectionSet
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "created_at":
+			out.Values[i] = ec._TourImage_created_at(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "updated_at":
+			out.Values[i] = ec._TourImage_updated_at(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -12351,41 +12357,10 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("User")
 		case "id":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._User_id(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._User_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
 			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "full_name":
 			out.Values[i] = ec._User_full_name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -13141,22 +13116,6 @@ func (ec *executionContext) marshalNCountry2ᚖgraphqlᚋinternalᚋdbᚐCountry
 	return ec._Country(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNID2string(ctx context.Context, v any) (string, error) {
-	res, err := graphql.UnmarshalID(v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
-	_ = sel
-	res := graphql.MarshalID(v)
-	if res == graphql.Null {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
-		}
-	}
-	return res
-}
-
 func (ec *executionContext) unmarshalNInquiryInput2graphqlᚋgraphqlᚋmodelsᚐInquiryInput(ctx context.Context, v any) (models.InquiryInput, error) {
 	res, err := ec.unmarshalInputInquiryInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -13675,6 +13634,22 @@ func (ec *executionContext) unmarshalNTourImageInput2ᚖgraphqlᚋgraphqlᚋmode
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx context.Context, v any) (uuid.UUID, error) {
+	res, err := graphql.UnmarshalUUID(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx context.Context, sel ast.SelectionSet, v uuid.UUID) graphql.Marshaler {
+	_ = sel
+	res := graphql.MarshalUUID(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
 func (ec *executionContext) marshalNUser2graphqlᚋinternalᚋdbᚐUser(ctx context.Context, sel ast.SelectionSet, v db.User) graphql.Marshaler {
 	return ec._User(ctx, sel, &v)
 }
@@ -14062,24 +14037,6 @@ func (ec *executionContext) marshalOCountry2ᚖgraphqlᚋinternalᚋdbᚐCountry
 	return ec._Country(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalOID2ᚖstring(ctx context.Context, v any) (*string, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := graphql.UnmarshalID(v)
-	return &res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalOID2ᚖstring(ctx context.Context, sel ast.SelectionSet, v *string) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	_ = sel
-	_ = ctx
-	res := graphql.MarshalID(*v)
-	return res
-}
-
 func (ec *executionContext) unmarshalOInt2ᚖint(ctx context.Context, v any) (*int, error) {
 	if v == nil {
 		return nil, nil
@@ -14196,6 +14153,24 @@ func (ec *executionContext) unmarshalOTourImageInput2ᚕᚖgraphqlᚋgraphqlᚋm
 		}
 	}
 	return res, nil
+}
+
+func (ec *executionContext) unmarshalOUUID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID(ctx context.Context, v any) (*uuid.UUID, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalUUID(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOUUID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID(ctx context.Context, sel ast.SelectionSet, v *uuid.UUID) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	_ = sel
+	_ = ctx
+	res := graphql.MarshalUUID(*v)
+	return res
 }
 
 func (ec *executionContext) marshalOUser2ᚖgraphqlᚋinternalᚋdbᚐUser(ctx context.Context, sel ast.SelectionSet, v *db.User) graphql.Marshaler {

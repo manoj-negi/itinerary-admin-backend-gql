@@ -1,19 +1,23 @@
 type Package {
-  id: ID!
-  tour_id: ID!
+  id: UUID!
+  tour_id: UUID!
   package_name: String!
   price: String!
   currency: String!
   occupancy: String
   is_featured: Boolean
+  created_at: Time!
+  updated_at: Time!
   images: [PackageImage!]!
 }
 
 type PackageImage {
-  id: ID!
-  package_id: ID!
+  id: UUID!
+  package_id: UUID!
   file_url: String!
   alt_text: String
+  created_at: Time!
+  updated_at: Time!
 }
 
 input PackageImageInput {
@@ -22,15 +26,15 @@ input PackageImageInput {
 }
 
 extend type Query {
-  package(id: ID!): Package
+  package(id: UUID!): Package
   packages: [Package!]!
-  packagesByTour(tour_id: ID!): [Package!]!
-  packageImage(id: ID!): PackageImage!
+  packagesByTour(tour_id: UUID!): [Package!]!
+  packageImage(id: UUID!): PackageImage!
 }
 
 extend type Mutation {
   createPackage(
-    tour_id: ID!
+    tour_id: UUID!
     package_name: String!
     price: String!
     currency: String!
@@ -40,8 +44,8 @@ extend type Mutation {
   ): Package!
 
   updatePackage(
-    id: ID!
-    tour_id: ID
+    id: UUID!
+    tour_id: UUID
     package_name: String
     price: String
     currency: String
@@ -50,5 +54,5 @@ extend type Mutation {
     images: [PackageImageInput!]
   ): Package!
 
-  deletePackage(id: ID!): Package!
+  deletePackage(id: UUID!): Package!
 }

@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/google/uuid"
 )
 
 const createTour = `-- name: CreateTour :one
@@ -19,10 +21,10 @@ RETURNING id, title, description, category_id, city_id, duration_days, created_b
 type CreateTourParams struct {
 	Title        string         `json:"title"`
 	Description  sql.NullString `json:"description"`
-	CategoryID   int32          `json:"category_id"`
-	CityID       int32          `json:"city_id"`
+	CategoryID   uuid.UUID      `json:"category_id"`
+	CityID       uuid.UUID      `json:"city_id"`
 	DurationDays int32          `json:"duration_days"`
-	CreatedBy    int32          `json:"created_by"`
+	CreatedBy    uuid.UUID      `json:"created_by"`
 	Status       string         `json:"status"`
 }
 
@@ -58,7 +60,7 @@ WHERE id = $1
 RETURNING id, title, description, category_id, city_id, duration_days, created_by, status, created_at, updated_at
 `
 
-func (q *Queries) DeleteTour(ctx context.Context, id int32) (Tour, error) {
+func (q *Queries) DeleteTour(ctx context.Context, id uuid.UUID) (Tour, error) {
 	row := q.db.QueryRowContext(ctx, deleteTour, id)
 	var i Tour
 	err := row.Scan(
@@ -82,7 +84,7 @@ FROM tours
 WHERE id = $1
 `
 
-func (q *Queries) GetTour(ctx context.Context, id int32) (Tour, error) {
+func (q *Queries) GetTour(ctx context.Context, id uuid.UUID) (Tour, error) {
 	row := q.db.QueryRowContext(ctx, getTour, id)
 	var i Tour
 	err := row.Scan(
@@ -158,12 +160,12 @@ RETURNING id, title, description, category_id, city_id, duration_days, created_b
 type UpdateTourParams struct {
 	Title        string         `json:"title"`
 	Description  sql.NullString `json:"description"`
-	CategoryID   int32          `json:"category_id"`
-	CityID       int32          `json:"city_id"`
+	CategoryID   uuid.UUID      `json:"category_id"`
+	CityID       uuid.UUID      `json:"city_id"`
 	DurationDays int32          `json:"duration_days"`
-	CreatedBy    int32          `json:"created_by"`
+	CreatedBy    uuid.UUID      `json:"created_by"`
 	Status       string         `json:"status"`
-	ID           int32          `json:"id"`
+	ID           uuid.UUID      `json:"id"`
 }
 
 func (q *Queries) UpdateTour(ctx context.Context, arg UpdateTourParams) (Tour, error) {

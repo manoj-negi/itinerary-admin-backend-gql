@@ -8,16 +8,18 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/google/uuid"
 )
 
 const createPackageImage = `-- name: CreatePackageImage :one
 INSERT INTO package_images (package_id, file_url, alt_text)
 VALUES ($1, $2, $3)
-RETURNING id, package_id, file_url, alt_text
+RETURNING id, package_id, file_url, alt_text, created_at, updated_at
 `
 
 type CreatePackageImageParams struct {
-	PackageID int32          `json:"package_id"`
+	PackageID uuid.UUID      `json:"package_id"`
 	FileUrl   string         `json:"file_url"`
 	AltText   sql.NullString `json:"alt_text"`
 }
@@ -30,6 +32,8 @@ func (q *Queries) CreatePackageImage(ctx context.Context, arg CreatePackageImage
 		&i.PackageID,
 		&i.FileUrl,
 		&i.AltText,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
@@ -38,16 +42,16 @@ const deletePackageImagesByPackage = `-- name: DeletePackageImagesByPackage :exe
 DELETE FROM package_images WHERE package_id = $1
 `
 
-func (q *Queries) DeletePackageImagesByPackage(ctx context.Context, packageID int32) error {
+func (q *Queries) DeletePackageImagesByPackage(ctx context.Context, packageID uuid.UUID) error {
 	_, err := q.db.ExecContext(ctx, deletePackageImagesByPackage, packageID)
 	return err
 }
 
 const getPackageImageByID = `-- name: GetPackageImageByID :one
-SELECT id, package_id, file_url, alt_text FROM package_images WHERE id = $1
+SELECT id, package_id, file_url, alt_text, created_at, updated_at FROM package_images WHERE id = $1
 `
 
-func (q *Queries) GetPackageImageByID(ctx context.Context, id int32) (PackageImage, error) {
+func (q *Queries) GetPackageImageByID(ctx context.Context, id uuid.UUID) (PackageImage, error) {
 	row := q.db.QueryRowContext(ctx, getPackageImageByID, id)
 	var i PackageImage
 	err := row.Scan(
@@ -55,17 +59,19 @@ func (q *Queries) GetPackageImageByID(ctx context.Context, id int32) (PackageIma
 		&i.PackageID,
 		&i.FileUrl,
 		&i.AltText,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const listPackageImagesByPackage = `-- name: ListPackageImagesByPackage :many
-SELECT id, package_id, file_url, alt_text FROM package_images 
+SELECT id, package_id, file_url, alt_text, created_at, updated_at FROM package_images 
 WHERE package_id = $1 
 ORDER BY id ASC
 `
 
-func (q *Queries) ListPackageImagesByPackage(ctx context.Context, packageID int32) ([]PackageImage, error) {
+func (q *Queries) ListPackageImagesByPackage(ctx context.Context, packageID uuid.UUID) ([]PackageImage, error) {
 	rows, err := q.db.QueryContext(ctx, listPackageImagesByPackage, packageID)
 	if err != nil {
 		return nil, err
@@ -79,6 +85,8 @@ func (q *Queries) ListPackageImagesByPackage(ctx context.Context, packageID int3
 			&i.PackageID,
 			&i.FileUrl,
 			&i.AltText,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -97,11 +105,11 @@ const updatePackageImage = `-- name: UpdatePackageImage :one
 UPDATE package_images 
 SET file_url = $2, alt_text = $3 
 WHERE id = $1 
-RETURNING id, package_id, file_url, alt_text
+RETURNING id, package_id, file_url, alt_text, created_at, updated_at
 `
 
 type UpdatePackageImageParams struct {
-	ID      int32          `json:"id"`
+	ID      uuid.UUID      `json:"id"`
 	FileUrl string         `json:"file_url"`
 	AltText sql.NullString `json:"alt_text"`
 }
@@ -114,6 +122,8 @@ func (q *Queries) UpdatePackageImage(ctx context.Context, arg UpdatePackageImage
 		&i.PackageID,
 		&i.FileUrl,
 		&i.AltText,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }

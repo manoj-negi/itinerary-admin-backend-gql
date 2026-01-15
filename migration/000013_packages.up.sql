@@ -1,0 +1,12 @@
+CREATE TABLE packages (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
+  tour_id UUID NOT NULL,
+  package_name VARCHAR(200) NOT NULL UNIQUE,
+  price NUMERIC(10,2) NOT NULL,
+  currency VARCHAR(10),
+  occupancy VARCHAR(50),
+  is_featured BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  FOREIGN KEY (tour_id) REFERENCES tours(id) ON DELETE CASCADE
+);

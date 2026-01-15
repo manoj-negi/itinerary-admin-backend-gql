@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 const createCity = `-- name: CreateCity :one
@@ -17,8 +19,8 @@ RETURNING id, state_id, name
 `
 
 type CreateCityParams struct {
-	StateID int32  `json:"state_id"`
-	Name    string `json:"name"`
+	StateID uuid.UUID `json:"state_id"`
+	Name    string    `json:"name"`
 }
 
 // ---------------------- CRUD QUERIES ----------------------
@@ -35,7 +37,7 @@ WHERE id = $1
 RETURNING id, state_id, name
 `
 
-func (q *Queries) DeleteCity(ctx context.Context, id int32) (City, error) {
+func (q *Queries) DeleteCity(ctx context.Context, id uuid.UUID) (City, error) {
 	row := q.db.QueryRowContext(ctx, deleteCity, id)
 	var i City
 	err := row.Scan(&i.ID, &i.StateID, &i.Name)
@@ -48,7 +50,7 @@ FROM cities
 WHERE id = $1
 `
 
-func (q *Queries) GetCity(ctx context.Context, id int32) (City, error) {
+func (q *Queries) GetCity(ctx context.Context, id uuid.UUID) (City, error) {
 	row := q.db.QueryRowContext(ctx, getCity, id)
 	var i City
 	err := row.Scan(&i.ID, &i.StateID, &i.Name)
@@ -91,7 +93,7 @@ WHERE state_id = $1
 ORDER BY id
 `
 
-func (q *Queries) ListCitiesByState(ctx context.Context, stateID int32) ([]City, error) {
+func (q *Queries) ListCitiesByState(ctx context.Context, stateID uuid.UUID) ([]City, error) {
 	rows, err := q.db.QueryContext(ctx, listCitiesByState, stateID)
 	if err != nil {
 		return nil, err
@@ -124,9 +126,9 @@ RETURNING id, state_id, name
 `
 
 type UpdateCityParams struct {
-	StateID int32  `json:"state_id"`
-	Name    string `json:"name"`
-	ID      int32  `json:"id"`
+	StateID uuid.UUID `json:"state_id"`
+	Name    string    `json:"name"`
+	ID      uuid.UUID `json:"id"`
 }
 
 func (q *Queries) UpdateCity(ctx context.Context, arg UpdateCityParams) (City, error) {

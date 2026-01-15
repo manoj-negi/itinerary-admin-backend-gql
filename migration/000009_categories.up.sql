@@ -1,5 +1,7 @@
 CREATE TABLE categories (
-  id SERIAL PRIMARY KEY,
-  category_name VARCHAR(150) NOT NULL UNIQUE,
-  description TEXT
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
+  category_name VARCHAR(200) NOT NULL UNIQUE,
+  description TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

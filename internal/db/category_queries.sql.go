@@ -8,12 +8,14 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/google/uuid"
 )
 
 const createCategory = `-- name: CreateCategory :one
 INSERT INTO categories (category_name, description)
 VALUES ($1, $2)
-RETURNING id, category_name, description
+RETURNING id, category_name, description, created_at, updated_at
 `
 
 type CreateCategoryParams struct {
@@ -24,38 +26,56 @@ type CreateCategoryParams struct {
 func (q *Queries) CreateCategory(ctx context.Context, arg CreateCategoryParams) (Category, error) {
 	row := q.db.QueryRowContext(ctx, createCategory, arg.CategoryName, arg.Description)
 	var i Category
-	err := row.Scan(&i.ID, &i.CategoryName, &i.Description)
+	err := row.Scan(
+		&i.ID,
+		&i.CategoryName,
+		&i.Description,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
 	return i, err
 }
 
 const deleteCategory = `-- name: DeleteCategory :one
 DELETE FROM categories
 WHERE id = $1
-RETURNING id, category_name, description
+RETURNING id, category_name, description, created_at, updated_at
 `
 
-func (q *Queries) DeleteCategory(ctx context.Context, id int32) (Category, error) {
+func (q *Queries) DeleteCategory(ctx context.Context, id uuid.UUID) (Category, error) {
 	row := q.db.QueryRowContext(ctx, deleteCategory, id)
 	var i Category
-	err := row.Scan(&i.ID, &i.CategoryName, &i.Description)
+	err := row.Scan(
+		&i.ID,
+		&i.CategoryName,
+		&i.Description,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
 	return i, err
 }
 
 const getCategory = `-- name: GetCategory :one
-SELECT id, category_name, description
+SELECT id, category_name, description, created_at, updated_at
 FROM categories
 WHERE id = $1
 `
 
-func (q *Queries) GetCategory(ctx context.Context, id int32) (Category, error) {
+func (q *Queries) GetCategory(ctx context.Context, id uuid.UUID) (Category, error) {
 	row := q.db.QueryRowContext(ctx, getCategory, id)
 	var i Category
-	err := row.Scan(&i.ID, &i.CategoryName, &i.Description)
+	err := row.Scan(
+		&i.ID,
+		&i.CategoryName,
+		&i.Description,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
 	return i, err
 }
 
 const getCategoryByName = `-- name: GetCategoryByName :one
-SELECT id, category_name, description
+SELECT id, category_name, description, created_at, updated_at
 FROM categories
 WHERE category_name = $1
 `
@@ -63,12 +83,18 @@ WHERE category_name = $1
 func (q *Queries) GetCategoryByName(ctx context.Context, categoryName string) (Category, error) {
 	row := q.db.QueryRowContext(ctx, getCategoryByName, categoryName)
 	var i Category
-	err := row.Scan(&i.ID, &i.CategoryName, &i.Description)
+	err := row.Scan(
+		&i.ID,
+		&i.CategoryName,
+		&i.Description,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
 	return i, err
 }
 
 const listCategories = `-- name: ListCategories :many
-SELECT id, category_name, description
+SELECT id, category_name, description, created_at, updated_at
 FROM categories
 ORDER BY id
 `
@@ -82,7 +108,13 @@ func (q *Queries) ListCategories(ctx context.Context) ([]Category, error) {
 	items := []Category{}
 	for rows.Next() {
 		var i Category
-		if err := rows.Scan(&i.ID, &i.CategoryName, &i.Description); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.CategoryName,
+			&i.Description,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -102,11 +134,11 @@ SET
   category_name = COALESCE($2, category_name),
   description = COALESCE($3, description)
 WHERE id = $1
-RETURNING id, category_name, description
+RETURNING id, category_name, description, created_at, updated_at
 `
 
 type UpdateCategoryParams struct {
-	ID           int32          `json:"id"`
+	ID           uuid.UUID      `json:"id"`
 	CategoryName string         `json:"category_name"`
 	Description  sql.NullString `json:"description"`
 }
@@ -114,6 +146,12 @@ type UpdateCategoryParams struct {
 func (q *Queries) UpdateCategory(ctx context.Context, arg UpdateCategoryParams) (Category, error) {
 	row := q.db.QueryRowContext(ctx, updateCategory, arg.ID, arg.CategoryName, arg.Description)
 	var i Category
-	err := row.Scan(&i.ID, &i.CategoryName, &i.Description)
+	err := row.Scan(
+		&i.ID,
+		&i.CategoryName,
+		&i.Description,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
 	return i, err
 }

@@ -1,11 +1,11 @@
 type Tour {
-  id: ID!
+  id: UUID!
   title: String!
   description: String
-  category_id: ID!
-  city_id: ID!
+  category_id: UUID!
+  city_id: UUID!
   duration_days: Int!
-  created_by: ID!
+  created_by: UUID!
   status: String!
   created_at: Time!
   updated_at: Time!
@@ -13,10 +13,12 @@ type Tour {
 }
 
 type TourImage {
-  id: ID!
-  tour_id: ID!
+  id: UUID!
+  tour_id: UUID!
   file_url: String!
   alt_text: String
+  created_at: Time!
+  updated_at: Time!
 }
 
 input TourImageInput {
@@ -25,34 +27,34 @@ input TourImageInput {
 }
 
 extend type Query {
-  tour(id: ID!): Tour
+  tour(id: UUID!): Tour
   tours: [Tour!]!
-  tourImage(id: ID!): TourImage!
+  tourImage(id: UUID!): TourImage!
 }
 
 extend type Mutation {
   createTour(
     title: String!
     description: String
-    category_id: ID!
-    city_id: ID!
+    category_id: UUID!
+    city_id: UUID!
     duration_days: Int!
-    created_by: ID!
+    created_by: UUID!
     status: String!
     images: [TourImageInput!]
   ): Tour!
 
   updateTour(
-    id: ID!
+    id: UUID!
     title: String
     description: String
-    category_id: ID
-    city_id: ID
+    category_id: UUID
+    city_id: UUID
     duration_days: Int
-    created_by: ID
+    created_by: UUID
     status: String
     images: [TourImageInput!]
   ): Tour!
 
-  deleteTour(id: ID!): Tour!
+  deleteTour(id: UUID!): Tour!
 }

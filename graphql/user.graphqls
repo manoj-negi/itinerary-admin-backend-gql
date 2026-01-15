@@ -1,20 +1,20 @@
 type User {
-  id: ID!
+  id: UUID!
   full_name: String!
   email: String!
   phone: String
-  role_id: ID
+  role_id: UUID
   created_at: Time!
   updated_at: Time!
 }
 
 extend type Query {
-  user(id: ID!): User
+  user(id: UUID!): User
   users: [User!]!
 }
 
 extend type Mutation {
   createUser(full_name: String!, email: String!, password: String!, phone: String): User!
-  updateUser(id: ID!, full_name: String, email: String, password: String, phone: String): User!
-  deleteUser(id: ID!): User!
+  updateUser(id: UUID!, full_name: String, email: String, password: String, phone: String): User!
+  deleteUser(id: UUID!): User!
 }

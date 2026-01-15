@@ -9,23 +9,18 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"graphql/database"
 	"graphql/graphql/generated"
 	"graphql/graphql/models"
 	"graphql/internal/db"
-	"strconv"
+
+	"github.com/google/uuid"
 )
 
 // CreatePackage is the resolver for the createPackage field.
-func (r *mutationResolver) CreatePackage(ctx context.Context, tourID string, packageName string, price string, currency string, occupancy *string, isFeatured *bool, images []*models.PackageImageInput) (*db.Package, error) {
-	if tourID == "" || packageName == "" || price == "" || currency == "" {
+func (r *mutationResolver) CreatePackage(ctx context.Context, tourID uuid.UUID, packageName string, price string, currency string, occupancy *string, isFeatured *bool, images []*models.PackageImageInput) (*db.Package, error) {
+	if tourID == uuid.Nil || packageName == "" || price == "" || currency == "" {
 		return nil, errors.New("tour_id, package_name, price and currency are required")
-	}
-
-	tID, err := strconv.Atoi(tourID)
-	if err != nil {
-		return nil, errors.New("invalid tour id")
 	}
 
 	var occ sql.NullString
@@ -40,10 +35,10 @@ func (r *mutationResolver) CreatePackage(ctx context.Context, tourID string, pac
 
 	// 1) Package create
 	pkg, err := database.Queries.CreatePackage(ctx, db.CreatePackageParams{
-		TourID:      int32(tID),
+		TourID:      tourID,
 		PackageName: packageName,
 		Price:       price,
-		Currency:    currency,
+		Currency:    sql.NullString{String: currency, Valid: true},
 		Occupancy:   occ,
 		IsFeatured:  feat,
 	})
@@ -76,14 +71,13 @@ func (r *mutationResolver) CreatePackage(ctx context.Context, tourID string, pac
 }
 
 // UpdatePackage is the resolver for the updatePackage field.
-func (r *mutationResolver) UpdatePackage(ctx context.Context, id string, tourID *string, packageName *string, price *string, currency *string, occupancy *string, isFeatured *bool, images []*models.PackageImageInput) (*db.Package, error) {
-	pkgID, err := strconv.Atoi(id)
-	if err != nil {
+func (r *mutationResolver) UpdatePackage(ctx context.Context, id uuid.UUID, tourID *uuid.UUID, packageName *string, price *string, currency *string, occupancy *string, isFeatured *bool, images []*models.PackageImageInput) (*db.Package, error) {
+	if id == uuid.Nil {
 		return nil, errors.New("invalid package id")
 	}
 
 	// existing row for defaults
-	existing, err := database.Queries.GetPackage(ctx, int32(pkgID))
+	existing, err := database.Queries.GetPackage(ctx, id)
 	if err == sql.ErrNoRows {
 		return nil, errors.New("package not found")
 	}
@@ -93,11 +87,7 @@ func (r *mutationResolver) UpdatePackage(ctx context.Context, id string, tourID 
 
 	newTourID := existing.TourID
 	if tourID != nil {
-		tid, err := strconv.Atoi(*tourID)
-		if err != nil {
-			return nil, errors.New("invalid tour id")
-		}
-		newTourID = int32(tid)
+		newTourID = *tourID
 	}
 
 	newName := existing.PackageName
@@ -112,7 +102,7 @@ func (r *mutationResolver) UpdatePackage(ctx context.Context, id string, tourID 
 
 	newCurrency := existing.Currency
 	if currency != nil {
-		newCurrency = *currency
+		newCurrency = sql.NullString{String: *currency, Valid: true}
 	}
 
 	newOcc := existing.Occupancy
@@ -127,7 +117,7 @@ func (r *mutationResolver) UpdatePackage(ctx context.Context, id string, tourID 
 
 	// 1) Package update
 	pkg, err := database.Queries.UpdatePackage(ctx, db.UpdatePackageParams{
-		ID:          int32(pkgID),
+		ID:          id,
 		TourID:      newTourID,
 		PackageName: newName,
 		Price:       newPrice,
@@ -172,13 +162,11 @@ func (r *mutationResolver) UpdatePackage(ctx context.Context, id string, tourID 
 }
 
 // DeletePackage is the resolver for the deletePackage field.
-func (r *mutationResolver) DeletePackage(ctx context.Context, id string) (*db.Package, error) {
-	pkgID, err := strconv.Atoi(id)
-	if err != nil {
+func (r *mutationResolver) DeletePackage(ctx context.Context, id uuid.UUID) (*db.Package, error) {
+	if id == uuid.Nil {
 		return nil, errors.New("invalid package id")
 	}
-
-	pkg, err := database.Queries.DeletePackage(ctx, int32(pkgID))
+	pkg, err := database.Queries.DeletePackage(ctx, id)
 	if err == sql.ErrNoRows {
 		return nil, errors.New("package not found")
 	}
@@ -189,14 +177,12 @@ func (r *mutationResolver) DeletePackage(ctx context.Context, id string) (*db.Pa
 	return &pkg, nil
 }
 
-// ID is the resolver for the id field.
-func (r *packageResolver) ID(ctx context.Context, obj *db.Package) (string, error) {
-	return fmt.Sprintf("%d", obj.ID), nil
-}
-
-// TourID is the resolver for the tour_id field.
-func (r *packageResolver) TourID(ctx context.Context, obj *db.Package) (string, error) {
-	return fmt.Sprintf("%d", obj.TourID), nil
+// Currency is the resolver for the currency field.
+func (r *packageResolver) Currency(ctx context.Context, obj *db.Package) (string, error) {
+	if !obj.Currency.Valid {
+		return "", nil
+	}
+	return obj.Currency.String, nil
 }
 
 // Occupancy is the resolver for the occupancy field.
@@ -224,16 +210,6 @@ func (r *packageResolver) Images(ctx context.Context, obj *db.Package) ([]*db.Pa
 	return out, nil
 }
 
-// ID is the resolver for the id field.
-func (r *packageImageResolver) ID(ctx context.Context, obj *db.PackageImage) (string, error) {
-	return fmt.Sprintf("%d", obj.ID), nil
-}
-
-// PackageID is the resolver for the package_id field.
-func (r *packageImageResolver) PackageID(ctx context.Context, obj *db.PackageImage) (string, error) {
-	return fmt.Sprintf("%d", obj.PackageID), nil
-}
-
 // AltText is the resolver for the alt_text field.
 func (r *packageImageResolver) AltText(ctx context.Context, obj *db.PackageImage) (*string, error) {
 	if !obj.AltText.Valid {
@@ -244,13 +220,12 @@ func (r *packageImageResolver) AltText(ctx context.Context, obj *db.PackageImage
 }
 
 // Package is the resolver for the package field.
-func (r *queryResolver) Package(ctx context.Context, id string) (*db.Package, error) {
-	pkgID, err := strconv.Atoi(id)
-	if err != nil {
+func (r *queryResolver) Package(ctx context.Context, id uuid.UUID) (*db.Package, error) {
+	if id == uuid.Nil {
 		return nil, errors.New("invalid package id")
 	}
 
-	pkg, err := database.Queries.GetPackage(ctx, int32(pkgID))
+	pkg, err := database.Queries.GetPackage(ctx, id)
 	if err == sql.ErrNoRows {
 		return nil, errors.New("package not found")
 	}
@@ -277,13 +252,12 @@ func (r *queryResolver) Packages(ctx context.Context) ([]*db.Package, error) {
 }
 
 // PackagesByTour is the resolver for the packagesByTour field.
-func (r *queryResolver) PackagesByTour(ctx context.Context, tourID string) ([]*db.Package, error) {
-	tID, err := strconv.Atoi(tourID)
-	if err != nil {
+func (r *queryResolver) PackagesByTour(ctx context.Context, tourID uuid.UUID) ([]*db.Package, error) {
+	if tourID == uuid.Nil {
 		return nil, errors.New("invalid tour id")
 	}
 
-	pkgsDB, err := database.Queries.ListPackagesByTour(ctx, int32(tID))
+	pkgsDB, err := database.Queries.ListPackagesByTour(ctx, tourID)
 	if err != nil {
 		return nil, err
 	}
@@ -297,13 +271,11 @@ func (r *queryResolver) PackagesByTour(ctx context.Context, tourID string) ([]*d
 }
 
 // PackageImage is the resolver for the packageImage field.
-func (r *queryResolver) PackageImage(ctx context.Context, id string) (*db.PackageImage, error) {
-	imgID, err := strconv.Atoi(id)
-	if err != nil {
+func (r *queryResolver) PackageImage(ctx context.Context, id uuid.UUID) (*db.PackageImage, error) {
+	if id == uuid.Nil {
 		return nil, errors.New("invalid image id")
 	}
-
-	img, err := database.Queries.GetPackageImageByID(ctx, int32(imgID))
+	img, err := database.Queries.GetPackageImageByID(ctx, id)
 	if err == sql.ErrNoRows {
 		return nil, errors.New("image not found")
 	}

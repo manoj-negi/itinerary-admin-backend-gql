@@ -8,16 +8,18 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/google/uuid"
 )
 
 const createTourImage = `-- name: CreateTourImage :one
 INSERT INTO tour_images (tour_id, file_url, alt_text)
 VALUES ($1, $2, $3)
-RETURNING id, tour_id, file_url, alt_text
+RETURNING id, tour_id, file_url, alt_text, created_at, updated_at
 `
 
 type CreateTourImageParams struct {
-	TourID  int32          `json:"tour_id"`
+	TourID  uuid.UUID      `json:"tour_id"`
 	FileUrl string         `json:"file_url"`
 	AltText sql.NullString `json:"alt_text"`
 }
@@ -30,6 +32,8 @@ func (q *Queries) CreateTourImage(ctx context.Context, arg CreateTourImageParams
 		&i.TourID,
 		&i.FileUrl,
 		&i.AltText,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
@@ -40,16 +44,16 @@ DELETE FROM tour_images WHERE tour_id = $1
 `
 
 // or created_at if you add it
-func (q *Queries) DeleteTourImagesByTour(ctx context.Context, tourID int32) error {
+func (q *Queries) DeleteTourImagesByTour(ctx context.Context, tourID uuid.UUID) error {
 	_, err := q.db.ExecContext(ctx, deleteTourImagesByTour, tourID)
 	return err
 }
 
 const getTourImageByID = `-- name: GetTourImageByID :one
-SELECT id, tour_id, file_url, alt_text FROM tour_images WHERE id = $1
+SELECT id, tour_id, file_url, alt_text, created_at, updated_at FROM tour_images WHERE id = $1
 `
 
-func (q *Queries) GetTourImageByID(ctx context.Context, id int32) (TourImage, error) {
+func (q *Queries) GetTourImageByID(ctx context.Context, id uuid.UUID) (TourImage, error) {
 	row := q.db.QueryRowContext(ctx, getTourImageByID, id)
 	var i TourImage
 	err := row.Scan(
@@ -57,17 +61,19 @@ func (q *Queries) GetTourImageByID(ctx context.Context, id int32) (TourImage, er
 		&i.TourID,
 		&i.FileUrl,
 		&i.AltText,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const listTourImagesByTour = `-- name: ListTourImagesByTour :many
-SELECT id, tour_id, file_url, alt_text FROM tour_images 
+SELECT id, tour_id, file_url, alt_text, created_at, updated_at FROM tour_images 
 WHERE tour_id = $1 
 ORDER BY id ASC
 `
 
-func (q *Queries) ListTourImagesByTour(ctx context.Context, tourID int32) ([]TourImage, error) {
+func (q *Queries) ListTourImagesByTour(ctx context.Context, tourID uuid.UUID) ([]TourImage, error) {
 	rows, err := q.db.QueryContext(ctx, listTourImagesByTour, tourID)
 	if err != nil {
 		return nil, err
@@ -81,6 +87,8 @@ func (q *Queries) ListTourImagesByTour(ctx context.Context, tourID int32) ([]Tou
 			&i.TourID,
 			&i.FileUrl,
 			&i.AltText,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -99,11 +107,11 @@ const updateTourImage = `-- name: UpdateTourImage :one
 UPDATE tour_images 
 SET file_url = $2, alt_text = $3 
 WHERE id = $1 
-RETURNING id, tour_id, file_url, alt_text
+RETURNING id, tour_id, file_url, alt_text, created_at, updated_at
 `
 
 type UpdateTourImageParams struct {
-	ID      int32          `json:"id"`
+	ID      uuid.UUID      `json:"id"`
 	FileUrl string         `json:"file_url"`
 	AltText sql.NullString `json:"alt_text"`
 }
@@ -116,6 +124,8 @@ func (q *Queries) UpdateTourImage(ctx context.Context, arg UpdateTourImageParams
 		&i.TourID,
 		&i.FileUrl,
 		&i.AltText,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }

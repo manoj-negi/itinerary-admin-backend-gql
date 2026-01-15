@@ -9,18 +9,13 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"graphql/database"
 	"graphql/graphql/generated"
 	"graphql/graphql/models"
 	"graphql/internal/db"
-	"strconv"
-)
 
-// ID is the resolver for the id field.
-func (r *categoryResolver) ID(ctx context.Context, obj *db.Category) (string, error) {
-	return fmt.Sprintf("%d", obj.ID), nil
-}
+	"github.com/google/uuid"
+)
 
 // Description is the resolver for the description field.
 func (r *categoryResolver) Description(ctx context.Context, obj *db.Category) (*string, error) {
@@ -44,16 +39,6 @@ func (r *categoryResolver) Images(ctx context.Context, obj *db.Category) ([]*db.
 		out = append(out, &img)
 	}
 	return out, nil
-}
-
-// ID is the resolver for the id field.
-func (r *categoryImageResolver) ID(ctx context.Context, obj *db.CategoryImage) (string, error) {
-	return fmt.Sprintf("%d", obj.ID), nil
-}
-
-// CategoryID is the resolver for the category_id field.
-func (r *categoryImageResolver) CategoryID(ctx context.Context, obj *db.CategoryImage) (string, error) {
-	return fmt.Sprintf("%d", obj.CategoryID), nil
 }
 
 // AltText is the resolver for the alt_text field.
@@ -110,14 +95,13 @@ func (r *mutationResolver) CreateCategory(ctx context.Context, categoryName stri
 }
 
 // UpdateCategory is the resolver for the updateCategory field.
-func (r *mutationResolver) UpdateCategory(ctx context.Context, id string, categoryName *string, description *string, images []*models.CategoryImageInput) (*db.Category, error) {
-	catID, err := strconv.Atoi(id)
-	if err != nil {
+func (r *mutationResolver) UpdateCategory(ctx context.Context, id uuid.UUID, categoryName *string, description *string, images []*models.CategoryImageInput) (*db.Category, error) {
+	if id == uuid.Nil {
 		return nil, errors.New("invalid category id")
 	}
 
 	// existing row for defaults
-	existing, err := database.Queries.GetCategory(ctx, int32(catID))
+	existing, err := database.Queries.GetCategory(ctx, id)
 	if err == sql.ErrNoRows {
 		return nil, errors.New("category not found")
 	}
@@ -138,7 +122,7 @@ func (r *mutationResolver) UpdateCategory(ctx context.Context, id string, catego
 
 	// 1) Category update
 	cat, err := database.Queries.UpdateCategory(ctx, db.UpdateCategoryParams{
-		ID:           int32(catID),
+		ID:           id,
 		CategoryName: newName,
 		Description:  newDesc,
 	})
@@ -179,13 +163,12 @@ func (r *mutationResolver) UpdateCategory(ctx context.Context, id string, catego
 }
 
 // DeleteCategory is the resolver for the deleteCategory field.
-func (r *mutationResolver) DeleteCategory(ctx context.Context, id string) (*db.Category, error) {
-	catID, err := strconv.Atoi(id)
-	if err != nil {
+func (r *mutationResolver) DeleteCategory(ctx context.Context, id uuid.UUID) (*db.Category, error) {
+	if id == uuid.Nil {
 		return nil, errors.New("invalid category id")
 	}
 
-	cat, err := database.Queries.DeleteCategory(ctx, int32(catID))
+	cat, err := database.Queries.DeleteCategory(ctx, id)
 	if err == sql.ErrNoRows {
 		return nil, errors.New("category not found")
 	}
@@ -197,13 +180,12 @@ func (r *mutationResolver) DeleteCategory(ctx context.Context, id string) (*db.C
 }
 
 // Category is the resolver for the category field.
-func (r *queryResolver) Category(ctx context.Context, id string) (*db.Category, error) {
-	categoryID, err := strconv.Atoi(id)
-	if err != nil {
+func (r *queryResolver) Category(ctx context.Context, id uuid.UUID) (*db.Category, error) {
+	if id == uuid.Nil {
 		return nil, errors.New("invalid category ID")
 	}
 
-	categoryDB, err := database.Queries.GetCategory(ctx, int32(categoryID))
+	categoryDB, err := database.Queries.GetCategory(ctx, id)
 	if err == sql.ErrNoRows {
 		return nil, errors.New("category not found")
 	}
@@ -229,13 +211,12 @@ func (r *queryResolver) Categories(ctx context.Context) ([]*db.Category, error) 
 }
 
 // CategoryImage is the resolver for the categoryImage field.
-func (r *queryResolver) CategoryImage(ctx context.Context, id string) (*db.CategoryImage, error) {
-	imgID, err := strconv.Atoi(id)
-	if err != nil {
+func (r *queryResolver) CategoryImage(ctx context.Context, id uuid.UUID) (*db.CategoryImage, error) {
+	if id == uuid.Nil {
 		return nil, errors.New("invalid image id")
 	}
 
-	img, err := database.Queries.GetCategoryImageByID(ctx, int32(imgID))
+	img, err := database.Queries.GetCategoryImageByID(ctx, id)
 	if err == sql.ErrNoRows {
 		return nil, errors.New("image not found")
 	}

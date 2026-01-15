@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 const createState = `-- name: CreateState :one
@@ -16,8 +18,8 @@ RETURNING id, country_id, name
 `
 
 type CreateStateParams struct {
-	CountryID int32  `json:"country_id"`
-	Name      string `json:"name"`
+	CountryID uuid.UUID `json:"country_id"`
+	Name      string    `json:"name"`
 }
 
 func (q *Queries) CreateState(ctx context.Context, arg CreateStateParams) (State, error) {
@@ -33,7 +35,7 @@ WHERE id = $1
 RETURNING id, country_id, name
 `
 
-func (q *Queries) DeleteState(ctx context.Context, id int32) (State, error) {
+func (q *Queries) DeleteState(ctx context.Context, id uuid.UUID) (State, error) {
 	row := q.db.QueryRowContext(ctx, deleteState, id)
 	var i State
 	err := row.Scan(&i.ID, &i.CountryID, &i.Name)
@@ -46,7 +48,7 @@ FROM states
 WHERE id = $1
 `
 
-func (q *Queries) GetState(ctx context.Context, id int32) (State, error) {
+func (q *Queries) GetState(ctx context.Context, id uuid.UUID) (State, error) {
 	row := q.db.QueryRowContext(ctx, getState, id)
 	var i State
 	err := row.Scan(&i.ID, &i.CountryID, &i.Name)
@@ -102,7 +104,7 @@ WHERE country_id = $1
 ORDER BY id
 `
 
-func (q *Queries) ListStatesByCountry(ctx context.Context, countryID int32) ([]State, error) {
+func (q *Queries) ListStatesByCountry(ctx context.Context, countryID uuid.UUID) ([]State, error) {
 	rows, err := q.db.QueryContext(ctx, listStatesByCountry, countryID)
 	if err != nil {
 		return nil, err
@@ -135,9 +137,9 @@ RETURNING id, country_id, name
 `
 
 type UpdateStateParams struct {
-	CountryID int32  `json:"country_id"`
-	Name      string `json:"name"`
-	ID        int32  `json:"id"`
+	CountryID uuid.UUID `json:"country_id"`
+	Name      string    `json:"name"`
+	ID        uuid.UUID `json:"id"`
 }
 
 func (q *Queries) UpdateState(ctx context.Context, arg UpdateStateParams) (State, error) {
