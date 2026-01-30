@@ -95,7 +95,7 @@ type Permission struct {
 	PermissionName string    `json:"permission_name"`
 }
 
-type PointOfInterestImage struct {
+type PoiImage struct {
 	ID        uuid.UUID      `json:"id"`
 	PoiID     uuid.UUID      `json:"poi_id"`
 	FileUrl   string         `json:"file_url"`

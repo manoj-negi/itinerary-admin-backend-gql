@@ -62,5 +62,5 @@ models:
   POI:
     model: graphql/internal/db.PointsOfInterest
   POIImage:
-    model: graphql/internal/db.PointOfInterestImage
+    model: graphql/internal/db.PoiImage
 

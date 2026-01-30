@@ -28,7 +28,7 @@ UPDATE users
 SET
   full_name = COALESCE($1, full_name),
   email = COALESCE($2, email),
-  password = COALESCE($3, password),
+  password  = COALESCE(NULLIF($3, ''), password),
   phone = COALESCE($4, phone),
   role_id = COALESCE($5, role_id),
   updated_at = NOW()

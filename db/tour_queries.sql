@@ -11,21 +11,34 @@ WHERE id = $1;
 -- name: ListTours :many
 SELECT id, title, description, category_id, city_id, duration_days, created_by, status, created_at, updated_at
 FROM tours
-ORDER BY id;
+ORDER BY id
+LIMIT $1 OFFSET $2;
+
 
 -- name: UpdateTour :one
 UPDATE tours
 SET
-  title         = COALESCE($1, title),
-  description   = COALESCE($2, description),
-  category_id   = COALESCE($3, category_id),
-  city_id       = COALESCE($4, city_id),
-  duration_days = COALESCE($5, duration_days),
-  created_by    = COALESCE($6, created_by),
-  status        = COALESCE($7, status),
+  title         = CASE WHEN @title::text IS NOT NULL THEN @title ELSE title END,
+  description   = CASE WHEN @description::text IS NOT NULL THEN @description ELSE description END,
+  category_id   = CASE WHEN @category_id::uuid IS NOT NULL THEN @category_id ELSE category_id END,
+  city_id       = CASE WHEN @city_id::uuid IS NOT NULL THEN @city_id ELSE city_id END,
+  duration_days = CASE WHEN @duration_days::int IS NOT NULL THEN @duration_days ELSE duration_days END,
+  created_by    = CASE WHEN @created_by::uuid IS NOT NULL THEN @created_by ELSE created_by END,
+  status        = CASE WHEN @status::text IS NOT NULL THEN @status ELSE status END,
   updated_at    = NOW()
-WHERE id = $8
-RETURNING id, title, description, category_id, city_id, duration_days, created_by, status, created_at, updated_at;
+WHERE id = @id
+RETURNING
+  id,
+  title,
+  description,
+  category_id,
+  city_id,
+  duration_days,
+  created_by,
+  status,
+  created_at,
+  updated_at;
+
 
 -- name: DeleteTour :one
 DELETE FROM tours

@@ -41,3 +41,8 @@ SET
   name = COALESCE($2, name)
 WHERE id = $3
 RETURNING id, state_id, name;
+
+-- name: CityExists :one
+SELECT EXISTS (
+	SELECT 1 FROM cities WHERE id = $1
+);

@@ -7,59 +7,110 @@ package graphql
 
 import (
 	"context"
-	"database/sql"
-	"errors"
 	"graphql/database"
 	"graphql/graphql/generated"
 	"graphql/graphql/models"
+	"graphql/internal/adapter"
+	"graphql/internal/auth"
 	"graphql/internal/db"
+	dbtime "graphql/internal/dbTime"
+	appErr "graphql/internal/errors"
+	"graphql/internal/validation"
+	"strings"
 
 	"github.com/google/uuid"
 )
 
 // CreatePoi is the resolver for the createPOI field.
 func (r *mutationResolver) CreatePoi(ctx context.Context, name string, description *string, cityID uuid.UUID, typeArg string, images []*models.POIImageInput) (*db.PointsOfInterest, error) {
+	ctx, cancel := context.WithTimeout(ctx, dbtime.DataBaseTimeOut)
+	defer cancel()
+	// Auth function
+	if err := auth.RequireRole(ctx, auth.RoleAdmin); err != nil {
+		return nil, err
+	}
+
+	// ---- BASIC VALIDATION ----
 	if name == "" || cityID == uuid.Nil || typeArg == "" {
-		return nil, errors.New("name, city_id and type are required")
+		return nil, appErr.InvalidInput()
 	}
 
-	if cityID == uuid.Nil {
-		return nil, errors.New("invalid city id")
+	// normalize
+	typeArg = strings.ToLower(strings.TrimSpace(typeArg))
+
+	valid := map[string]struct{}{
+		"landmark":   {},
+		"hotel":      {},
+		"restaurant": {},
+		"activity":   {},
+		"transport":  {},
 	}
 
-	var desc sql.NullString
-	if description != nil {
-		desc = sql.NullString{String: *description, Valid: true}
+	if _, ok := valid[typeArg]; !ok {
+		return nil, appErr.InvalidInput()
 	}
 
-	poi, err := database.Queries.CreatePOI(ctx, db.CreatePOIParams{
+	// var desc sql.NullString
+	// if description != nil {
+	// desc = sql.NullString{String: *description, Valid: true}
+	desc := adapter.NullString(description)
+
+	// }
+
+	// ---- START TRANSACTION ----
+	tx, err := database.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// qtx := database.New(tx)
+	qtx := db.New(tx)
+
+	// ---- CITY VALIDATION (CENTRALIZED) ----
+	if err := validation.ValidateCityID(ctx, qtx, cityID); err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	// ---- CREATE POI ----
+	poi, err := qtx.CreatePOI(ctx, db.CreatePOIParams{
 		Name:        name,
 		Description: desc,
 		CityID:      cityID,
 		Type:        typeArg,
 	})
 	if err != nil {
-		return nil, err
+		tx.Rollback()
+		return nil, appErr.FromDB(err)
 	}
 
+	// ---- CREATE IMAGES ----
 	for _, img := range images {
 		if img == nil || img.FileURL == "" {
 			continue
 		}
 
-		var alt sql.NullString
-		if img.AltText != nil {
-			alt = sql.NullString{String: *img.AltText, Valid: true}
-		}
+		// var alt sql.NullString
+		// if img.AltText != nil {
+		// alt = sql.NullString{String: *img.AltText, Valid: true}
+		alt := adapter.NullString(img.AltText)
 
-		_, err := database.Queries.CreatePOIImage(ctx, db.CreatePOIImageParams{
+		// }
+
+		_, err := qtx.CreatePOIImage(ctx, db.CreatePOIImageParams{
 			PoiID:   poi.ID,
 			FileUrl: img.FileURL,
 			AltText: alt,
 		})
 		if err != nil {
-			return nil, err
+			tx.Rollback()
+			return nil, appErr.Internal(err)
 		}
+	}
+
+	// ---- COMMIT ----
+	if err := tx.Commit(); err != nil {
+		return nil, err
 	}
 
 	return &poi, nil
@@ -67,18 +118,32 @@ func (r *mutationResolver) CreatePoi(ctx context.Context, name string, descripti
 
 // UpdatePoi is the resolver for the updatePOI field.
 func (r *mutationResolver) UpdatePoi(ctx context.Context, id uuid.UUID, name *string, description *string, cityID *uuid.UUID, typeArg *string, images []*models.POIImageInput) (*db.PointsOfInterest, error) {
-	if id == uuid.Nil {
-		return nil, errors.New("invalid poi id")
+	ctx, cancel := context.WithTimeout(ctx, dbtime.DataBaseTimeOut)
+	defer cancel()
+
+	// Auth function
+	if err := auth.RequireRole(ctx, auth.RoleAdmin); err != nil {
+		return nil, err
+	}
+	if err := adapter.ValidateUUID(id); err != nil {
+		return nil, appErr.InvalidInput()
 	}
 
-	existing, err := database.Queries.GetPOI(ctx, id)
-	if err == sql.ErrNoRows {
-		return nil, errors.New("poi not found")
-	}
+	// ---- START TRANSACTION ----
+	tx, err := database.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
+	qtx := db.New(tx)
 
+	// ---- GET EXISTING POI ----
+	existing, err := qtx.GetPOI(ctx, id)
+	if err != nil {
+		tx.Rollback()
+		return nil, appErr.FromDB(err)
+	}
+
+	// ---- MERGE FIELDS ----
 	newName := existing.Name
 	if name != nil {
 		newName = *name
@@ -86,23 +151,40 @@ func (r *mutationResolver) UpdatePoi(ctx context.Context, id uuid.UUID, name *st
 
 	newDesc := existing.Description
 	if description != nil {
-		newDesc = sql.NullString{String: *description, Valid: true}
+		newDesc = adapter.NullString(description)
 	}
 
 	newCityID := existing.CityID
 	if cityID != nil {
-		if *cityID == uuid.Nil {
-			return nil, errors.New("invalid city id")
+		if err := validation.ValidateCityID(ctx, qtx, *cityID); err != nil {
+			tx.Rollback()
+			return nil, err
 		}
 		newCityID = *cityID
 	}
 
 	newType := existing.Type
+
 	if typeArg != nil {
-		newType = *typeArg
+		t := strings.ToLower(strings.TrimSpace(*typeArg))
+
+		valid := map[string]struct{}{
+			"landmark":   {},
+			"hotel":      {},
+			"restaurant": {},
+			"activity":   {},
+			"transport":  {},
+		}
+
+		if _, ok := valid[t]; !ok {
+			return nil, appErr.InvalidInput()
+		}
+
+		newType = t
 	}
 
-	poi, err := database.Queries.UpdatePOI(ctx, db.UpdatePOIParams{
+	// ---- UPDATE POI ----
+	poi, err := qtx.UpdatePOI(ctx, db.UpdatePOIParams{
 		ID:          id,
 		Name:        newName,
 		Description: newDesc,
@@ -110,11 +192,14 @@ func (r *mutationResolver) UpdatePoi(ctx context.Context, id uuid.UUID, name *st
 		Type:        newType,
 	})
 	if err != nil {
-		return nil, err
+		tx.Rollback()
+		return nil, appErr.FromDB(err)
 	}
 
+	// ---- UPDATE IMAGES (ATOMIC) ----
 	if images != nil {
-		if err := database.Queries.DeletePOIImagesByPOI(ctx, poi.ID); err != nil {
+		if err := qtx.DeletePOIImagesByPOI(ctx, poi.ID); err != nil {
+			tx.Rollback()
 			return nil, err
 		}
 
@@ -123,20 +208,27 @@ func (r *mutationResolver) UpdatePoi(ctx context.Context, id uuid.UUID, name *st
 				continue
 			}
 
-			var alt sql.NullString
-			if img.AltText != nil {
-				alt = sql.NullString{String: *img.AltText, Valid: true}
-			}
+			// var alt sql.NullString
+			// if img.AltText != nil {
+			alt := adapter.NullString(img.AltText)
 
-			_, err := database.Queries.CreatePOIImage(ctx, db.CreatePOIImageParams{
+			// }
+
+			_, err := qtx.CreatePOIImage(ctx, db.CreatePOIImageParams{
 				PoiID:   poi.ID,
 				FileUrl: img.FileURL,
 				AltText: alt,
 			})
 			if err != nil {
+				tx.Rollback()
 				return nil, err
 			}
 		}
+	}
+
+	// ---- COMMIT ----
+	if err := tx.Commit(); err != nil {
+		return nil, err
 	}
 
 	return &poi, nil
@@ -144,16 +236,21 @@ func (r *mutationResolver) UpdatePoi(ctx context.Context, id uuid.UUID, name *st
 
 // DeletePoi is the resolver for the deletePOI field.
 func (r *mutationResolver) DeletePoi(ctx context.Context, id uuid.UUID) (*db.PointsOfInterest, error) {
-	if id == uuid.Nil {
-		return nil, errors.New("invalid poi id")
+	// Auth function
+	if err := auth.RequireRole(ctx, auth.RoleAdmin); err != nil {
+		return nil, err
 	}
 
-	poi, err := database.Queries.DeletePOI(ctx, id)
-	if err == sql.ErrNoRows {
-		return nil, errors.New("poi not found")
+	if err := adapter.ValidateUUID(id); err != nil {
+		return nil, appErr.InvalidInput()
 	}
+
+	ctx, cancel := context.WithTimeout(ctx, dbtime.DataBaseTimeOut)
+	defer cancel()
+
+	poi, err := database.Queries.DeletePOI(ctx, id)
 	if err != nil {
-		return nil, err
+		return nil, appErr.FromDB(err)
 	}
 
 	return &poi, nil
@@ -169,13 +266,13 @@ func (r *pOIResolver) Description(ctx context.Context, obj *db.PointsOfInterest)
 }
 
 // Images is the resolver for the images field.
-func (r *pOIResolver) Images(ctx context.Context, obj *db.PointsOfInterest) ([]*db.PointOfInterestImage, error) {
+func (r *pOIResolver) Images(ctx context.Context, obj *db.PointsOfInterest) ([]*db.PoiImage, error) {
 	imgs, err := database.Queries.ListPOIImagesByPOI(ctx, obj.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	out := make([]*db.PointOfInterestImage, 0, len(imgs))
+	out := make([]*db.PoiImage, 0, len(imgs))
 	for i := range imgs {
 		img := imgs[i]
 		out = append(out, &img)
@@ -184,7 +281,7 @@ func (r *pOIResolver) Images(ctx context.Context, obj *db.PointsOfInterest) ([]*
 }
 
 // AltText is the resolver for the alt_text field.
-func (r *pOIImageResolver) AltText(ctx context.Context, obj *db.PointOfInterestImage) (*string, error) {
+func (r *pOIImageResolver) AltText(ctx context.Context, obj *db.PoiImage) (*string, error) {
 	if !obj.AltText.Valid {
 		return nil, nil
 	}
@@ -194,26 +291,42 @@ func (r *pOIImageResolver) AltText(ctx context.Context, obj *db.PointOfInterestI
 
 // Poi is the resolver for the poi field.
 func (r *queryResolver) Poi(ctx context.Context, id uuid.UUID) (*db.PointsOfInterest, error) {
-	if id == uuid.Nil {
-		return nil, errors.New("invalid poi id")
+	if err := adapter.ValidateUUID(id); err != nil {
+		return nil, appErr.InvalidInput()
 	}
 
+	ctx, cancel := context.WithTimeout(ctx, dbtime.DataBaseTimeOut)
+	defer cancel()
+
 	poi, err := database.Queries.GetPOI(ctx, id)
-	if err == sql.ErrNoRows {
-		return nil, errors.New("poi not found")
-	}
 	if err != nil {
-		return nil, err
+		return nil, appErr.FromDB(err)
 	}
 
 	return &poi, nil
 }
 
 // Pois is the resolver for the pois field.
-func (r *queryResolver) Pois(ctx context.Context) ([]*db.PointsOfInterest, error) {
-	poisDB, err := database.Queries.ListPOIs(ctx)
+func (r *queryResolver) Pois(ctx context.Context, limit *int, offset *int) ([]*db.PointsOfInterest, error) {
+	ctx, cancel := context.WithTimeout(ctx, dbtime.DataBaseTimeOut)
+	defer cancel()
+	// ---- DEFAULTS ----
+	var l int32 = 20
+	var o int32 = 0
+
+	if limit != nil && *limit > 0 {
+		l = int32(*limit)
+	}
+	if offset != nil && *offset >= 0 {
+		o = int32(*offset)
+	}
+
+	poisDB, err := database.Queries.ListPOIs(ctx, db.ListPOIsParams{
+		Limit:  l,
+		Offset: o,
+	})
 	if err != nil {
-		return nil, err
+		return nil, appErr.Internal(err)
 	}
 
 	out := make([]*db.PointsOfInterest, 0, len(poisDB))
@@ -221,15 +334,18 @@ func (r *queryResolver) Pois(ctx context.Context) ([]*db.PointsOfInterest, error
 		p := poisDB[i]
 		out = append(out, &p)
 	}
+
 	return out, nil
 }
 
 // PoisByCity is the resolver for the poisByCity field.
 func (r *queryResolver) PoisByCity(ctx context.Context, cityID uuid.UUID) ([]*db.PointsOfInterest, error) {
-	if cityID == uuid.Nil {
-		return nil, errors.New("invalid city id")
+	if err := adapter.ValidateUUID(cityID); err != nil {
+		return nil, appErr.InvalidInput()
 	}
 
+	ctx, cancel := context.WithTimeout(ctx, dbtime.DataBaseTimeOut)
+	defer cancel()
 	poisDB, err := database.Queries.ListPOIsByCity(ctx, cityID)
 	if err != nil {
 		return nil, err
@@ -244,17 +360,16 @@ func (r *queryResolver) PoisByCity(ctx context.Context, cityID uuid.UUID) ([]*db
 }
 
 // PoiImage is the resolver for the poiImage field.
-func (r *queryResolver) PoiImage(ctx context.Context, id uuid.UUID) (*db.PointOfInterestImage, error) {
-	if id == uuid.Nil {
-		return nil, errors.New("invalid image id")
+func (r *queryResolver) PoiImage(ctx context.Context, id uuid.UUID) (*db.PoiImage, error) {
+	if err := adapter.ValidateUUID(id); err != nil {
+		return nil, appErr.InvalidInput()
 	}
 
+	ctx, cancel := context.WithTimeout(ctx, dbtime.DataBaseTimeOut)
+	defer cancel()
 	img, err := database.Queries.GetPOIImageByID(ctx, id)
-	if err == sql.ErrNoRows {
-		return nil, errors.New("image not found")
-	}
 	if err != nil {
-		return nil, err
+		return nil, appErr.FromDB(err)
 	}
 
 	return &img, nil

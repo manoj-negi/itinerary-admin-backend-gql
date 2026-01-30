@@ -23,7 +23,11 @@ input CategoryImageInput {
 
 extend type Query {
   category(id: UUID!): Category
-  categories: [Category!]!
+categories(
+  limit: Int = 20
+  offset: Int = 0
+): [Category!]!
+
   categoryImage(id: UUID!): CategoryImage!
 }
 

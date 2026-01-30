@@ -188,7 +188,7 @@ type ComplexityRoot struct {
 	Query struct {
 		Booking         func(childComplexity int, id uuid.UUID) int
 		Bookings        func(childComplexity int) int
-		Categories      func(childComplexity int) int
+		Categories      func(childComplexity int, limit *int, offset *int) int
 		Category        func(childComplexity int, id uuid.UUID) int
 		CategoryImage   func(childComplexity int, id uuid.UUID) int
 		Cities          func(childComplexity int) int
@@ -202,14 +202,14 @@ type ComplexityRoot struct {
 		PackagesByTour  func(childComplexity int, tourID uuid.UUID) int
 		Poi             func(childComplexity int, id uuid.UUID) int
 		PoiImage        func(childComplexity int, id uuid.UUID) int
-		Pois            func(childComplexity int) int
+		Pois            func(childComplexity int, limit *int, offset *int) int
 		PoisByCity      func(childComplexity int, cityID uuid.UUID) int
 		State           func(childComplexity int, id uuid.UUID) int
 		States          func(childComplexity int) int
 		StatesByCountry func(childComplexity int, countryID uuid.UUID) int
 		Tour            func(childComplexity int, id uuid.UUID) int
 		TourImage       func(childComplexity int, id uuid.UUID) int
-		Tours           func(childComplexity int) int
+		Tours           func(childComplexity int, limit *int, offset *int) int
 		User            func(childComplexity int, id uuid.UUID) int
 		Users           func(childComplexity int) int
 	}
@@ -300,10 +300,10 @@ type MutationResolver interface {
 type POIResolver interface {
 	Description(ctx context.Context, obj *db.PointsOfInterest) (*string, error)
 
-	Images(ctx context.Context, obj *db.PointsOfInterest) ([]*db.PointOfInterestImage, error)
+	Images(ctx context.Context, obj *db.PointsOfInterest) ([]*db.PoiImage, error)
 }
 type POIImageResolver interface {
-	AltText(ctx context.Context, obj *db.PointOfInterestImage) (*string, error)
+	AltText(ctx context.Context, obj *db.PoiImage) (*string, error)
 }
 type PackageResolver interface {
 	Currency(ctx context.Context, obj *db.Package) (string, error)
@@ -318,7 +318,7 @@ type QueryResolver interface {
 	User(ctx context.Context, id uuid.UUID) (*db.User, error)
 	Users(ctx context.Context) ([]*db.User, error)
 	Category(ctx context.Context, id uuid.UUID) (*db.Category, error)
-	Categories(ctx context.Context) ([]*db.Category, error)
+	Categories(ctx context.Context, limit *int, offset *int) ([]*db.Category, error)
 	CategoryImage(ctx context.Context, id uuid.UUID) (*db.CategoryImage, error)
 	City(ctx context.Context, id uuid.UUID) (*db.City, error)
 	Cities(ctx context.Context) ([]*db.City, error)
@@ -335,12 +335,12 @@ type QueryResolver interface {
 	States(ctx context.Context) ([]*db.State, error)
 	StatesByCountry(ctx context.Context, countryID uuid.UUID) ([]*db.State, error)
 	Tour(ctx context.Context, id uuid.UUID) (*db.Tour, error)
-	Tours(ctx context.Context) ([]*db.Tour, error)
+	Tours(ctx context.Context, limit *int, offset *int) ([]*db.Tour, error)
 	TourImage(ctx context.Context, id uuid.UUID) (*db.TourImage, error)
 	Poi(ctx context.Context, id uuid.UUID) (*db.PointsOfInterest, error)
-	Pois(ctx context.Context) ([]*db.PointsOfInterest, error)
+	Pois(ctx context.Context, limit *int, offset *int) ([]*db.PointsOfInterest, error)
 	PoisByCity(ctx context.Context, cityID uuid.UUID) ([]*db.PointsOfInterest, error)
-	PoiImage(ctx context.Context, id uuid.UUID) (*db.PointOfInterestImage, error)
+	PoiImage(ctx context.Context, id uuid.UUID) (*db.PoiImage, error)
 }
 type TourResolver interface {
 	Description(ctx context.Context, obj *db.Tour) (*string, error)
@@ -1093,7 +1093,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			break
 		}
 
-		return e.complexity.Query.Categories(childComplexity), true
+		args, err := ec.field_Query_categories_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Categories(childComplexity, args["limit"].(*int), args["offset"].(*int)), true
 	case "Query.category":
 		if e.complexity.Query.Category == nil {
 			break
@@ -1227,7 +1232,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			break
 		}
 
-		return e.complexity.Query.Pois(childComplexity), true
+		args, err := ec.field_Query_pois_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Pois(childComplexity, args["limit"].(*int), args["offset"].(*int)), true
 	case "Query.poisByCity":
 		if e.complexity.Query.PoisByCity == nil {
 			break
@@ -1294,7 +1304,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			break
 		}
 
-		return e.complexity.Query.Tours(childComplexity), true
+		args, err := ec.field_Query_tours_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Tours(childComplexity, args["limit"].(*int), args["offset"].(*int)), true
 	case "Query.user":
 		if e.complexity.Query.User == nil {
 			break
@@ -1649,7 +1664,11 @@ input CategoryImageInput {
 
 extend type Query {
   category(id: UUID!): Category
-  categories: [Category!]!
+categories(
+  limit: Int = 20
+  offset: Int = 0
+): [Category!]!
+
   categoryImage(id: UUID!): CategoryImage!
 }
 
@@ -1831,7 +1850,7 @@ input TourImageInput {
 
 extend type Query {
   tour(id: UUID!): Tour
-  tours: [Tour!]!
+  tours(limit: Int, offset: Int): [Tour!]!
   tourImage(id: UUID!): TourImage!
 }
 
@@ -1889,7 +1908,7 @@ input POIImageInput {
 
 extend type Query {
   poi(id: UUID!): POI
-  pois: [POI!]!
+  pois(limit: Int, offset: Int): [POI!]!
   poisByCity(city_id: UUID!): [POI!]!
   poiImage(id: UUID!): POIImage!
 }
@@ -2620,6 +2639,22 @@ func (ec *executionContext) field_Query_booking_args(ctx context.Context, rawArg
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_categories_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "offset", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["offset"] = arg1
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_categoryImage_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -2741,6 +2776,22 @@ func (ec *executionContext) field_Query_poisByCity_args(ctx context.Context, raw
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_pois_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "offset", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["offset"] = arg1
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_state_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -2782,6 +2833,22 @@ func (ec *executionContext) field_Query_tour_args(ctx context.Context, rawArgs m
 		return nil, err
 	}
 	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_tours_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "offset", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["offset"] = arg1
 	return args, nil
 }
 
@@ -5605,7 +5672,7 @@ func (ec *executionContext) _POI_images(ctx context.Context, field graphql.Colle
 			return ec.resolvers.POI().Images(ctx, obj)
 		},
 		nil,
-		ec.marshalNPOIImage2ᚕᚖgraphqlᚋinternalᚋdbᚐPointOfInterestImageᚄ,
+		ec.marshalNPOIImage2ᚕᚖgraphqlᚋinternalᚋdbᚐPoiImageᚄ,
 		true,
 		true,
 	)
@@ -5638,7 +5705,7 @@ func (ec *executionContext) fieldContext_POI_images(_ context.Context, field gra
 	return fc, nil
 }
 
-func (ec *executionContext) _POIImage_id(ctx context.Context, field graphql.CollectedField, obj *db.PointOfInterestImage) (ret graphql.Marshaler) {
+func (ec *executionContext) _POIImage_id(ctx context.Context, field graphql.CollectedField, obj *db.PoiImage) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -5667,7 +5734,7 @@ func (ec *executionContext) fieldContext_POIImage_id(_ context.Context, field gr
 	return fc, nil
 }
 
-func (ec *executionContext) _POIImage_poi_id(ctx context.Context, field graphql.CollectedField, obj *db.PointOfInterestImage) (ret graphql.Marshaler) {
+func (ec *executionContext) _POIImage_poi_id(ctx context.Context, field graphql.CollectedField, obj *db.PoiImage) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -5696,7 +5763,7 @@ func (ec *executionContext) fieldContext_POIImage_poi_id(_ context.Context, fiel
 	return fc, nil
 }
 
-func (ec *executionContext) _POIImage_file_url(ctx context.Context, field graphql.CollectedField, obj *db.PointOfInterestImage) (ret graphql.Marshaler) {
+func (ec *executionContext) _POIImage_file_url(ctx context.Context, field graphql.CollectedField, obj *db.PoiImage) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -5725,7 +5792,7 @@ func (ec *executionContext) fieldContext_POIImage_file_url(_ context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _POIImage_alt_text(ctx context.Context, field graphql.CollectedField, obj *db.PointOfInterestImage) (ret graphql.Marshaler) {
+func (ec *executionContext) _POIImage_alt_text(ctx context.Context, field graphql.CollectedField, obj *db.PoiImage) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -5754,7 +5821,7 @@ func (ec *executionContext) fieldContext_POIImage_alt_text(_ context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _POIImage_created_at(ctx context.Context, field graphql.CollectedField, obj *db.PointOfInterestImage) (ret graphql.Marshaler) {
+func (ec *executionContext) _POIImage_created_at(ctx context.Context, field graphql.CollectedField, obj *db.PoiImage) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -5783,7 +5850,7 @@ func (ec *executionContext) fieldContext_POIImage_created_at(_ context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _POIImage_updated_at(ctx context.Context, field graphql.CollectedField, obj *db.PointOfInterestImage) (ret graphql.Marshaler) {
+func (ec *executionContext) _POIImage_updated_at(ctx context.Context, field graphql.CollectedField, obj *db.PoiImage) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -6454,7 +6521,8 @@ func (ec *executionContext) _Query_categories(ctx context.Context, field graphql
 		field,
 		ec.fieldContext_Query_categories,
 		func(ctx context.Context) (any, error) {
-			return ec.resolvers.Query().Categories(ctx)
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().Categories(ctx, fc.Args["limit"].(*int), fc.Args["offset"].(*int))
 		},
 		nil,
 		ec.marshalNCategory2ᚕᚖgraphqlᚋinternalᚋdbᚐCategoryᚄ,
@@ -6463,7 +6531,7 @@ func (ec *executionContext) _Query_categories(ctx context.Context, field graphql
 	)
 }
 
-func (ec *executionContext) fieldContext_Query_categories(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_categories(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -6486,6 +6554,17 @@ func (ec *executionContext) fieldContext_Query_categories(_ context.Context, fie
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Category", field.Name)
 		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_categories_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -7315,7 +7394,8 @@ func (ec *executionContext) _Query_tours(ctx context.Context, field graphql.Coll
 		field,
 		ec.fieldContext_Query_tours,
 		func(ctx context.Context) (any, error) {
-			return ec.resolvers.Query().Tours(ctx)
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().Tours(ctx, fc.Args["limit"].(*int), fc.Args["offset"].(*int))
 		},
 		nil,
 		ec.marshalNTour2ᚕᚖgraphqlᚋinternalᚋdbᚐTourᚄ,
@@ -7324,7 +7404,7 @@ func (ec *executionContext) _Query_tours(ctx context.Context, field graphql.Coll
 	)
 }
 
-func (ec *executionContext) fieldContext_Query_tours(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_tours(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -7357,6 +7437,17 @@ func (ec *executionContext) fieldContext_Query_tours(_ context.Context, field gr
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Tour", field.Name)
 		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_tours_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -7482,7 +7573,8 @@ func (ec *executionContext) _Query_pois(ctx context.Context, field graphql.Colle
 		field,
 		ec.fieldContext_Query_pois,
 		func(ctx context.Context) (any, error) {
-			return ec.resolvers.Query().Pois(ctx)
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().Pois(ctx, fc.Args["limit"].(*int), fc.Args["offset"].(*int))
 		},
 		nil,
 		ec.marshalNPOI2ᚕᚖgraphqlᚋinternalᚋdbᚐPointsOfInterestᚄ,
@@ -7491,7 +7583,7 @@ func (ec *executionContext) _Query_pois(ctx context.Context, field graphql.Colle
 	)
 }
 
-func (ec *executionContext) fieldContext_Query_pois(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_pois(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -7518,6 +7610,17 @@ func (ec *executionContext) fieldContext_Query_pois(_ context.Context, field gra
 			}
 			return nil, fmt.Errorf("no field named %q was found under type POI", field.Name)
 		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_pois_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -7592,7 +7695,7 @@ func (ec *executionContext) _Query_poiImage(ctx context.Context, field graphql.C
 			return ec.resolvers.Query().PoiImage(ctx, fc.Args["id"].(uuid.UUID))
 		},
 		nil,
-		ec.marshalNPOIImage2ᚖgraphqlᚋinternalᚋdbᚐPointOfInterestImage,
+		ec.marshalNPOIImage2ᚖgraphqlᚋinternalᚋdbᚐPoiImage,
 		true,
 		true,
 	)
@@ -11108,7 +11211,7 @@ func (ec *executionContext) _POI(ctx context.Context, sel ast.SelectionSet, obj 
 
 var pOIImageImplementors = []string{"POIImage"}
 
-func (ec *executionContext) _POIImage(ctx context.Context, sel ast.SelectionSet, obj *db.PointOfInterestImage) graphql.Marshaler {
+func (ec *executionContext) _POIImage(ctx context.Context, sel ast.SelectionSet, obj *db.PoiImage) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, pOIImageImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -13239,11 +13342,11 @@ func (ec *executionContext) marshalNPOI2ᚖgraphqlᚋinternalᚋdbᚐPointsOfInt
 	return ec._POI(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNPOIImage2graphqlᚋinternalᚋdbᚐPointOfInterestImage(ctx context.Context, sel ast.SelectionSet, v db.PointOfInterestImage) graphql.Marshaler {
+func (ec *executionContext) marshalNPOIImage2graphqlᚋinternalᚋdbᚐPoiImage(ctx context.Context, sel ast.SelectionSet, v db.PoiImage) graphql.Marshaler {
 	return ec._POIImage(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNPOIImage2ᚕᚖgraphqlᚋinternalᚋdbᚐPointOfInterestImageᚄ(ctx context.Context, sel ast.SelectionSet, v []*db.PointOfInterestImage) graphql.Marshaler {
+func (ec *executionContext) marshalNPOIImage2ᚕᚖgraphqlᚋinternalᚋdbᚐPoiImageᚄ(ctx context.Context, sel ast.SelectionSet, v []*db.PoiImage) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -13267,7 +13370,7 @@ func (ec *executionContext) marshalNPOIImage2ᚕᚖgraphqlᚋinternalᚋdbᚐPoi
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNPOIImage2ᚖgraphqlᚋinternalᚋdbᚐPointOfInterestImage(ctx, sel, v[i])
+			ret[i] = ec.marshalNPOIImage2ᚖgraphqlᚋinternalᚋdbᚐPoiImage(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -13287,7 +13390,7 @@ func (ec *executionContext) marshalNPOIImage2ᚕᚖgraphqlᚋinternalᚋdbᚐPoi
 	return ret
 }
 
-func (ec *executionContext) marshalNPOIImage2ᚖgraphqlᚋinternalᚋdbᚐPointOfInterestImage(ctx context.Context, sel ast.SelectionSet, v *db.PointOfInterestImage) graphql.Marshaler {
+func (ec *executionContext) marshalNPOIImage2ᚖgraphqlᚋinternalᚋdbᚐPoiImage(ctx context.Context, sel ast.SelectionSet, v *db.PoiImage) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")

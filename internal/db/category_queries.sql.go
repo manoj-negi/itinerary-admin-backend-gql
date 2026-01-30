@@ -97,10 +97,16 @@ const listCategories = `-- name: ListCategories :many
 SELECT id, category_name, description, created_at, updated_at
 FROM categories
 ORDER BY id
+LIMIT $1 OFFSET $2
 `
 
-func (q *Queries) ListCategories(ctx context.Context) ([]Category, error) {
-	rows, err := q.db.QueryContext(ctx, listCategories)
+type ListCategoriesParams struct {
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+func (q *Queries) ListCategories(ctx context.Context, arg ListCategoriesParams) ([]Category, error) {
+	rows, err := q.db.QueryContext(ctx, listCategories, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -131,20 +137,21 @@ func (q *Queries) ListCategories(ctx context.Context) ([]Category, error) {
 const updateCategory = `-- name: UpdateCategory :one
 UPDATE categories
 SET
-  category_name = COALESCE($2, category_name),
-  description = COALESCE($3, description)
+  category_name = COALESCE(NULLIF($2, ''), category_name),
+  description   = COALESCE($3, description),
+  updated_at    = NOW()
 WHERE id = $1
 RETURNING id, category_name, description, created_at, updated_at
 `
 
 type UpdateCategoryParams struct {
-	ID           uuid.UUID      `json:"id"`
-	CategoryName string         `json:"category_name"`
-	Description  sql.NullString `json:"description"`
+	ID          uuid.UUID      `json:"id"`
+	Column2     interface{}    `json:"column_2"`
+	Description sql.NullString `json:"description"`
 }
 
 func (q *Queries) UpdateCategory(ctx context.Context, arg UpdateCategoryParams) (Category, error) {
-	row := q.db.QueryRowContext(ctx, updateCategory, arg.ID, arg.CategoryName, arg.Description)
+	row := q.db.QueryRowContext(ctx, updateCategory, arg.ID, arg.Column2, arg.Description)
 	var i Category
 	err := row.Scan(
 		&i.ID,

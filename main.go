@@ -2,11 +2,13 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"net/http"
+
 	"graphql/database"
 	"graphql/graphql"
 	"graphql/graphql/generated"
-	"log"
-	"net/http"
+	"graphql/internal/auth"
 
 	"github.com/joho/godotenv"
 
@@ -17,12 +19,10 @@ import (
 func enableCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		// Allow your frontend origin
 		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 		w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
 
-		// Handle preflight request
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusOK)
 			return
@@ -33,25 +33,37 @@ func enableCORS(next http.Handler) http.Handler {
 }
 
 func main() {
-	// Initialize database connection
+	// Load env first
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found")
+	}
+
+	// Init DB
 	database.InitDB()
 	defer database.DB.Close()
-	godotenv.Load()
-	// Create GraphQL resolver
+
+	// Resolver
 	resolver := &graphql.Resolver{}
 
-	// Create GraphQL executable schema
-	config := generated.Config{Resolvers: resolver}
-	executableSchema := generated.NewExecutableSchema(config)
+	// Schema
+	schema := generated.NewExecutableSchema(
+		generated.Config{Resolvers: resolver},
+	)
 
-	srv := handler.NewDefaultServer(executableSchema)
+	// GraphQL server
+	srv := handler.NewDefaultServer(schema)
 
-	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	http.Handle("/query", srv)
-	http.Handle("/graphql", enableCORS(srv))
+	// Apply middleware chain
+	graphQLHandler := enableCORS(auth.Middleware(srv))
 
-	fmt.Println("Server is running on http://localhost:8080")
-	fmt.Println("GraphQL playground available at http://localhost:8080/")
-	fmt.Println("GraphQL endpoint available at http://localhost:8080/query")
+	// Routes
+	http.Handle("/", playground.Handler("GraphQL playground", "/graphql"))
+	http.Handle("/graphql", graphQLHandler)
+
+	fmt.Println("Server running at http://localhost:8080")
+	fmt.Println("Playground at http://localhost:8080/")
+	fmt.Println("GraphQL endpoint at http://localhost:8080/graphql")
+	// log.Println("JWT_SECRET:", os.Getenv("JWT_SECRET"))
+
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }

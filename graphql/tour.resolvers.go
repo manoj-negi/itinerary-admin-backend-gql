@@ -13,14 +13,21 @@ import (
 	"graphql/graphql/generated"
 	"graphql/graphql/models"
 	"graphql/internal/db"
+	appErr "graphql/internal/errors"
+	"graphql/internal/validation"
 
 	"github.com/google/uuid"
 )
 
 // CreateTour is the resolver for the createTour field.
 func (r *mutationResolver) CreateTour(ctx context.Context, title string, description *string, categoryID uuid.UUID, cityID uuid.UUID, durationDays int, createdBy uuid.UUID, status string, images []*models.TourImageInput) (*db.Tour, error) {
+	// ---- BASIC VALIDATION ----
 	if title == "" || categoryID == uuid.Nil || cityID == uuid.Nil || createdBy == uuid.Nil || status == "" {
-		return nil, errors.New("title, category_id, city_id, created_by and status are required")
+		return nil, appErr.InvalidInput()
+	}
+	// ---- STATUS VALIDATION ----
+	if err := validation.ValidateTourStatus(status); err != nil {
+		return nil, appErr.InvalidInput()
 	}
 
 	var desc sql.NullString
@@ -28,8 +35,27 @@ func (r *mutationResolver) CreateTour(ctx context.Context, title string, descrip
 		desc = sql.NullString{String: *description, Valid: true}
 	}
 
+	// ---- START TRANSACTION ----
+	tx, err := database.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	qtx := db.New(tx)
+	// FK validations
+	if err := validation.ValidateCategoryID(ctx, qtx, categoryID); err != nil {
+		return nil, err
+	}
+	if err := validation.ValidateCityID(ctx, qtx, cityID); err != nil {
+		return nil, err
+	}
+	if err := validation.ValidateUserID(ctx, qtx, createdBy); err != nil {
+		return nil, err
+	}
+
 	// 1) Tour create
-	tour, err := database.Queries.CreateTour(ctx, db.CreateTourParams{
+	tour, err := qtx.CreateTour(ctx, db.CreateTourParams{
 		Title:        title,
 		Description:  desc,
 		CategoryID:   categoryID,
@@ -53,7 +79,7 @@ func (r *mutationResolver) CreateTour(ctx context.Context, title string, descrip
 			alt = sql.NullString{String: *img.AltText, Valid: true}
 		}
 
-		_, err := database.Queries.CreateTourImage(ctx, db.CreateTourImageParams{
+		_, err := qtx.CreateTourImage(ctx, db.CreateTourImageParams{
 			TourID:  tour.ID,
 			FileUrl: img.FileURL,
 			AltText: alt,
@@ -62,6 +88,10 @@ func (r *mutationResolver) CreateTour(ctx context.Context, title string, descrip
 			return nil, err
 		}
 	}
+	// ---- COMMIT ----
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
 
 	return &tour, nil
 }
@@ -69,10 +99,38 @@ func (r *mutationResolver) CreateTour(ctx context.Context, title string, descrip
 // UpdateTour is the resolver for the updateTour field.
 func (r *mutationResolver) UpdateTour(ctx context.Context, id uuid.UUID, title *string, description *string, categoryID *uuid.UUID, cityID *uuid.UUID, durationDays *int, createdBy *uuid.UUID, status *string, images []*models.TourImageInput) (*db.Tour, error) {
 	if id == uuid.Nil {
-		return nil, errors.New("invalid tour id")
+		return nil, appErr.InvalidInput()
+	}
+	// ---- START TRANSACTION ----
+	tx, err := database.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	qtx := db.New(tx)
+
+	existing, err := qtx.GetTour(ctx, id)
+
+	// ---- FK VALIDATION ----
+	if categoryID != nil {
+		if err := validation.ValidateCategoryID(ctx, qtx, *categoryID); err != nil {
+			return nil, err
+		}
 	}
 
-	existing, err := database.Queries.GetTour(ctx, id)
+	if cityID != nil {
+		if err := validation.ValidateCityID(ctx, qtx, *cityID); err != nil {
+			return nil, err
+		}
+	}
+
+	if createdBy != nil {
+		if err := validation.ValidateUserID(ctx, qtx, *createdBy); err != nil {
+			return nil, err
+		}
+	}
+
 	if err == sql.ErrNoRows {
 		return nil, errors.New("tour not found")
 	}
@@ -80,20 +138,21 @@ func (r *mutationResolver) UpdateTour(ctx context.Context, id uuid.UUID, title *
 		return nil, err
 	}
 
+	// ---- MERGE FIELDS ----
 	newTitle := existing.Title
 	if title != nil {
 		newTitle = *title
 	}
 
-	newDesc := existing.Description
+	newDesc := existing.Description.String
 	if description != nil {
-		newDesc = sql.NullString{String: *description, Valid: true}
+		newDesc = *description
 	}
 
 	newCategoryID := existing.CategoryID
 	if categoryID != nil {
 		if *categoryID == uuid.Nil {
-			return nil, errors.New("invalid category id")
+			return nil, appErr.InvalidInput()
 		}
 		newCategoryID = *categoryID
 	}
@@ -101,7 +160,7 @@ func (r *mutationResolver) UpdateTour(ctx context.Context, id uuid.UUID, title *
 	newCityID := existing.CityID
 	if cityID != nil {
 		if *cityID == uuid.Nil {
-			return nil, errors.New("invalid city id")
+			return nil, appErr.InvalidInput()
 		}
 		newCityID = *cityID
 	}
@@ -114,18 +173,21 @@ func (r *mutationResolver) UpdateTour(ctx context.Context, id uuid.UUID, title *
 	newCreatedBy := existing.CreatedBy
 	if createdBy != nil {
 		if *createdBy == uuid.Nil {
-			return nil, errors.New("invalid created_by id")
+			return nil, appErr.InvalidInput()
 		}
 		newCreatedBy = *createdBy
 	}
 
 	newStatus := existing.Status
 	if status != nil {
+		if err := validation.ValidateTourStatus(*status); err != nil {
+			return nil, appErr.InvalidInput()
+		}
 		newStatus = *status
 	}
 
 	// 1) Tour update
-	tour, err := database.Queries.UpdateTour(ctx, db.UpdateTourParams{
+	tour, err := qtx.UpdateTour(ctx, db.UpdateTourParams{
 		ID:           id,
 		Title:        newTitle,
 		Description:  newDesc,
@@ -139,14 +201,13 @@ func (r *mutationResolver) UpdateTour(ctx context.Context, id uuid.UUID, title *
 		return nil, err
 	}
 
-	// 2) Images argument diya ho to replace karo
+	// ---- UPDATE IMAGES  ----
 	if images != nil {
-		// Purane saare images delete
-		if err := database.Queries.DeleteTourImagesByTour(ctx, tour.ID); err != nil {
+		if err := qtx.DeleteTourImagesByTour(ctx, tour.ID); err != nil {
 			return nil, err
 		}
 
-		// Naye insert
+		// New image insert
 		for _, img := range images {
 			if img == nil || img.FileURL == "" {
 				continue
@@ -157,7 +218,7 @@ func (r *mutationResolver) UpdateTour(ctx context.Context, id uuid.UUID, title *
 				alt = sql.NullString{String: *img.AltText, Valid: true}
 			}
 
-			_, err := database.Queries.CreateTourImage(ctx, db.CreateTourImageParams{
+			_, err := qtx.CreateTourImage(ctx, db.CreateTourImageParams{
 				TourID:  tour.ID,
 				FileUrl: img.FileURL,
 				AltText: alt,
@@ -168,13 +229,17 @@ func (r *mutationResolver) UpdateTour(ctx context.Context, id uuid.UUID, title *
 		}
 	}
 
+	// ---- COMMIT ----
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
 	return &tour, nil
 }
 
 // DeleteTour is the resolver for the deleteTour field.
 func (r *mutationResolver) DeleteTour(ctx context.Context, id uuid.UUID) (*db.Tour, error) {
 	if id == uuid.Nil {
-		return nil, errors.New("invalid tour id")
+		return nil, appErr.InvalidInput()
 	}
 
 	tour, err := database.Queries.DeleteTour(ctx, id)
@@ -191,7 +256,7 @@ func (r *mutationResolver) DeleteTour(ctx context.Context, id uuid.UUID) (*db.To
 // Tour is the resolver for the tour field.
 func (r *queryResolver) Tour(ctx context.Context, id uuid.UUID) (*db.Tour, error) {
 	if id == uuid.Nil {
-		return nil, errors.New("invalid tour id")
+		return nil, appErr.InvalidInput()
 	}
 
 	tour, err := database.Queries.GetTour(ctx, id)
@@ -206,8 +271,21 @@ func (r *queryResolver) Tour(ctx context.Context, id uuid.UUID) (*db.Tour, error
 }
 
 // Tours is the resolver for the tours field.
-func (r *queryResolver) Tours(ctx context.Context) ([]*db.Tour, error) {
-	toursDB, err := database.Queries.ListTours(ctx)
+func (r *queryResolver) Tours(ctx context.Context, limit *int, offset *int) ([]*db.Tour, error) {
+	// ---- DEFAULTS ----
+	var l int32 = 20
+	var o int32 = 0
+
+	if limit != nil && *limit > 0 {
+		l = int32(*limit)
+	}
+	if offset != nil && *offset >= 0 {
+		o = int32(*offset)
+	}
+	toursDB, err := database.Queries.ListTours(ctx, db.ListToursParams{
+		Limit:  l,
+		Offset: o,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -223,7 +301,7 @@ func (r *queryResolver) Tours(ctx context.Context) ([]*db.Tour, error) {
 // TourImage is the resolver for the tourImage field.
 func (r *queryResolver) TourImage(ctx context.Context, id uuid.UUID) (*db.TourImage, error) {
 	if id == uuid.Nil {
-		return nil, errors.New("invalid image id")
+		return nil, appErr.InvalidInput()
 	}
 
 	img, err := database.Queries.GetTourImageByID(ctx, id)

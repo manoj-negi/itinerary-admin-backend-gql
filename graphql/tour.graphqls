@@ -28,7 +28,7 @@ input TourImageInput {
 
 extend type Query {
   tour(id: UUID!): Tour
-  tours: [Tour!]!
+  tours(limit: Int, offset: Int): [Tour!]!
   tourImage(id: UUID!): TourImage!
 }
 

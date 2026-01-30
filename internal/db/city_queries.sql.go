@@ -11,6 +11,19 @@ import (
 	"github.com/google/uuid"
 )
 
+const cityExists = `-- name: CityExists :one
+SELECT EXISTS (
+	SELECT 1 FROM cities WHERE id = $1
+)
+`
+
+func (q *Queries) CityExists(ctx context.Context, id uuid.UUID) (bool, error) {
+	row := q.db.QueryRowContext(ctx, cityExists, id)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const createCity = `-- name: CreateCity :one
 
 INSERT INTO cities (state_id, name)

@@ -106,10 +106,16 @@ const listTours = `-- name: ListTours :many
 SELECT id, title, description, category_id, city_id, duration_days, created_by, status, created_at, updated_at
 FROM tours
 ORDER BY id
+LIMIT $1 OFFSET $2
 `
 
-func (q *Queries) ListTours(ctx context.Context) ([]Tour, error) {
-	rows, err := q.db.QueryContext(ctx, listTours)
+type ListToursParams struct {
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+func (q *Queries) ListTours(ctx context.Context, arg ListToursParams) ([]Tour, error) {
+	rows, err := q.db.QueryContext(ctx, listTours, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -145,27 +151,37 @@ func (q *Queries) ListTours(ctx context.Context) ([]Tour, error) {
 const updateTour = `-- name: UpdateTour :one
 UPDATE tours
 SET
-  title         = COALESCE($1, title),
-  description   = COALESCE($2, description),
-  category_id   = COALESCE($3, category_id),
-  city_id       = COALESCE($4, city_id),
-  duration_days = COALESCE($5, duration_days),
-  created_by    = COALESCE($6, created_by),
-  status        = COALESCE($7, status),
+  title         = CASE WHEN $1::text IS NOT NULL THEN $1 ELSE title END,
+  description   = CASE WHEN $2::text IS NOT NULL THEN $2 ELSE description END,
+  category_id   = CASE WHEN $3::uuid IS NOT NULL THEN $3 ELSE category_id END,
+  city_id       = CASE WHEN $4::uuid IS NOT NULL THEN $4 ELSE city_id END,
+  duration_days = CASE WHEN $5::int IS NOT NULL THEN $5 ELSE duration_days END,
+  created_by    = CASE WHEN $6::uuid IS NOT NULL THEN $6 ELSE created_by END,
+  status        = CASE WHEN $7::text IS NOT NULL THEN $7 ELSE status END,
   updated_at    = NOW()
 WHERE id = $8
-RETURNING id, title, description, category_id, city_id, duration_days, created_by, status, created_at, updated_at
+RETURNING
+  id,
+  title,
+  description,
+  category_id,
+  city_id,
+  duration_days,
+  created_by,
+  status,
+  created_at,
+  updated_at
 `
 
 type UpdateTourParams struct {
-	Title        string         `json:"title"`
-	Description  sql.NullString `json:"description"`
-	CategoryID   uuid.UUID      `json:"category_id"`
-	CityID       uuid.UUID      `json:"city_id"`
-	DurationDays int32          `json:"duration_days"`
-	CreatedBy    uuid.UUID      `json:"created_by"`
-	Status       string         `json:"status"`
-	ID           uuid.UUID      `json:"id"`
+	Title        string    `json:"title"`
+	Description  string    `json:"description"`
+	CategoryID   uuid.UUID `json:"category_id"`
+	CityID       uuid.UUID `json:"city_id"`
+	DurationDays int32     `json:"duration_days"`
+	CreatedBy    uuid.UUID `json:"created_by"`
+	Status       string    `json:"status"`
+	ID           uuid.UUID `json:"id"`
 }
 
 func (q *Queries) UpdateTour(ctx context.Context, arg UpdateTourParams) (Tour, error) {

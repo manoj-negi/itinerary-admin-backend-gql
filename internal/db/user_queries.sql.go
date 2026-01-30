@@ -192,7 +192,7 @@ UPDATE users
 SET
   full_name = COALESCE($1, full_name),
   email = COALESCE($2, email),
-  password = COALESCE($3, password),
+  password  = COALESCE(NULLIF($3, ''), password),
   phone = COALESCE($4, phone),
   role_id = COALESCE($5, role_id),
   updated_at = NOW()
@@ -203,7 +203,7 @@ RETURNING id, full_name, email, phone, role_id, created_at, updated_at
 type UpdateUserParams struct {
 	FullName string         `json:"full_name"`
 	Email    string         `json:"email"`
-	Password string         `json:"password"`
+	Column3  interface{}    `json:"column_3"`
 	Phone    sql.NullString `json:"phone"`
 	RoleID   uuid.NullUUID  `json:"role_id"`
 	ID       uuid.UUID      `json:"id"`
@@ -223,7 +223,7 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (UpdateU
 	row := q.db.QueryRowContext(ctx, updateUser,
 		arg.FullName,
 		arg.Email,
-		arg.Password,
+		arg.Column3,
 		arg.Phone,
 		arg.RoleID,
 		arg.ID,

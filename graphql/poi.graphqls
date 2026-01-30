@@ -25,7 +25,7 @@ input POIImageInput {
 
 extend type Query {
   poi(id: UUID!): POI
-  pois: [POI!]!
+  pois(limit: Int, offset: Int): [POI!]!
   poisByCity(city_id: UUID!): [POI!]!
   poiImage(id: UUID!): POIImage!
 }

@@ -9,13 +9,11 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"graphql/database"
 	"graphql/graphql/generated"
 	"graphql/graphql/models"
 	"graphql/internal/db"
 	"os"
-	"strings"
 	"time"
 
 	jwt "github.com/golang-jwt/jwt/v5"
@@ -24,59 +22,72 @@ import (
 
 // Login is the resolver for the login field.
 func (r *mutationResolver) Login(ctx context.Context, email string, password string) (*models.LoginResponse, error) {
+	// Validate input
 	if email == "" || password == "" {
 		return nil, errors.New("email and password are required")
 	}
 
-	// 1) Fetch user by email
+	// Fetch user by email
 	userDB, err := database.Queries.GetUserByEmail(ctx, email)
 	if err == sql.ErrNoRows {
 		return nil, errors.New("invalid credentials")
 	}
 	if err != nil {
-		return nil, err
+		return nil, errors.New("login failed")
 	}
 
-	// 2) Verify password (bcrypt or plaintext migration)
-	ok := false
-	if strings.HasPrefix(userDB.Password, "$2a$") ||
-		strings.HasPrefix(userDB.Password, "$2b$") ||
-		strings.HasPrefix(userDB.Password, "$2y$") {
-		if bcrypt.CompareHashAndPassword([]byte(userDB.Password), []byte(password)) == nil {
-			ok = true
+	// Verify password (bcrypt + legacy plaintext migration)
+	if err := bcrypt.CompareHashAndPassword(
+		[]byte(userDB.Password),
+		[]byte(password),
+	); err != nil {
+
+		// plaintext fallback (legacy)
+		if userDB.Password != password {
+			return nil, errors.New("invalid credentials")
 		}
-	} else {
-		if userDB.Password == password {
-			ok = true
-			// Migrate to bcrypt (fire-and-forget)
-			if hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost); err == nil {
-				_, _ = database.DB.ExecContext(ctx,
-					`UPDATE users SET password = $1 WHERE id = $2`,
-					string(hash), userDB.ID)
-			}
+
+		// upgrade plaintext → bcrypt
+		hashed, err := bcrypt.GenerateFromPassword(
+			[]byte(password),
+			bcrypt.DefaultCost,
+		)
+		if err == nil {
+			_, _ = database.DB.ExecContext(
+				ctx,
+				`UPDATE users SET password = $1 WHERE id = $2`,
+				string(hashed),
+				userDB.ID,
+			)
 		}
 	}
 
-	if !ok {
-		return nil, errors.New("invalid credentials")
-	}
-
-	// 3) Generate JWT
+	// JWT secret (MANDATORY — NO FALLBACK)
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
-		secret = "devsecret" // TODO: Remove in production
+		return nil, errors.New("server misconfiguration")
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub": fmt.Sprintf("%d", userDB.ID),
+	//  Prepare JWT claims
+	claims := jwt.MapClaims{
+		"sub": userDB.ID.String(), // user UUID
 		"exp": time.Now().Add(24 * time.Hour).Unix(),
-	})
+		"iat": time.Now().Unix(),
+	}
+
+	// add role only if valid
+	if userDB.RoleID.Valid {
+		claims["role"] = userDB.RoleID.UUID.String()
+	}
+
+	// Sign JWT
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenStr, err := token.SignedString([]byte(secret))
 	if err != nil {
-		return nil, err
+		return nil, errors.New("failed to generate token")
 	}
 
-	// 4) Convert userDB → db.User
+	//  Build user response (NO password)
 	user := &db.User{
 		ID:        userDB.ID,
 		FullName:  userDB.FullName,
@@ -87,7 +98,7 @@ func (r *mutationResolver) Login(ctx context.Context, email string, password str
 		UpdatedAt: userDB.UpdatedAt,
 	}
 
-	// 5) Return LoginResponse
+	// Return response
 	return &models.LoginResponse{
 		Token: tokenStr,
 		User:  user,

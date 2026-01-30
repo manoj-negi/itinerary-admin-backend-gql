@@ -9,10 +9,15 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	stdErrors "errors"
+	"fmt"
 	"graphql/database"
 	"graphql/graphql/generated"
 	"graphql/graphql/models"
 	"graphql/internal/db"
+
+	dbtime "graphql/internal/dbTime"
+	appErr "graphql/internal/errors"
 
 	"github.com/google/uuid"
 )
@@ -28,6 +33,8 @@ func (r *categoryResolver) Description(ctx context.Context, obj *db.Category) (*
 
 // Images is the resolver for the images field.
 func (r *categoryResolver) Images(ctx context.Context, obj *db.Category) ([]*db.CategoryImage, error) {
+	ctx, cancel := context.WithTimeout(ctx, dbtime.DataBaseTimeOut)
+	defer cancel()
 	imgs, err := database.Queries.ListCategoryImagesByCategory(ctx, obj.ID)
 	if err != nil {
 		return nil, err
@@ -53,24 +60,34 @@ func (r *categoryImageResolver) AltText(ctx context.Context, obj *db.CategoryIma
 // CreateCategory is the resolver for the createCategory field.
 func (r *mutationResolver) CreateCategory(ctx context.Context, categoryName string, description *string, images []*models.CategoryImageInput) (*db.Category, error) {
 	if categoryName == "" {
-		return nil, errors.New("category_name is required")
+		return nil, appErr.InvalidInput()
 	}
 
 	var desc sql.NullString
 	if description != nil {
 		desc = sql.NullString{String: *description, Valid: true}
 	}
+	ctx, cancel := context.WithTimeout(ctx, dbtime.DataBaseTimeOut)
+	defer cancel()
+	// START TRANSACTION
+	tx, err := database.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback() // auto rollback on error
 
-	// 1) Category create
-	cat, err := database.Queries.CreateCategory(ctx, db.CreateCategoryParams{
+	qtx := database.Queries.WithTx(tx)
+
+	// Create category
+	cat, err := qtx.CreateCategory(ctx, db.CreateCategoryParams{
 		CategoryName: categoryName,
 		Description:  desc,
 	})
 	if err != nil {
-		return nil, err
+		return nil, appErr.FromDB(err)
 	}
 
-	// 2) Images insert (EXACT SAME AS PACKAGE)
+	// Insert images
 	for _, img := range images {
 		if img == nil || img.FileURL == "" {
 			continue
@@ -81,14 +98,17 @@ func (r *mutationResolver) CreateCategory(ctx context.Context, categoryName stri
 			alt = sql.NullString{String: *img.AltText, Valid: true}
 		}
 
-		_, err := database.Queries.CreateCategoryImage(ctx, db.CreateCategoryImageParams{
+		if _, err := qtx.CreateCategoryImage(ctx, db.CreateCategoryImageParams{
 			CategoryID: cat.ID,
 			FileUrl:    img.FileURL,
 			AltText:    alt,
-		})
-		if err != nil {
-			return nil, err
+		}); err != nil {
+			return nil, appErr.Internal(err)
 		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
 	}
 
 	return &cat, nil
@@ -97,19 +117,28 @@ func (r *mutationResolver) CreateCategory(ctx context.Context, categoryName stri
 // UpdateCategory is the resolver for the updateCategory field.
 func (r *mutationResolver) UpdateCategory(ctx context.Context, id uuid.UUID, categoryName *string, description *string, images []*models.CategoryImageInput) (*db.Category, error) {
 	if id == uuid.Nil {
-		return nil, errors.New("invalid category id")
+		return nil, appErr.InvalidInput()
 	}
-
-	// existing row for defaults
-	existing, err := database.Queries.GetCategory(ctx, id)
-	if err == sql.ErrNoRows {
-		return nil, errors.New("category not found")
-	}
+	ctx, cancel := context.WithTimeout(ctx, dbtime.DataBaseTimeOut)
+	defer cancel()
+	// START TRANSACTION
+	tx, err := database.DB.BeginTx(ctx, nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("start tx failed: %w", err)
+	}
+	defer tx.Rollback()
+
+	qtx := database.Queries.WithTx(tx)
+
+	// Existing row
+	existing, err := qtx.GetCategory(ctx, id)
+	if err != nil {
+		if stdErrors.Is(err, sql.ErrNoRows) {
+			return nil, appErr.NotFound()
+		}
+		return nil, appErr.Internal(err)
 	}
 
-	// Resolve new values
 	newName := existing.CategoryName
 	if categoryName != nil {
 		newName = *categoryName
@@ -120,24 +149,22 @@ func (r *mutationResolver) UpdateCategory(ctx context.Context, id uuid.UUID, cat
 		newDesc = sql.NullString{String: *description, Valid: true}
 	}
 
-	// 1) Category update
-	cat, err := database.Queries.UpdateCategory(ctx, db.UpdateCategoryParams{
-		ID:           id,
-		CategoryName: newName,
-		Description:  newDesc,
+	// Update category
+	cat, err := qtx.UpdateCategory(ctx, db.UpdateCategoryParams{
+		ID:          id,
+		Column2:     newName,
+		Description: newDesc,
 	})
 	if err != nil {
-		return nil, err
+		return nil, appErr.FromDB(err)
 	}
 
-	// 2) Images replace if provided (EXACT SAME AS PACKAGE)
+	// Replace images atomically
 	if images != nil {
-		// Delete old images
-		if err := database.Queries.DeleteCategoryImagesByCategory(ctx, cat.ID); err != nil {
-			return nil, err
+		if err := qtx.DeleteCategoryImagesByCategory(ctx, cat.ID); err != nil {
+			return nil, appErr.Internal(err)
 		}
 
-		// Insert new images
 		for _, img := range images {
 			if img == nil || img.FileURL == "" {
 				continue
@@ -148,15 +175,20 @@ func (r *mutationResolver) UpdateCategory(ctx context.Context, id uuid.UUID, cat
 				alt = sql.NullString{String: *img.AltText, Valid: true}
 			}
 
-			_, err := database.Queries.CreateCategoryImage(ctx, db.CreateCategoryImageParams{
+			if _, err := qtx.CreateCategoryImage(ctx, db.CreateCategoryImageParams{
 				CategoryID: cat.ID,
 				FileUrl:    img.FileURL,
 				AltText:    alt,
-			})
-			if err != nil {
-				return nil, err
+			}); err != nil {
+				return nil, fmt.Errorf("create category image failed: %w", err)
 			}
 		}
+	}
+
+	// COMMIT
+
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit failed: %w", err)
 	}
 
 	return &cat, nil
@@ -167,13 +199,14 @@ func (r *mutationResolver) DeleteCategory(ctx context.Context, id uuid.UUID) (*d
 	if id == uuid.Nil {
 		return nil, errors.New("invalid category id")
 	}
-
+	ctx, cancel := context.WithTimeout(ctx, dbtime.DataBaseTimeOut)
+	defer cancel()
 	cat, err := database.Queries.DeleteCategory(ctx, id)
-	if err == sql.ErrNoRows {
-		return nil, errors.New("category not found")
-	}
 	if err != nil {
-		return nil, err
+		if stdErrors.Is(err, sql.ErrNoRows) {
+			return nil, appErr.NotFound()
+		}
+		return nil, appErr.Internal(err)
 	}
 
 	return &cat, nil
@@ -182,23 +215,43 @@ func (r *mutationResolver) DeleteCategory(ctx context.Context, id uuid.UUID) (*d
 // Category is the resolver for the category field.
 func (r *queryResolver) Category(ctx context.Context, id uuid.UUID) (*db.Category, error) {
 	if id == uuid.Nil {
-		return nil, errors.New("invalid category ID")
+		return nil, appErr.InvalidInput()
 	}
-
+	ctx, cancel := context.WithTimeout(ctx, dbtime.DataBaseTimeOut)
+	defer cancel()
 	categoryDB, err := database.Queries.GetCategory(ctx, id)
-	if err == sql.ErrNoRows {
-		return nil, errors.New("category not found")
-	}
 	if err != nil {
-		return nil, err
+		if stdErrors.Is(err, sql.ErrNoRows) {
+			return nil, appErr.NotFound()
+		}
+		return nil, appErr.Internal(err)
 	}
 
 	return &categoryDB, nil
 }
 
 // Categories is the resolver for the categories field.
-func (r *queryResolver) Categories(ctx context.Context) ([]*db.Category, error) {
-	categoriesDB, err := database.Queries.ListCategories(ctx)
+func (r *queryResolver) Categories(ctx context.Context, limit *int, offset *int) ([]*db.Category, error) {
+	ctx, cancel := context.WithTimeout(ctx, dbtime.DataBaseTimeOut)
+	defer cancel()
+
+	var l int32 = 20
+	var o int32 = 0
+
+	if limit != nil && *limit > 0 {
+		l = int32(*limit)
+	}
+	if offset != nil && *offset >= 0 {
+		o = int32(*offset)
+	}
+
+	categoriesDB, err := database.Queries.ListCategories(
+		ctx,
+		db.ListCategoriesParams{
+			Limit:  l,
+			Offset: o,
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -207,6 +260,7 @@ func (r *queryResolver) Categories(ctx context.Context) ([]*db.Category, error) 
 	for i := range categoriesDB {
 		categories[i] = &categoriesDB[i]
 	}
+
 	return categories, nil
 }
 
@@ -215,13 +269,14 @@ func (r *queryResolver) CategoryImage(ctx context.Context, id uuid.UUID) (*db.Ca
 	if id == uuid.Nil {
 		return nil, errors.New("invalid image id")
 	}
-
+	ctx, cancel := context.WithTimeout(ctx, dbtime.DataBaseTimeOut)
+	defer cancel()
 	img, err := database.Queries.GetCategoryImageByID(ctx, id)
-	if err == sql.ErrNoRows {
-		return nil, errors.New("image not found")
-	}
 	if err != nil {
-		return nil, err
+		if stdErrors.Is(err, sql.ErrNoRows) {
+			return nil, appErr.NotFound()
+		}
+		return nil, appErr.Internal(err)
 	}
 
 	return &img, nil

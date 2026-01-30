@@ -8,10 +8,15 @@ package graphql
 import (
 	"context"
 	"database/sql"
-	"errors"
+	stdErrors "errors"
+	"fmt"
 	"graphql/database"
 	"graphql/graphql/generated"
+	"graphql/internal/auth"
 	"graphql/internal/db"
+	dbtime "graphql/internal/dbTime"
+	appErr "graphql/internal/errors"
+	"graphql/internal/validation"
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
@@ -19,8 +24,17 @@ import (
 
 // CreateUser is the resolver for the createUser field.
 func (r *mutationResolver) CreateUser(ctx context.Context, fullName string, email string, password string, phone *string) (*db.User, error) {
-	if fullName == "" || email == "" || password == "" {
-		return nil, errors.New("full_name, email, and password are required")
+	if err := auth.RequireRole(ctx, auth.RoleAdmin); err != nil {
+		return nil, err
+	}
+
+	if err := validation.ValidateCreateUserInput(validation.CreateUserInput{
+		FullName: fullName,
+		Email:    email,
+		Password: password,
+		Phone:    phone,
+	}); err != nil {
+		return nil, err
 	}
 
 	var phoneVal sql.NullString
@@ -33,7 +47,8 @@ func (r *mutationResolver) CreateUser(ctx context.Context, fullName string, emai
 	if err != nil {
 		return nil, err
 	}
-
+	ctx, cancel := context.WithTimeout(ctx, dbtime.DataBaseTimeOut)
+	defer cancel()
 	userDB, err := database.Queries.CreateUser(ctx, db.CreateUserParams{
 		FullName: fullName,
 		Email:    email,
@@ -41,7 +56,7 @@ func (r *mutationResolver) CreateUser(ctx context.Context, fullName string, emai
 		Phone:    phoneVal,
 	})
 	if err != nil {
-		return nil, err
+		return nil, appErr.FromDB(err)
 	}
 
 	// Convert CreateUserRow to db.User
@@ -60,13 +75,18 @@ func (r *mutationResolver) CreateUser(ctx context.Context, fullName string, emai
 
 // UpdateUser is the resolver for the updateUser field.
 func (r *mutationResolver) UpdateUser(ctx context.Context, id uuid.UUID, fullName *string, email *string, password *string, phone *string) (*db.User, error) {
+	if err := auth.RequireRole(ctx, auth.RoleAdmin); err != nil {
+		return nil, err
+	}
+	ctx, cancel := context.WithTimeout(ctx, dbtime.DataBaseTimeOut)
+	defer cancel()
 	// Fetch existing user
 	existing, err := database.Queries.GetUser(ctx, id)
-	if err == sql.ErrNoRows {
-		return nil, errors.New("user not found")
-	}
 	if err != nil {
-		return nil, err
+		if stdErrors.Is(err, sql.ErrNoRows) {
+			return nil, appErr.NotFound()
+		}
+		return nil, appErr.Internal(err)
 	}
 
 	// Build update values with defaults from existing
@@ -100,14 +120,13 @@ func (r *mutationResolver) UpdateUser(ctx context.Context, id uuid.UUID, fullNam
 		ID:       id,
 		FullName: updateFullName,
 		Email:    updateEmail,
-		Password: updatePassword, // empty = no change
+		Column3:  updatePassword, // empty = no change
 		Phone:    updatePhone,
 		RoleID:   existing.RoleID,
 	})
 	if err != nil {
-		return nil, err
+		return nil, appErr.FromDB(err)
 	}
-
 	// Convert to db.User and return
 	user := &db.User{
 		ID:        userDB.ID,
@@ -124,15 +143,19 @@ func (r *mutationResolver) UpdateUser(ctx context.Context, id uuid.UUID, fullNam
 
 // DeleteUser is the resolver for the deleteUser field.
 func (r *mutationResolver) DeleteUser(ctx context.Context, id uuid.UUID) (*db.User, error) {
-	// Call sqlc delete
-	userDB, err := database.Queries.DeleteUser(ctx, id)
-	if err == sql.ErrNoRows {
-		return nil, errors.New("user not found")
-	}
-	if err != nil {
+	if err := auth.RequireRole(ctx, auth.RoleAdmin); err != nil {
 		return nil, err
 	}
-
+	ctx, cancel := context.WithTimeout(ctx, dbtime.DataBaseTimeOut)
+	defer cancel()
+	// Call sqlc delete
+	userDB, err := database.Queries.DeleteUser(ctx, id)
+	if err != nil {
+		if stdErrors.Is(err, sql.ErrNoRows) {
+			return nil, appErr.NotFound()
+		}
+		return nil, appErr.Internal(err)
+	}
 	// Convert DeleteUserRow → db.User
 	user := &db.User{
 		ID:        userDB.ID,
@@ -148,12 +171,17 @@ func (r *mutationResolver) DeleteUser(ctx context.Context, id uuid.UUID) (*db.Us
 
 // User is the resolver for the user field.
 func (r *queryResolver) User(ctx context.Context, id uuid.UUID) (*db.User, error) {
-	userDB, err := database.Queries.GetUser(ctx, id)
-	if err == sql.ErrNoRows {
-		return nil, errors.New("user not found")
-	}
-	if err != nil {
+	if err := auth.RequireRole(ctx, auth.RoleAdmin); err != nil {
 		return nil, err
+	}
+	ctx, cancel := context.WithTimeout(ctx, dbtime.DataBaseTimeOut)
+	defer cancel()
+	userDB, err := database.Queries.GetUser(ctx, id)
+	if err != nil {
+		if stdErrors.Is(err, sql.ErrNoRows) {
+			return nil, appErr.NotFound()
+		}
+		return nil, appErr.Internal(err)
 	}
 
 	// Convert GetUserRow to db.User
@@ -172,9 +200,14 @@ func (r *queryResolver) User(ctx context.Context, id uuid.UUID) (*db.User, error
 
 // Users is the resolver for the users field.
 func (r *queryResolver) Users(ctx context.Context) ([]*db.User, error) {
+	if err := auth.RequireRole(ctx, auth.RoleAdmin); err != nil {
+		return nil, err
+	}
+	ctx, cancel := context.WithTimeout(ctx, dbtime.DataBaseTimeOut)
+	defer cancel()
 	usersDB, err := database.Queries.ListUsers(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("list users failed: %w", err)
 	}
 
 	users := make([]*db.User, 0, len(usersDB))

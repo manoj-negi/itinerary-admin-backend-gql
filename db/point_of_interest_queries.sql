@@ -11,7 +11,8 @@ WHERE id = $1;
 -- name: ListPOIs :many
 SELECT id, name, description, city_id, type, created_at, updated_at
 FROM points_of_interest
-ORDER BY id ASC;
+ORDER BY id ASC
+LIMIT $1 OFFSET $2;
 
 -- name: ListPOIsByCity :many
 SELECT id, name, description, city_id, type, created_at, updated_at
@@ -22,12 +23,21 @@ ORDER BY id ASC;
 -- name: UpdatePOI :one
 UPDATE points_of_interest
 SET
-  name        = COALESCE($2, name),
-  description = COALESCE($3, description),
-  city_id     = COALESCE($4, city_id),
-  type        = COALESCE($5, type)
-WHERE id = $1
-RETURNING id, name, description, city_id, type, created_at, updated_at;
+  name        = COALESCE(NULLIF(sqlc.arg(name), ''), name),
+  description = COALESCE(sqlc.arg(description), description),
+  city_id     = COALESCE(sqlc.arg(city_id), city_id),
+  type        = COALESCE(NULLIF(sqlc.arg(type), ''), type),
+  updated_at  = NOW()
+WHERE id = sqlc.arg(id)
+RETURNING
+  id,
+  name,
+  description,
+  city_id,
+  type,
+  created_at,
+  updated_at;
+
 
 -- name: DeletePOI :one
 DELETE FROM points_of_interest

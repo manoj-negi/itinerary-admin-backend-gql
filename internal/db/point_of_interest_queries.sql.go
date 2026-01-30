@@ -91,10 +91,16 @@ const listPOIs = `-- name: ListPOIs :many
 SELECT id, name, description, city_id, type, created_at, updated_at
 FROM points_of_interest
 ORDER BY id ASC
+LIMIT $1 OFFSET $2
 `
 
-func (q *Queries) ListPOIs(ctx context.Context) ([]PointsOfInterest, error) {
-	rows, err := q.db.QueryContext(ctx, listPOIs)
+type ListPOIsParams struct {
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+func (q *Queries) ListPOIs(ctx context.Context, arg ListPOIsParams) ([]PointsOfInterest, error) {
+	rows, err := q.db.QueryContext(ctx, listPOIs, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -165,29 +171,37 @@ func (q *Queries) ListPOIsByCity(ctx context.Context, cityID uuid.UUID) ([]Point
 const updatePOI = `-- name: UpdatePOI :one
 UPDATE points_of_interest
 SET
-  name        = COALESCE($2, name),
-  description = COALESCE($3, description),
-  city_id     = COALESCE($4, city_id),
-  type        = COALESCE($5, type)
-WHERE id = $1
-RETURNING id, name, description, city_id, type, created_at, updated_at
+  name        = COALESCE(NULLIF($1, ''), name),
+  description = COALESCE($2, description),
+  city_id     = COALESCE($3, city_id),
+  type        = COALESCE(NULLIF($4, ''), type),
+  updated_at  = NOW()
+WHERE id = $5
+RETURNING
+  id,
+  name,
+  description,
+  city_id,
+  type,
+  created_at,
+  updated_at
 `
 
 type UpdatePOIParams struct {
-	ID          uuid.UUID      `json:"id"`
-	Name        string         `json:"name"`
+	Name        interface{}    `json:"name"`
 	Description sql.NullString `json:"description"`
 	CityID      uuid.UUID      `json:"city_id"`
-	Type        string         `json:"type"`
+	Type        interface{}    `json:"type"`
+	ID          uuid.UUID      `json:"id"`
 }
 
 func (q *Queries) UpdatePOI(ctx context.Context, arg UpdatePOIParams) (PointsOfInterest, error) {
 	row := q.db.QueryRowContext(ctx, updatePOI,
-		arg.ID,
 		arg.Name,
 		arg.Description,
 		arg.CityID,
 		arg.Type,
+		arg.ID,
 	)
 	var i PointsOfInterest
 	err := row.Scan(
