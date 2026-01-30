@@ -10,6 +10,9 @@ type Tour {
   created_at: Time!
   updated_at: Time!
   images: [TourImage!]!
+
+  category: Category
+  city: City
 }
 
 type TourImage {

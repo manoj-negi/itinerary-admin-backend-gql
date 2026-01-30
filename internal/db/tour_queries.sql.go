@@ -8,6 +8,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -128,6 +129,85 @@ func (q *Queries) ListTours(ctx context.Context) ([]Tour, error) {
 			&i.Status,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listToursWithCategoryCity = `-- name: ListToursWithCategoryCity :many
+SELECT
+  t.id,
+  t.title,
+  t.description,
+  t.category_id,
+  t.city_id,
+  t.duration_days,
+  t.created_by,
+  t.status,
+  t.created_at,
+  t.updated_at,
+
+  c.id as category_id_join,
+  c.category_name as category_name,
+
+  ci.id as city_id_join,
+  ci.name as city_name
+FROM tours t
+LEFT JOIN categories c ON c.id = t.category_id
+LEFT JOIN cities ci ON ci.id = t.city_id
+ORDER BY t.created_at DESC
+`
+
+type ListToursWithCategoryCityRow struct {
+	ID             uuid.UUID      `json:"id"`
+	Title          string         `json:"title"`
+	Description    sql.NullString `json:"description"`
+	CategoryID     uuid.UUID      `json:"category_id"`
+	CityID         uuid.UUID      `json:"city_id"`
+	DurationDays   int32          `json:"duration_days"`
+	CreatedBy      uuid.UUID      `json:"created_by"`
+	Status         string         `json:"status"`
+	CreatedAt      time.Time      `json:"created_at"`
+	UpdatedAt      time.Time      `json:"updated_at"`
+	CategoryIDJoin uuid.NullUUID  `json:"category_id_join"`
+	CategoryName   sql.NullString `json:"category_name"`
+	CityIDJoin     uuid.NullUUID  `json:"city_id_join"`
+	CityName       sql.NullString `json:"city_name"`
+}
+
+func (q *Queries) ListToursWithCategoryCity(ctx context.Context) ([]ListToursWithCategoryCityRow, error) {
+	rows, err := q.db.QueryContext(ctx, listToursWithCategoryCity)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListToursWithCategoryCityRow{}
+	for rows.Next() {
+		var i ListToursWithCategoryCityRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Description,
+			&i.CategoryID,
+			&i.CityID,
+			&i.DurationDays,
+			&i.CreatedBy,
+			&i.Status,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.CategoryIDJoin,
+			&i.CategoryName,
+			&i.CityIDJoin,
+			&i.CityName,
 		); err != nil {
 			return nil, err
 		}

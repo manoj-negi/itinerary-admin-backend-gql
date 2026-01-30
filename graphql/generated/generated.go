@@ -221,7 +221,9 @@ type ComplexityRoot struct {
 	}
 
 	Tour struct {
+		Category     func(childComplexity int) int
 		CategoryID   func(childComplexity int) int
+		City         func(childComplexity int) int
 		CityID       func(childComplexity int) int
 		CreatedAt    func(childComplexity int) int
 		CreatedBy    func(childComplexity int) int
@@ -346,6 +348,8 @@ type TourResolver interface {
 	Description(ctx context.Context, obj *db.Tour) (*string, error)
 
 	Images(ctx context.Context, obj *db.Tour) ([]*db.TourImage, error)
+	Category(ctx context.Context, obj *db.Tour) (*db.Category, error)
+	City(ctx context.Context, obj *db.Tour) (*db.City, error)
 }
 type TourImageResolver interface {
 	AltText(ctx context.Context, obj *db.TourImage) (*string, error)
@@ -1332,12 +1336,24 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.State.Name(childComplexity), true
 
+	case "Tour.category":
+		if e.complexity.Tour.Category == nil {
+			break
+		}
+
+		return e.complexity.Tour.Category(childComplexity), true
 	case "Tour.category_id":
 		if e.complexity.Tour.CategoryID == nil {
 			break
 		}
 
 		return e.complexity.Tour.CategoryID(childComplexity), true
+	case "Tour.city":
+		if e.complexity.Tour.City == nil {
+			break
+		}
+
+		return e.complexity.Tour.City(childComplexity), true
 	case "Tour.city_id":
 		if e.complexity.Tour.CityID == nil {
 			break
@@ -1813,6 +1829,9 @@ extend type Mutation {
   created_at: Time!
   updated_at: Time!
   images: [TourImage!]!
+
+  category: Category
+  city: City
 }
 
 type TourImage {
@@ -5020,6 +5039,10 @@ func (ec *executionContext) fieldContext_Mutation_createTour(ctx context.Context
 				return ec.fieldContext_Tour_updated_at(ctx, field)
 			case "images":
 				return ec.fieldContext_Tour_images(ctx, field)
+			case "category":
+				return ec.fieldContext_Tour_category(ctx, field)
+			case "city":
+				return ec.fieldContext_Tour_city(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Tour", field.Name)
 		},
@@ -5085,6 +5108,10 @@ func (ec *executionContext) fieldContext_Mutation_updateTour(ctx context.Context
 				return ec.fieldContext_Tour_updated_at(ctx, field)
 			case "images":
 				return ec.fieldContext_Tour_images(ctx, field)
+			case "category":
+				return ec.fieldContext_Tour_category(ctx, field)
+			case "city":
+				return ec.fieldContext_Tour_city(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Tour", field.Name)
 		},
@@ -5150,6 +5177,10 @@ func (ec *executionContext) fieldContext_Mutation_deleteTour(ctx context.Context
 				return ec.fieldContext_Tour_updated_at(ctx, field)
 			case "images":
 				return ec.fieldContext_Tour_images(ctx, field)
+			case "category":
+				return ec.fieldContext_Tour_category(ctx, field)
+			case "city":
+				return ec.fieldContext_Tour_city(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Tour", field.Name)
 		},
@@ -7290,6 +7321,10 @@ func (ec *executionContext) fieldContext_Query_tour(ctx context.Context, field g
 				return ec.fieldContext_Tour_updated_at(ctx, field)
 			case "images":
 				return ec.fieldContext_Tour_images(ctx, field)
+			case "category":
+				return ec.fieldContext_Tour_category(ctx, field)
+			case "city":
+				return ec.fieldContext_Tour_city(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Tour", field.Name)
 		},
@@ -7354,6 +7389,10 @@ func (ec *executionContext) fieldContext_Query_tours(_ context.Context, field gr
 				return ec.fieldContext_Tour_updated_at(ctx, field)
 			case "images":
 				return ec.fieldContext_Tour_images(ctx, field)
+			case "category":
+				return ec.fieldContext_Tour_category(ctx, field)
+			case "city":
+				return ec.fieldContext_Tour_city(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Tour", field.Name)
 		},
@@ -8159,6 +8198,86 @@ func (ec *executionContext) fieldContext_Tour_images(_ context.Context, field gr
 				return ec.fieldContext_TourImage_updated_at(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type TourImage", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Tour_category(ctx context.Context, field graphql.CollectedField, obj *db.Tour) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Tour_category,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Tour().Category(ctx, obj)
+		},
+		nil,
+		ec.marshalOCategory2ᚖgraphqlᚋinternalᚋdbᚐCategory,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Tour_category(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Tour",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Category_id(ctx, field)
+			case "category_name":
+				return ec.fieldContext_Category_category_name(ctx, field)
+			case "description":
+				return ec.fieldContext_Category_description(ctx, field)
+			case "created_at":
+				return ec.fieldContext_Category_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_Category_updated_at(ctx, field)
+			case "images":
+				return ec.fieldContext_Category_images(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Category", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Tour_city(ctx context.Context, field graphql.CollectedField, obj *db.Tour) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Tour_city,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Tour().City(ctx, obj)
+		},
+		nil,
+		ec.marshalOCity2ᚖgraphqlᚋinternalᚋdbᚐCity,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Tour_city(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Tour",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_City_id(ctx, field)
+			case "stateId":
+				return ec.fieldContext_City_stateId(ctx, field)
+			case "name":
+				return ec.fieldContext_City_name(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type City", field.Name)
 		},
 	}
 	return fc, nil
@@ -12207,6 +12326,72 @@ func (ec *executionContext) _Tour(ctx context.Context, sel ast.SelectionSet, obj
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "category":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Tour_category(ctx, field, obj)
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "city":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Tour_city(ctx, field, obj)
 				return res
 			}
 

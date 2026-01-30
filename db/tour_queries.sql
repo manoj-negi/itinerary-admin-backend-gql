@@ -31,3 +31,26 @@ RETURNING id, title, description, category_id, city_id, duration_days, created_b
 DELETE FROM tours
 WHERE id = $1
 RETURNING id, title, description, category_id, city_id, duration_days, created_by, status, created_at, updated_at;
+
+-- name: ListToursWithCategoryCity :many
+SELECT
+  t.id,
+  t.title,
+  t.description,
+  t.category_id,
+  t.city_id,
+  t.duration_days,
+  t.created_by,
+  t.status,
+  t.created_at,
+  t.updated_at,
+
+  c.id as category_id_join,
+  c.category_name as category_name,
+
+  ci.id as city_id_join,
+  ci.name as city_name
+FROM tours t
+LEFT JOIN categories c ON c.id = t.category_id
+LEFT JOIN cities ci ON ci.id = t.city_id
+ORDER BY t.created_at DESC;
