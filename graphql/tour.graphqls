@@ -11,8 +11,8 @@ type Tour {
   updated_at: Time!
   images: [TourImage!]!
 
-  category: Category
   city: City
+  category: Category
 }
 
 type TourImage {
