@@ -57,6 +57,10 @@ models:
     model: github.com/99designs/gqlgen/graphql.Time
   User:
     model: graphql/internal/db.User
+  Package:
+    model: graphql/internal/db.Package
+  Booking:
+    model: graphql/internal/db.Booking
   Category:
     model: graphql/internal/db.Category
   POI:

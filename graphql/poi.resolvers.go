@@ -183,6 +183,21 @@ func (r *pOIResolver) Images(ctx context.Context, obj *db.PointsOfInterest) ([]*
 	return out, nil
 }
 
+// City is the resolver for the city field.
+func (r *pOIResolver) City(ctx context.Context, obj *db.PointsOfInterest) (*db.City, error) {
+	if obj.CityID == uuid.Nil {
+		return nil, nil
+	}
+	city, err := database.Queries.GetCity(ctx, obj.CityID)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &city, nil
+}
+
 // AltText is the resolver for the alt_text field.
 func (r *pOIImageResolver) AltText(ctx context.Context, obj *db.PointOfInterestImage) (*string, error) {
 	if !obj.AltText.Valid {

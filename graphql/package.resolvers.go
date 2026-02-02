@@ -210,6 +210,21 @@ func (r *packageResolver) Images(ctx context.Context, obj *db.Package) ([]*db.Pa
 	return out, nil
 }
 
+// Tour is the resolver for the tour field.
+func (r *packageResolver) Tour(ctx context.Context, obj *db.Package) (*db.Tour, error) {
+	if obj.TourID == uuid.Nil {
+		return nil, nil
+	}
+	tour, err := database.Queries.GetTour(ctx, obj.TourID)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &tour, nil
+}
+
 // AltText is the resolver for the alt_text field.
 func (r *packageImageResolver) AltText(ctx context.Context, obj *db.PackageImage) (*string, error) {
 	if !obj.AltText.Valid {

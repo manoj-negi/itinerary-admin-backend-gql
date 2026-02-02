@@ -28,6 +28,42 @@ func (r *bookingResolver) TravelEndDate(ctx context.Context, obj *db.Booking) (s
 	return obj.TravelEndDate.Format("2006-01-02"), nil
 }
 
+// User is the resolver for the user field.
+func (r *bookingResolver) User(ctx context.Context, obj *db.Booking) (*db.User, error) {
+	if obj.UserID == uuid.Nil {
+		return nil, nil
+	}
+	userRow, err := database.Queries.GetUser(ctx, obj.UserID)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	user := db.User{
+		ID:       userRow.ID,
+		FullName: userRow.FullName,
+		Email:    userRow.Email,
+	}
+	return &user, nil
+}
+
+// Package is the resolver for the package field.
+func (r *bookingResolver) Package(ctx context.Context, obj *db.Booking) (*db.Package, error) {
+	if obj.PackageID == uuid.Nil {
+		return nil, nil
+	}
+	pkg, err := database.Queries.GetPackage(ctx, obj.PackageID)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &pkg, nil
+}
+
 // CreateBooking is the resolver for the createBooking field.
 func (r *mutationResolver) CreateBooking(ctx context.Context, userID uuid.UUID, packageID uuid.UUID, totalPrice string, status string, travelStartDate string, travelEndDate string) (*db.Booking, error) {
 	if userID == uuid.Nil || packageID == uuid.Nil || totalPrice == "" || status == "" || travelStartDate == "" || travelEndDate == "" {

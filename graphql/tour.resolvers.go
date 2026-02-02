@@ -262,21 +262,6 @@ func (r *tourResolver) Images(ctx context.Context, obj *db.Tour) ([]*db.TourImag
 	return out, nil
 }
 
-// Category is the resolver for the category field.
-func (r *tourResolver) Category(ctx context.Context, obj *db.Tour) (*db.Category, error) {
-	if obj.CategoryID == uuid.Nil {
-		return nil, nil
-	}
-	cat, err := database.Queries.GetCategory(ctx, obj.CategoryID)
-	if err == sql.ErrNoRows {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	return &cat, nil
-}
-
 // City is the resolver for the city field.
 func (r *tourResolver) City(ctx context.Context, obj *db.Tour) (*db.City, error) {
 	if obj.CityID == uuid.Nil {
@@ -290,6 +275,21 @@ func (r *tourResolver) City(ctx context.Context, obj *db.Tour) (*db.City, error)
 		return nil, err
 	}
 	return &city, nil
+}
+
+// Category is the resolver for the category field.
+func (r *tourResolver) Category(ctx context.Context, obj *db.Tour) (*db.Category, error) {
+	if obj.CategoryID == uuid.Nil {
+		return nil, nil
+	}
+	cat, err := database.Queries.GetCategory(ctx, obj.CategoryID)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &cat, nil
 }
 
 // AltText is the resolver for the alt_text field.

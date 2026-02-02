@@ -8,6 +8,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -148,6 +149,68 @@ func (q *Queries) ListPOIsByCity(ctx context.Context, cityID uuid.UUID) ([]Point
 			&i.Type,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listPOIsWithCity = `-- name: ListPOIsWithCity :many
+SELECT
+  poi.id,
+  poi.name as poi_name,
+  poi.description,
+  poi.city_id,
+  poi.type,
+  poi.created_at,
+  poi.updated_at,
+
+  ci.id as city_id_join,
+  ci.name as city_name
+FROM points_of_interest poi
+LEFT JOIN cities ci ON ci.id = poi.city_id
+ORDER BY poi.created_at DESC
+`
+
+type ListPOIsWithCityRow struct {
+	ID          uuid.UUID      `json:"id"`
+	PoiName     string         `json:"poi_name"`
+	Description sql.NullString `json:"description"`
+	CityID      uuid.UUID      `json:"city_id"`
+	Type        string         `json:"type"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
+	CityIDJoin  uuid.NullUUID  `json:"city_id_join"`
+	CityName    sql.NullString `json:"city_name"`
+}
+
+func (q *Queries) ListPOIsWithCity(ctx context.Context) ([]ListPOIsWithCityRow, error) {
+	rows, err := q.db.QueryContext(ctx, listPOIsWithCity)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListPOIsWithCityRow{}
+	for rows.Next() {
+		var i ListPOIsWithCityRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.PoiName,
+			&i.Description,
+			&i.CityID,
+			&i.Type,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.CityIDJoin,
+			&i.CityName,
 		); err != nil {
 			return nil, err
 		}

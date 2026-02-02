@@ -9,6 +9,8 @@ type Package {
   created_at: Time!
   updated_at: Time!
   images: [PackageImage!]!
+
+  tour: Tour
 }
 
 type PackageImage {

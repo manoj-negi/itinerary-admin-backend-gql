@@ -9,6 +9,9 @@ type Booking {
   travel_end_date: String!
   created_at: Time!
   updated_at: Time!
+
+  user: User
+  package: Package
 }
 
 extend type Query {

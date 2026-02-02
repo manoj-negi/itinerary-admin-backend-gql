@@ -35,3 +35,21 @@ RETURNING id, tour_id, package_name, price, currency, occupancy, is_featured, cr
 DELETE FROM packages
 WHERE id = $1
 RETURNING id, tour_id, package_name, price, currency, occupancy, is_featured, created_at, updated_at;
+
+-- name: ListPackagesWithTour :many
+SELECT
+  p.id,
+  p.tour_id,
+  p.package_name,
+  p.price,
+  p.currency,
+  p.occupancy,
+  p.is_featured,
+  p.created_at,
+  p.updated_at,
+
+  t.id as tour_id_join,
+  t.title as tour_title
+FROM packages p
+LEFT JOIN tours t ON t.id = p.tour_id
+ORDER BY p.created_at DESC;

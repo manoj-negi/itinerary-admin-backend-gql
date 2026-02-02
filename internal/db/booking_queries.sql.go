@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -142,6 +143,91 @@ func (q *Queries) ListBookings(ctx context.Context) ([]Booking, error) {
 			&i.TravelEndDate,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listBookingsWithUserPackage = `-- name: ListBookingsWithUserPackage :many
+SELECT
+  b.id,
+  b.user_id,
+  b.package_id,
+  b.total_price,
+  b.status,
+  b.booking_date,
+  b.travel_start_date,
+  b.travel_end_date,
+  b.created_at,
+  b.updated_at,
+
+  u.id         AS user_id_join,
+  u.full_name  AS user_name,
+  u.email      AS user_email,
+
+  p.id         AS package_id_join,
+  p.package_name,
+  p.price      AS package_price
+FROM bookings b
+LEFT JOIN users    u ON u.id = b.user_id
+LEFT JOIN packages p ON p.id = b.package_id
+ORDER BY b.created_at DESC
+`
+
+type ListBookingsWithUserPackageRow struct {
+	ID              uuid.UUID      `json:"id"`
+	UserID          uuid.UUID      `json:"user_id"`
+	PackageID       uuid.UUID      `json:"package_id"`
+	TotalPrice      string         `json:"total_price"`
+	Status          string         `json:"status"`
+	BookingDate     time.Time      `json:"booking_date"`
+	TravelStartDate time.Time      `json:"travel_start_date"`
+	TravelEndDate   time.Time      `json:"travel_end_date"`
+	CreatedAt       time.Time      `json:"created_at"`
+	UpdatedAt       time.Time      `json:"updated_at"`
+	UserIDJoin      uuid.NullUUID  `json:"user_id_join"`
+	UserName        sql.NullString `json:"user_name"`
+	UserEmail       sql.NullString `json:"user_email"`
+	PackageIDJoin   uuid.NullUUID  `json:"package_id_join"`
+	PackageName     sql.NullString `json:"package_name"`
+	PackagePrice    sql.NullString `json:"package_price"`
+}
+
+func (q *Queries) ListBookingsWithUserPackage(ctx context.Context) ([]ListBookingsWithUserPackageRow, error) {
+	rows, err := q.db.QueryContext(ctx, listBookingsWithUserPackage)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListBookingsWithUserPackageRow{}
+	for rows.Next() {
+		var i ListBookingsWithUserPackageRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.PackageID,
+			&i.TotalPrice,
+			&i.Status,
+			&i.BookingDate,
+			&i.TravelStartDate,
+			&i.TravelEndDate,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.UserIDJoin,
+			&i.UserName,
+			&i.UserEmail,
+			&i.PackageIDJoin,
+			&i.PackageName,
+			&i.PackagePrice,
 		); err != nil {
 			return nil, err
 		}

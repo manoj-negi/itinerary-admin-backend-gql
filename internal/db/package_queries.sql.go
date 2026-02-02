@@ -8,6 +8,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -162,6 +163,74 @@ func (q *Queries) ListPackagesByTour(ctx context.Context, tourID uuid.UUID) ([]P
 			&i.IsFeatured,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listPackagesWithTour = `-- name: ListPackagesWithTour :many
+SELECT
+  p.id,
+  p.tour_id,
+  p.package_name,
+  p.price,
+  p.currency,
+  p.occupancy,
+  p.is_featured,
+  p.created_at,
+  p.updated_at,
+
+  t.id as tour_id_join,
+  t.title as tour_title
+FROM packages p
+LEFT JOIN tours t ON t.id = p.tour_id
+ORDER BY p.created_at DESC
+`
+
+type ListPackagesWithTourRow struct {
+	ID          uuid.UUID      `json:"id"`
+	TourID      uuid.UUID      `json:"tour_id"`
+	PackageName string         `json:"package_name"`
+	Price       string         `json:"price"`
+	Currency    sql.NullString `json:"currency"`
+	Occupancy   sql.NullString `json:"occupancy"`
+	IsFeatured  bool           `json:"is_featured"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
+	TourIDJoin  uuid.NullUUID  `json:"tour_id_join"`
+	TourTitle   sql.NullString `json:"tour_title"`
+}
+
+func (q *Queries) ListPackagesWithTour(ctx context.Context) ([]ListPackagesWithTourRow, error) {
+	rows, err := q.db.QueryContext(ctx, listPackagesWithTour)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListPackagesWithTourRow{}
+	for rows.Next() {
+		var i ListPackagesWithTourRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.TourID,
+			&i.PackageName,
+			&i.Price,
+			&i.Currency,
+			&i.Occupancy,
+			&i.IsFeatured,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.TourIDJoin,
+			&i.TourTitle,
 		); err != nil {
 			return nil, err
 		}

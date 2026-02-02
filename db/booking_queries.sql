@@ -47,3 +47,28 @@ WHERE id = $7
 RETURNING
   id, user_id, package_id, total_price, status,
   booking_date, travel_start_date, travel_end_date, created_at, updated_at;
+
+-- name: ListBookingsWithUserPackage :many
+SELECT
+  b.id,
+  b.user_id,
+  b.package_id,
+  b.total_price,
+  b.status,
+  b.booking_date,
+  b.travel_start_date,
+  b.travel_end_date,
+  b.created_at,
+  b.updated_at,
+
+  u.id         AS user_id_join,
+  u.full_name  AS user_name,
+  u.email      AS user_email,
+
+  p.id         AS package_id_join,
+  p.package_name,
+  p.price      AS package_price
+FROM bookings b
+LEFT JOIN users    u ON u.id = b.user_id
+LEFT JOIN packages p ON p.id = b.package_id
+ORDER BY b.created_at DESC;
