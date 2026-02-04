@@ -46,7 +46,6 @@ autobind:
 #
 # The first line in each type will be used as defaults for the resolver generation and
 # type checking. To specify a value to serialize to/from, specify it as value: e.g.
-#
 # Time:
 #   model: github.com/99designs/gqlgen/graphql.Time
 models:
