@@ -9,6 +9,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"github.com/google/uuid"
 	"fmt"
 	"graphql/database"
 	"graphql/graphql/generated"
@@ -92,6 +93,24 @@ func (r *mutationResolver) Login(ctx context.Context, email string, password str
 		Token: tokenStr,
 		User:  user,
 	}, nil
+}
+
+// GetUploadURL is the resolver for the getUploadUrl field.
+func (r *mutationResolver) GetUploadURL(ctx context.Context, folder string, fileName string, contentType string) (*models.UploadURL, error) {
+
+	key := fmt.Sprintf("%s/%s-%s", folder, uuid.New(), fileName)
+
+	uploadURL, publicURL, err :=
+		r.S3.PresignUpload(ctx, key, contentType)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &models.UploadURL{
+    UploadURL: uploadURL,
+    PublicURL: publicURL,
+}, nil
 }
 
 // Mutation returns generated.MutationResolver implementation.

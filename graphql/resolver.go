@@ -1,8 +1,13 @@
 package graphql
 
-// This file will not be regenerated automatically.
-//
-// It serves as dependency injection for your app, add any dependencies you require
-// here.
+import (
+	 s3service "graphql/internal/s3"
+	
+)
 
-type Resolver struct{}
+// This file will not be regenerated automatically.
+// It serves as dependency injection for your app.
+
+type Resolver struct {
+	S3 *s3service.Service
+}

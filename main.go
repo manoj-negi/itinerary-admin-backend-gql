@@ -7,9 +7,9 @@ import (
 	"graphql/graphql/generated"
 	"log"
 	"net/http"
-
+    "os"
 	"github.com/joho/godotenv"
-
+	s3service "graphql/internal/s3"
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
 )
@@ -37,8 +37,19 @@ func main() {
 	database.InitDB()
 	defer database.DB.Close()
 	godotenv.Load()
-	// Create GraphQL resolver
-	resolver := &graphql.Resolver{}
+//  create s3 service
+	s3svc, err := s3service.New(
+		os.Getenv("S3_BUCKET"),
+		os.Getenv("AWS_REGION"),
+	)
+	if err != nil {
+		log.Fatal(err)	
+	}
+
+	//  inject into resolver
+	resolver := &graphql.Resolver{
+		S3: s3svc,
+	}
 
 	// Create GraphQL executable schema
 	config := generated.Config{Resolvers: resolver}
