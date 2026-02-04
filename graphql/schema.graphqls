@@ -11,3 +11,15 @@ type LoginResponse {
   token: String!
   user: User!
 }
+type UploadURL {
+  uploadUrl: String!
+  publicUrl: String!
+}
+
+extend type Mutation {
+  getUploadUrl(
+    folder: String!,
+    fileName: String!,
+    contentType: String!
+  ): UploadURL!
+}

@@ -49,3 +49,8 @@ type TourImageInput struct {
 	FileURL string  `json:"file_url"`
 	AltText *string `json:"alt_text,omitempty"`
 }
+
+type UploadURL struct {
+	UploadURL string `json:"uploadUrl"`
+	PublicURL string `json:"publicUrl"`
+}

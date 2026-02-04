@@ -132,6 +132,7 @@ type ComplexityRoot struct {
 		DeleteState    func(childComplexity int, id uuid.UUID) int
 		DeleteTour     func(childComplexity int, id uuid.UUID) int
 		DeleteUser     func(childComplexity int, id uuid.UUID) int
+		GetUploadURL   func(childComplexity int, folder string, fileName string, contentType string) int
 		Login          func(childComplexity int, email string, password string) int
 		SubmitInquiry  func(childComplexity int, input models.InquiryInput) int
 		UpdateBooking  func(childComplexity int, id uuid.UUID, userID *uuid.UUID, packageID *uuid.UUID, totalPrice *string, status *string, travelStartDate *string, travelEndDate *string) int
@@ -249,6 +250,11 @@ type ComplexityRoot struct {
 		UpdatedAt func(childComplexity int) int
 	}
 
+	UploadURL struct {
+		PublicURL func(childComplexity int) int
+		UploadURL func(childComplexity int) int
+	}
+
 	User struct {
 		CreatedAt func(childComplexity int) int
 		Email     func(childComplexity int) int
@@ -277,6 +283,7 @@ type CategoryImageResolver interface {
 }
 type MutationResolver interface {
 	Login(ctx context.Context, email string, password string) (*models.LoginResponse, error)
+	GetUploadURL(ctx context.Context, folder string, fileName string, contentType string) (*models.UploadURL, error)
 	CreateUser(ctx context.Context, fullName string, email string, password string, phone *string) (*db.User, error)
 	UpdateUser(ctx context.Context, id uuid.UUID, fullName *string, email *string, password *string, phone *string) (*db.User, error)
 	DeleteUser(ctx context.Context, id uuid.UUID) (*db.User, error)
@@ -790,6 +797,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.DeleteUser(childComplexity, args["id"].(uuid.UUID)), true
+	case "Mutation.getUploadUrl":
+		if e.complexity.Mutation.GetUploadURL == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_getUploadUrl_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.GetUploadURL(childComplexity, args["folder"].(string), args["fileName"].(string), args["contentType"].(string)), true
 	case "Mutation.login":
 		if e.complexity.Mutation.Login == nil {
 			break
@@ -1485,6 +1503,19 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.TourImage.UpdatedAt(childComplexity), true
 
+	case "UploadURL.publicUrl":
+		if e.complexity.UploadURL.PublicURL == nil {
+			break
+		}
+
+		return e.complexity.UploadURL.PublicURL(childComplexity), true
+	case "UploadURL.uploadUrl":
+		if e.complexity.UploadURL.UploadURL == nil {
+			break
+		}
+
+		return e.complexity.UploadURL.UploadURL(childComplexity), true
+
 	case "User.created_at":
 		if e.complexity.User.CreatedAt == nil {
 			break
@@ -1651,7 +1682,18 @@ type LoginResponse {
   token: String!
   user: User!
 }
-`, BuiltIn: false},
+type UploadURL {
+  uploadUrl: String!
+  publicUrl: String!
+}
+
+extend type Mutation {
+  getUploadUrl(
+    folder: String!,
+    fileName: String!,
+    contentType: String!
+  ): UploadURL!
+}`, BuiltIn: false},
 	{Name: "../user.graphqls", Input: `type User {
   id: UUID!
   full_name: String!
@@ -2338,6 +2380,27 @@ func (ec *executionContext) field_Mutation_deleteUser_args(ctx context.Context, 
 		return nil, err
 	}
 	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_getUploadUrl_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "folder", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["folder"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "fileName", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["fileName"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "contentType", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["contentType"] = arg2
 	return args, nil
 }
 
@@ -3975,6 +4038,53 @@ func (ec *executionContext) fieldContext_Mutation_login(ctx context.Context, fie
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_login_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_getUploadUrl(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_getUploadUrl,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().GetUploadURL(ctx, fc.Args["folder"].(string), fc.Args["fileName"].(string), fc.Args["contentType"].(string))
+		},
+		nil,
+		ec.marshalNUploadURL2ᚖgraphqlᚋgraphqlᚋmodelsᚐUploadURL,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_getUploadUrl(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "uploadUrl":
+				return ec.fieldContext_UploadURL_uploadUrl(ctx, field)
+			case "publicUrl":
+				return ec.fieldContext_UploadURL_publicUrl(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type UploadURL", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_getUploadUrl_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -8733,6 +8843,64 @@ func (ec *executionContext) fieldContext_TourImage_updated_at(_ context.Context,
 	return fc, nil
 }
 
+func (ec *executionContext) _UploadURL_uploadUrl(ctx context.Context, field graphql.CollectedField, obj *models.UploadURL) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_UploadURL_uploadUrl,
+		func(ctx context.Context) (any, error) {
+			return obj.UploadURL, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_UploadURL_uploadUrl(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UploadURL",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _UploadURL_publicUrl(ctx context.Context, field graphql.CollectedField, obj *models.UploadURL) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_UploadURL_publicUrl,
+		func(ctx context.Context) (any, error) {
+			return obj.PublicURL, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_UploadURL_publicUrl(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UploadURL",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _User_id(ctx context.Context, field graphql.CollectedField, obj *db.User) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -11215,6 +11383,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "getUploadUrl":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_getUploadUrl(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "createUser":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_createUser(ctx, field)
@@ -12938,6 +13113,50 @@ func (ec *executionContext) _TourImage(ctx context.Context, sel ast.SelectionSet
 	return out
 }
 
+var uploadURLImplementors = []string{"UploadURL"}
+
+func (ec *executionContext) _UploadURL(ctx context.Context, sel ast.SelectionSet, obj *models.UploadURL) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, uploadURLImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("UploadURL")
+		case "uploadUrl":
+			out.Values[i] = ec._UploadURL_uploadUrl(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "publicUrl":
+			out.Values[i] = ec._UploadURL_publicUrl(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var userImplementors = []string{"User"}
 
 func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj *db.User) graphql.Marshaler {
@@ -14241,6 +14460,20 @@ func (ec *executionContext) marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNUploadURL2graphqlᚋgraphqlᚋmodelsᚐUploadURL(ctx context.Context, sel ast.SelectionSet, v models.UploadURL) graphql.Marshaler {
+	return ec._UploadURL(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNUploadURL2ᚖgraphqlᚋgraphqlᚋmodelsᚐUploadURL(ctx context.Context, sel ast.SelectionSet, v *models.UploadURL) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._UploadURL(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNUser2graphqlᚋinternalᚋdbᚐUser(ctx context.Context, sel ast.SelectionSet, v db.User) graphql.Marshaler {
