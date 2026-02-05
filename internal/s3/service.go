@@ -46,8 +46,8 @@ func (s *Service) PresignUpload(ctx context.Context, key, contentType string) (s
 	}
 
 	publicUrl := fmt.Sprintf(
-		"https://%s.s3.%s.amazonaws.com/%s",
-		s.bucket, s.region, key,
+		"%s",
+		key,
 	)
 
 	return req.URL, publicUrl, nil

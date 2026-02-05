@@ -9,7 +9,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"github.com/google/uuid"
 	"fmt"
 	"graphql/database"
 	"graphql/graphql/generated"
@@ -19,9 +18,23 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
+
 	jwt "github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
+
+var S3_BASE_URL string
+
+func init() {
+	S3_BASE_URL = strings.TrimSpace(os.Getenv("S3_BASE_URL"))
+	if S3_BASE_URL == "" {
+		S3_BASE_URL = "https://itinerary-testing-bucket.s3.us-east-1.amazonaws.com/"
+	}
+	if !strings.HasSuffix(S3_BASE_URL, "/") {
+		S3_BASE_URL += "/"
+	}
+}
 
 // Login is the resolver for the login field.
 func (r *mutationResolver) Login(ctx context.Context, email string, password string) (*models.LoginResponse, error) {
@@ -108,9 +121,9 @@ func (r *mutationResolver) GetUploadURL(ctx context.Context, folder string, file
 	}
 
 	return &models.UploadURL{
-    UploadURL: uploadURL,
-    PublicURL: publicURL,
-}, nil
+		UploadURL: uploadURL,
+		PublicURL: publicURL,
+	}, nil
 }
 
 // Mutation returns generated.MutationResolver implementation.

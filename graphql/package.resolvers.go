@@ -205,6 +205,7 @@ func (r *packageResolver) Images(ctx context.Context, obj *db.Package) ([]*db.Pa
 	out := make([]*db.PackageImage, 0, len(imgs))
 	for i := range imgs {
 		img := imgs[i]
+		img.FileUrl = S3_BASE_URL + img.FileUrl
 		out = append(out, &img)
 	}
 	return out, nil

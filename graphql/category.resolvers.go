@@ -36,6 +36,7 @@ func (r *categoryResolver) Images(ctx context.Context, obj *db.Category) ([]*db.
 	out := make([]*db.CategoryImage, 0, len(imgs))
 	for i := range imgs {
 		img := imgs[i]
+		img.FileUrl = S3_BASE_URL + img.FileUrl
 		out = append(out, &img)
 	}
 	return out, nil

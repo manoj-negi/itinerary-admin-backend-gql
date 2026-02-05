@@ -178,6 +178,7 @@ func (r *pOIResolver) Images(ctx context.Context, obj *db.PointsOfInterest) ([]*
 	out := make([]*db.PointOfInterestImage, 0, len(imgs))
 	for i := range imgs {
 		img := imgs[i]
+		img.FileUrl = S3_BASE_URL + img.FileUrl
 		out = append(out, &img)
 	}
 	return out, nil

@@ -257,6 +257,7 @@ func (r *tourResolver) Images(ctx context.Context, obj *db.Tour) ([]*db.TourImag
 	out := make([]*db.TourImage, 0, len(imgs))
 	for i := range imgs {
 		img := imgs[i]
+		img.FileUrl = S3_BASE_URL + img.FileUrl
 		out = append(out, &img)
 	}
 	return out, nil
