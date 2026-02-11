@@ -5,6 +5,7 @@ type Query
 
 type Mutation {
   login(email: String!, password: String!): LoginResponse!
+   logout: Boolean!
   }
 
 type LoginResponse {

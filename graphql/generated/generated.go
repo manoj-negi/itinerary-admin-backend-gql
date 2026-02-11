@@ -134,6 +134,7 @@ type ComplexityRoot struct {
 		DeleteUser     func(childComplexity int, id uuid.UUID) int
 		GetUploadURL   func(childComplexity int, folder string, fileName string, contentType string) int
 		Login          func(childComplexity int, email string, password string) int
+		Logout         func(childComplexity int) int
 		SubmitInquiry  func(childComplexity int, input models.InquiryInput) int
 		UpdateBooking  func(childComplexity int, id uuid.UUID, userID *uuid.UUID, packageID *uuid.UUID, totalPrice *string, status *string, travelStartDate *string, travelEndDate *string) int
 		UpdateCategory func(childComplexity int, id uuid.UUID, categoryName *string, description *string, images []*models.CategoryImageInput) int
@@ -283,6 +284,7 @@ type CategoryImageResolver interface {
 }
 type MutationResolver interface {
 	Login(ctx context.Context, email string, password string) (*models.LoginResponse, error)
+	Logout(ctx context.Context) (bool, error)
 	GetUploadURL(ctx context.Context, folder string, fileName string, contentType string) (*models.UploadURL, error)
 	CreateUser(ctx context.Context, fullName string, email string, password string, phone *string) (*db.User, error)
 	UpdateUser(ctx context.Context, id uuid.UUID, fullName *string, email *string, password *string, phone *string) (*db.User, error)
@@ -819,6 +821,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.Login(childComplexity, args["email"].(string), args["password"].(string)), true
+	case "Mutation.logout":
+		if e.complexity.Mutation.Logout == nil {
+			break
+		}
+
+		return e.complexity.Mutation.Logout(childComplexity), true
 	case "Mutation.submitInquiry":
 		if e.complexity.Mutation.SubmitInquiry == nil {
 			break
@@ -1676,6 +1684,7 @@ type Query
 
 type Mutation {
   login(email: String!, password: String!): LoginResponse!
+   logout: Boolean!
   }
 
 type LoginResponse {
@@ -4040,6 +4049,35 @@ func (ec *executionContext) fieldContext_Mutation_login(ctx context.Context, fie
 	if fc.Args, err = ec.field_Mutation_login_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_logout(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_logout,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Mutation().Logout(ctx)
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_logout(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
 	}
 	return fc, nil
 }
@@ -11379,6 +11417,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "login":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_login(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "logout":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_logout(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
