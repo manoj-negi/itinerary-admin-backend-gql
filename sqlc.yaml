@@ -15,6 +15,7 @@ sql:
       - "db/point_of_interest_image_queries.sql"
       - "db/category_image_queries.sql"
       - "db/package_image_queries.sql"
+      - "db/role_queries.sql"
    
 
     engine: "postgresql"

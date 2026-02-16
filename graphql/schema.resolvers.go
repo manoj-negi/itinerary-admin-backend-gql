@@ -13,9 +13,9 @@ import (
 	"graphql/database"
 	"graphql/graphql/generated"
 	"graphql/graphql/models"
+	"graphql/internal/auth"
 	"graphql/internal/db"
 	"os"
-	"strings"
 	"time"
 
 	jwt "github.com/golang-jwt/jwt/v5"
@@ -29,8 +29,7 @@ func (r *mutationResolver) Login(ctx context.Context, email string, password str
 		return nil, errors.New("email and password are required")
 	}
 
-	// 1) Fetch user by email
-	userDB, err := database.Queries.GetUserByEmail(ctx, email)
+	u, err := database.Queries.GetUserByEmail(ctx, email)
 	if err == sql.ErrNoRows {
 		return nil, errors.New("invalid credentials")
 	}
@@ -38,61 +37,40 @@ func (r *mutationResolver) Login(ctx context.Context, email string, password str
 		return nil, err
 	}
 
-	// 2) Verify password (bcrypt or plaintext migration)
-	ok := false
-	if strings.HasPrefix(userDB.Password, "$2a$") ||
-		strings.HasPrefix(userDB.Password, "$2b$") ||
-		strings.HasPrefix(userDB.Password, "$2y$") {
-		if bcrypt.CompareHashAndPassword([]byte(userDB.Password), []byte(password)) == nil {
-			ok = true
-		}
-	} else {
-		if userDB.Password == password {
-			ok = true
-			// Migrate to bcrypt (fire-and-forget)
-			if hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost); err == nil {
-				_, _ = database.DB.ExecContext(ctx,
-					`UPDATE users SET password = $1 WHERE id = $2`,
-					string(hash), userDB.ID)
-			}
-		}
-	}
-
-	if !ok {
+	if bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password)) != nil {
 		return nil, errors.New("invalid credentials")
 	}
 
-	// 3) Generate JWT
-	secret := os.Getenv("JWT_SECRET")
-	if secret == "" {
-		secret = "devsecret" // TODO: Remove in production
+	if !u.RoleID.Valid {
+		return nil, errors.New("access denied")
+	}
+	role, roleErr := database.Queries.GetRoleByID(ctx, u.RoleID.UUID)
+	if roleErr != nil || role.RoleName != "admin" {
+		return nil, errors.New("access denied")
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub": fmt.Sprintf("%d", userDB.ID),
-		"exp": time.Now().Add(24 * time.Hour).Unix(),
-	})
-	tokenStr, err := token.SignedString([]byte(secret))
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		secret = "devsecret"
+	}
+	now := time.Now()
+	exp := now.Add(24 * time.Hour).Unix()
+	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		auth.ClaimSub:   u.ID.String(),
+		auth.ClaimEmail: u.Email,
+		auth.ClaimRole:  role.RoleName,
+		auth.ClaimExp:   exp,
+		auth.ClaimIat:   now.Unix(),
+	}).SignedString([]byte(secret))
 	if err != nil {
 		return nil, err
 	}
 
-	// 4) Convert userDB → db.User
 	user := &db.User{
-		ID:        userDB.ID,
-		FullName:  userDB.FullName,
-		Email:     userDB.Email,
-		Phone:     userDB.Phone,
-		RoleID:    userDB.RoleID,
-		CreatedAt: userDB.CreatedAt,
-		UpdatedAt: userDB.UpdatedAt,
+		ID: u.ID, FullName: u.FullName, Email: u.Email,
+		Phone: u.Phone, RoleID: u.RoleID, CreatedAt: u.CreatedAt, UpdatedAt: u.UpdatedAt,
 	}
-
-	// 5) Return LoginResponse
-	return &models.LoginResponse{
-		Token: tokenStr,
-		User:  user,
-	}, nil
+	return &models.LoginResponse{Token: token, User: user}, nil
 }
 
 // Logout is the resolver for the logout field.

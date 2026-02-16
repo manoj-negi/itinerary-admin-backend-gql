@@ -1,17 +1,21 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"graphql/database"
 	"graphql/graphql"
 	"graphql/graphql/generated"
+	"graphql/internal/auth"
 	"log"
 	"net/http"
-    "os"
-	"github.com/joho/godotenv"
+	"os"
+
 	s3service "graphql/internal/s3"
+
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/joho/godotenv"
 )
 
 func enableCORS(next http.Handler) http.Handler {
@@ -37,13 +41,13 @@ func main() {
 	database.InitDB()
 	defer database.DB.Close()
 	godotenv.Load()
-//  create s3 service
+	//  create s3 service
 	s3svc, err := s3service.New(
 		os.Getenv("S3_BUCKET"),
 		os.Getenv("AWS_REGION"),
 	)
 	if err != nil {
-		log.Fatal(err)	
+		log.Fatal(err)
 	}
 
 	//  inject into resolver
@@ -58,8 +62,18 @@ func main() {
 	srv := handler.NewDefaultServer(executableSchema)
 
 	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	http.Handle("/query", srv)
-	http.Handle("/graphql", enableCORS(srv))
+	// Logout API: POST /logout returns success; client should clear token after.
+	http.Handle("/logout", enableCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost && r.Method != http.MethodOptions {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{"success": true, "message": "logged out"})
+	})))
+	// Middleware runs first to parse JWT and set claims in context; then RequireAuthExceptLogin checks them
+	http.Handle("/query", enableCORS(auth.Middleware(auth.RequireAuthExceptLogin(srv))))
+	http.Handle("/graphql", enableCORS(auth.Middleware(auth.RequireAuthExceptLogin(srv))))
 
 	fmt.Println("Server is running on http://localhost:8080")
 	fmt.Println("GraphQL playground available at http://localhost:8080/")
