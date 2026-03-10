@@ -7,3 +7,4 @@ CREATE TABLE poi_images (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   FOREIGN KEY (poi_id) REFERENCES points_of_interest(id) ON DELETE CASCADE
 );
+ALTER TABLE poi_images RENAME TO point_of_interest_images;

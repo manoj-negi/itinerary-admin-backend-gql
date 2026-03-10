@@ -14,3 +14,5 @@ CREATE TABLE tours (
   FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE CASCADE,
   FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE
 );
+ALTER TABLE tours DROP CONSTRAINT tours_created_by_fkey;
+ALTER TABLE tours DROP COLUMN created_by;

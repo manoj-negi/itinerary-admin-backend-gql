@@ -14,9 +14,9 @@ import (
 )
 
 const createTour = `-- name: CreateTour :one
-INSERT INTO tours (title, description, category_id, city_id, duration_days, created_by, status)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
-RETURNING id, title, description, category_id, city_id, duration_days, created_by, status, created_at, updated_at
+INSERT INTO tours (title, description, category_id, city_id, duration_days, status)
+VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING id, title, description, category_id, city_id, duration_days, status, created_at, updated_at
 `
 
 type CreateTourParams struct {
@@ -25,7 +25,6 @@ type CreateTourParams struct {
 	CategoryID   uuid.UUID      `json:"category_id"`
 	CityID       uuid.UUID      `json:"city_id"`
 	DurationDays int32          `json:"duration_days"`
-	CreatedBy    uuid.UUID      `json:"created_by"`
 	Status       string         `json:"status"`
 }
 
@@ -36,7 +35,6 @@ func (q *Queries) CreateTour(ctx context.Context, arg CreateTourParams) (Tour, e
 		arg.CategoryID,
 		arg.CityID,
 		arg.DurationDays,
-		arg.CreatedBy,
 		arg.Status,
 	)
 	var i Tour
@@ -47,7 +45,6 @@ func (q *Queries) CreateTour(ctx context.Context, arg CreateTourParams) (Tour, e
 		&i.CategoryID,
 		&i.CityID,
 		&i.DurationDays,
-		&i.CreatedBy,
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -58,7 +55,7 @@ func (q *Queries) CreateTour(ctx context.Context, arg CreateTourParams) (Tour, e
 const deleteTour = `-- name: DeleteTour :one
 DELETE FROM tours
 WHERE id = $1
-RETURNING id, title, description, category_id, city_id, duration_days, created_by, status, created_at, updated_at
+RETURNING id, title, description, category_id, city_id, duration_days, status, created_at, updated_at
 `
 
 func (q *Queries) DeleteTour(ctx context.Context, id uuid.UUID) (Tour, error) {
@@ -71,7 +68,6 @@ func (q *Queries) DeleteTour(ctx context.Context, id uuid.UUID) (Tour, error) {
 		&i.CategoryID,
 		&i.CityID,
 		&i.DurationDays,
-		&i.CreatedBy,
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -80,7 +76,7 @@ func (q *Queries) DeleteTour(ctx context.Context, id uuid.UUID) (Tour, error) {
 }
 
 const getTour = `-- name: GetTour :one
-SELECT id, title, description, category_id, city_id, duration_days, created_by, status, created_at, updated_at
+SELECT id, title, description, category_id, city_id, duration_days, status, created_at, updated_at
 FROM tours
 WHERE id = $1
 `
@@ -95,7 +91,6 @@ func (q *Queries) GetTour(ctx context.Context, id uuid.UUID) (Tour, error) {
 		&i.CategoryID,
 		&i.CityID,
 		&i.DurationDays,
-		&i.CreatedBy,
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -104,7 +99,7 @@ func (q *Queries) GetTour(ctx context.Context, id uuid.UUID) (Tour, error) {
 }
 
 const listTours = `-- name: ListTours :many
-SELECT id, title, description, category_id, city_id, duration_days, created_by, status, created_at, updated_at
+SELECT id, title, description, category_id, city_id, duration_days, status, created_at, updated_at
 FROM tours
 ORDER BY id
 `
@@ -125,7 +120,6 @@ func (q *Queries) ListTours(ctx context.Context) ([]Tour, error) {
 			&i.CategoryID,
 			&i.CityID,
 			&i.DurationDays,
-			&i.CreatedBy,
 			&i.Status,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -151,7 +145,6 @@ SELECT
   t.category_id,
   t.city_id,
   t.duration_days,
-  t.created_by,
   t.status,
   t.created_at,
   t.updated_at,
@@ -174,7 +167,6 @@ type ListToursWithCategoryCityRow struct {
 	CategoryID     uuid.UUID      `json:"category_id"`
 	CityID         uuid.UUID      `json:"city_id"`
 	DurationDays   int32          `json:"duration_days"`
-	CreatedBy      uuid.UUID      `json:"created_by"`
 	Status         string         `json:"status"`
 	CreatedAt      time.Time      `json:"created_at"`
 	UpdatedAt      time.Time      `json:"updated_at"`
@@ -200,7 +192,6 @@ func (q *Queries) ListToursWithCategoryCity(ctx context.Context) ([]ListToursWit
 			&i.CategoryID,
 			&i.CityID,
 			&i.DurationDays,
-			&i.CreatedBy,
 			&i.Status,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -230,11 +221,10 @@ SET
   category_id   = COALESCE($3, category_id),
   city_id       = COALESCE($4, city_id),
   duration_days = COALESCE($5, duration_days),
-  created_by    = COALESCE($6, created_by),
-  status        = COALESCE($7, status),
+  status        = COALESCE($6, status),
   updated_at    = NOW()
-WHERE id = $8
-RETURNING id, title, description, category_id, city_id, duration_days, created_by, status, created_at, updated_at
+WHERE id = $7
+RETURNING id, title, description, category_id, city_id, duration_days, status, created_at, updated_at
 `
 
 type UpdateTourParams struct {
@@ -243,7 +233,6 @@ type UpdateTourParams struct {
 	CategoryID   uuid.UUID      `json:"category_id"`
 	CityID       uuid.UUID      `json:"city_id"`
 	DurationDays int32          `json:"duration_days"`
-	CreatedBy    uuid.UUID      `json:"created_by"`
 	Status       string         `json:"status"`
 	ID           uuid.UUID      `json:"id"`
 }
@@ -255,7 +244,6 @@ func (q *Queries) UpdateTour(ctx context.Context, arg UpdateTourParams) (Tour, e
 		arg.CategoryID,
 		arg.CityID,
 		arg.DurationDays,
-		arg.CreatedBy,
 		arg.Status,
 		arg.ID,
 	)
@@ -267,7 +255,6 @@ func (q *Queries) UpdateTour(ctx context.Context, arg UpdateTourParams) (Tour, e
 		&i.CategoryID,
 		&i.CityID,
 		&i.DurationDays,
-		&i.CreatedBy,
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,

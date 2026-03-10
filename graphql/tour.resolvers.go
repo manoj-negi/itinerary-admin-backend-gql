@@ -18,9 +18,9 @@ import (
 )
 
 // CreateTour is the resolver for the createTour field.
-func (r *mutationResolver) CreateTour(ctx context.Context, title string, description *string, categoryID uuid.UUID, cityID uuid.UUID, durationDays int, createdBy uuid.UUID, status string, images []*models.TourImageInput) (*db.Tour, error) {
-	if title == "" || categoryID == uuid.Nil || cityID == uuid.Nil || createdBy == uuid.Nil || status == "" {
-		return nil, errors.New("title, category_id, city_id, created_by and status are required")
+func (r *mutationResolver) CreateTour(ctx context.Context, title string, description *string, categoryID uuid.UUID, cityID uuid.UUID, durationDays int, status string, images []*models.TourImageInput) (*db.Tour, error) {
+	if title == "" || categoryID == uuid.Nil || cityID == uuid.Nil || status == "" {
+		return nil, errors.New("title, category_id, city_id and status are required")
 	}
 
 	var desc sql.NullString
@@ -28,21 +28,32 @@ func (r *mutationResolver) CreateTour(ctx context.Context, title string, descrip
 		desc = sql.NullString{String: *description, Valid: true}
 	}
 
-	// 1) Tour create
-	tour, err := database.Queries.CreateTour(ctx, db.CreateTourParams{
+	row, err := database.Queries.CreateTour(ctx, db.CreateTourParams{
 		Title:        title,
 		Description:  desc,
 		CategoryID:   categoryID,
 		CityID:       cityID,
 		DurationDays: int32(durationDays),
-		CreatedBy:    createdBy,
 		Status:       status,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	// 2) Images insert
+	// Convert CreateTourRow → db.Tour
+	tour := db.Tour{
+		ID:           row.ID,
+		Title:        row.Title,
+		Description:  row.Description,
+		CategoryID:   row.CategoryID,
+		CityID:       row.CityID,
+		DurationDays: row.DurationDays,
+		Status:       row.Status,
+		CreatedAt:    row.CreatedAt,
+		UpdatedAt:    row.UpdatedAt,
+	}
+
+	// Insert images
 	for _, img := range images {
 		if img == nil || img.FileURL == "" {
 			continue
@@ -67,11 +78,11 @@ func (r *mutationResolver) CreateTour(ctx context.Context, title string, descrip
 }
 
 // UpdateTour is the resolver for the updateTour field.
-func (r *mutationResolver) UpdateTour(ctx context.Context, id uuid.UUID, title *string, description *string, categoryID *uuid.UUID, cityID *uuid.UUID, durationDays *int, createdBy *uuid.UUID, status *string, images []*models.TourImageInput) (*db.Tour, error) {
+func (r *mutationResolver) UpdateTour(ctx context.Context, id uuid.UUID, title *string, description *string, categoryID *uuid.UUID, cityID *uuid.UUID, durationDays *int, status *string, images []*models.TourImageInput) (*db.Tour, error) {
 	if id == uuid.Nil {
 		return nil, errors.New("invalid tour id")
 	}
-
+	// Fetch existing tour
 	existing, err := database.Queries.GetTour(ctx, id)
 	if err == sql.ErrNoRows {
 		return nil, errors.New("tour not found")
@@ -79,7 +90,7 @@ func (r *mutationResolver) UpdateTour(ctx context.Context, id uuid.UUID, title *
 	if err != nil {
 		return nil, err
 	}
-
+	// Prepare updated values
 	newTitle := existing.Title
 	if title != nil {
 		newTitle = *title
@@ -111,42 +122,46 @@ func (r *mutationResolver) UpdateTour(ctx context.Context, id uuid.UUID, title *
 		newDuration = int32(*durationDays)
 	}
 
-	newCreatedBy := existing.CreatedBy
-	if createdBy != nil {
-		if *createdBy == uuid.Nil {
-			return nil, errors.New("invalid created_by id")
-		}
-		newCreatedBy = *createdBy
-	}
-
 	newStatus := existing.Status
 	if status != nil {
 		newStatus = *status
 	}
 
-	// 1) Tour update
-	tour, err := database.Queries.UpdateTour(ctx, db.UpdateTourParams{
+	// Execute update
+	row, err := database.Queries.UpdateTour(ctx, db.UpdateTourParams{
 		ID:           id,
 		Title:        newTitle,
 		Description:  newDesc,
 		CategoryID:   newCategoryID,
 		CityID:       newCityID,
 		DurationDays: newDuration,
-		CreatedBy:    newCreatedBy,
 		Status:       newStatus,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	// 2) Images argument diya ho to replace karo
+	// Convert UpdateTourRow → db.Tour
+	updatedTour := db.Tour{
+		ID:           row.ID,
+		Title:        row.Title,
+		Description:  row.Description,
+		CategoryID:   row.CategoryID,
+		CityID:       row.CityID,
+		DurationDays: row.DurationDays,
+		Status:       row.Status,
+		CreatedAt:    row.CreatedAt,
+		UpdatedAt:    row.UpdatedAt,
+	}
+
+	// Replace images if provided
 	if images != nil {
-		// Purane saare images delete
-		if err := database.Queries.DeleteTourImagesByTour(ctx, tour.ID); err != nil {
+		// Delete existing images
+		if err := database.Queries.DeleteTourImagesByTour(ctx, updatedTour.ID); err != nil {
 			return nil, err
 		}
 
-		// Naye insert
+		// Insert new images
 		for _, img := range images {
 			if img == nil || img.FileURL == "" {
 				continue
@@ -154,11 +169,14 @@ func (r *mutationResolver) UpdateTour(ctx context.Context, id uuid.UUID, title *
 
 			var alt sql.NullString
 			if img.AltText != nil {
-				alt = sql.NullString{String: *img.AltText, Valid: true}
+				alt = sql.NullString{
+					String: *img.AltText,
+					Valid:  true,
+				}
 			}
 
 			_, err := database.Queries.CreateTourImage(ctx, db.CreateTourImageParams{
-				TourID:  tour.ID,
+				TourID:  updatedTour.ID,
 				FileUrl: img.FileURL,
 				AltText: alt,
 			})
@@ -168,7 +186,7 @@ func (r *mutationResolver) UpdateTour(ctx context.Context, id uuid.UUID, title *
 		}
 	}
 
-	return &tour, nil
+	return &updatedTour, nil
 }
 
 // DeleteTour is the resolver for the deleteTour field.
@@ -177,7 +195,7 @@ func (r *mutationResolver) DeleteTour(ctx context.Context, id uuid.UUID) (*db.To
 		return nil, errors.New("invalid tour id")
 	}
 
-	tour, err := database.Queries.DeleteTour(ctx, id)
+	row, err := database.Queries.DeleteTour(ctx, id)
 	if err == sql.ErrNoRows {
 		return nil, errors.New("tour not found")
 	}
@@ -185,7 +203,20 @@ func (r *mutationResolver) DeleteTour(ctx context.Context, id uuid.UUID) (*db.To
 		return nil, err
 	}
 
-	return &tour, nil
+	// Convert DeleteTourRow → db.Tour
+	deletedTour := db.Tour{
+		ID:           row.ID,
+		Title:        row.Title,
+		Description:  row.Description,
+		CategoryID:   row.CategoryID,
+		CityID:       row.CityID,
+		DurationDays: row.DurationDays,
+		Status:       row.Status,
+		CreatedAt:    row.CreatedAt,
+		UpdatedAt:    row.UpdatedAt,
+	}
+
+	return &deletedTour, nil
 }
 
 // Tour is the resolver for the tour field.
@@ -194,7 +225,7 @@ func (r *queryResolver) Tour(ctx context.Context, id uuid.UUID) (*db.Tour, error
 		return nil, errors.New("invalid tour id")
 	}
 
-	tour, err := database.Queries.GetTour(ctx, id)
+	row, err := database.Queries.GetTour(ctx, id)
 	if err == sql.ErrNoRows {
 		return nil, errors.New("tour not found")
 	}
@@ -202,21 +233,46 @@ func (r *queryResolver) Tour(ctx context.Context, id uuid.UUID) (*db.Tour, error
 		return nil, err
 	}
 
+	tour := db.Tour{
+		ID:           row.ID,
+		Title:        row.Title,
+		Description:  row.Description,
+		CategoryID:   row.CategoryID,
+		CityID:       row.CityID,
+		DurationDays: row.DurationDays,
+		Status:       row.Status,
+		CreatedAt:    row.CreatedAt,
+		UpdatedAt:    row.UpdatedAt,
+	}
+
 	return &tour, nil
 }
 
 // Tours is the resolver for the tours field.
 func (r *queryResolver) Tours(ctx context.Context) ([]*db.Tour, error) {
-	toursDB, err := database.Queries.ListTours(ctx)
+	rows, err := database.Queries.ListTours(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	tours := make([]*db.Tour, 0, len(toursDB))
-	for i := range toursDB {
-		t := toursDB[i]
-		tours = append(tours, &t)
+	tours := make([]*db.Tour, 0, len(rows))
+
+	for _, row := range rows {
+		tour := db.Tour{
+			ID:           row.ID,
+			Title:        row.Title,
+			Description:  row.Description,
+			CategoryID:   row.CategoryID,
+			CityID:       row.CityID,
+			DurationDays: row.DurationDays,
+			Status:       row.Status,
+			CreatedAt:    row.CreatedAt,
+			UpdatedAt:    row.UpdatedAt,
+		}
+
+		tours = append(tours, &tour)
 	}
+
 	return tours, nil
 }
 

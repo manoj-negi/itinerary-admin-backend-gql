@@ -139,7 +139,6 @@ type Tour struct {
 	CategoryID   uuid.UUID      `json:"category_id"`
 	CityID       uuid.UUID      `json:"city_id"`
 	DurationDays int32          `json:"duration_days"`
-	CreatedBy    uuid.UUID      `json:"created_by"`
 	Status       string         `json:"status"`
 	CreatedAt    time.Time      `json:"created_at"`
 	UpdatedAt    time.Time      `json:"updated_at"`

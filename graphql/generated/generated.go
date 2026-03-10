@@ -121,7 +121,7 @@ type ComplexityRoot struct {
 		CreatePackage  func(childComplexity int, tourID uuid.UUID, packageName string, price string, currency string, occupancy *string, isFeatured *bool, images []*models.PackageImageInput) int
 		CreatePoi      func(childComplexity int, name string, description *string, cityID uuid.UUID, typeArg string, images []*models.POIImageInput) int
 		CreateState    func(childComplexity int, countryID uuid.UUID, name string) int
-		CreateTour     func(childComplexity int, title string, description *string, categoryID uuid.UUID, cityID uuid.UUID, durationDays int, createdBy uuid.UUID, status string, images []*models.TourImageInput) int
+		CreateTour     func(childComplexity int, title string, description *string, categoryID uuid.UUID, cityID uuid.UUID, durationDays int, status string, images []*models.TourImageInput) int
 		CreateUser     func(childComplexity int, fullName string, email string, password string, phone *string) int
 		DeleteBooking  func(childComplexity int, id uuid.UUID) int
 		DeleteCategory func(childComplexity int, id uuid.UUID) int
@@ -143,7 +143,7 @@ type ComplexityRoot struct {
 		UpdatePackage  func(childComplexity int, id uuid.UUID, tourID *uuid.UUID, packageName *string, price *string, currency *string, occupancy *string, isFeatured *bool, images []*models.PackageImageInput) int
 		UpdatePoi      func(childComplexity int, id uuid.UUID, name *string, description *string, cityID *uuid.UUID, typeArg *string, images []*models.POIImageInput) int
 		UpdateState    func(childComplexity int, id uuid.UUID, countryID *uuid.UUID, name *string) int
-		UpdateTour     func(childComplexity int, id uuid.UUID, title *string, description *string, categoryID *uuid.UUID, cityID *uuid.UUID, durationDays *int, createdBy *uuid.UUID, status *string, images []*models.TourImageInput) int
+		UpdateTour     func(childComplexity int, id uuid.UUID, title *string, description *string, categoryID *uuid.UUID, cityID *uuid.UUID, durationDays *int, status *string, images []*models.TourImageInput) int
 		UpdateUser     func(childComplexity int, id uuid.UUID, fullName *string, email *string, password *string, phone *string) int
 	}
 
@@ -232,7 +232,6 @@ type ComplexityRoot struct {
 		City         func(childComplexity int) int
 		CityID       func(childComplexity int) int
 		CreatedAt    func(childComplexity int) int
-		CreatedBy    func(childComplexity int) int
 		Description  func(childComplexity int) int
 		DurationDays func(childComplexity int) int
 		ID           func(childComplexity int) int
@@ -307,8 +306,8 @@ type MutationResolver interface {
 	CreateState(ctx context.Context, countryID uuid.UUID, name string) (*db.State, error)
 	UpdateState(ctx context.Context, id uuid.UUID, countryID *uuid.UUID, name *string) (*db.State, error)
 	DeleteState(ctx context.Context, id uuid.UUID) (*db.State, error)
-	CreateTour(ctx context.Context, title string, description *string, categoryID uuid.UUID, cityID uuid.UUID, durationDays int, createdBy uuid.UUID, status string, images []*models.TourImageInput) (*db.Tour, error)
-	UpdateTour(ctx context.Context, id uuid.UUID, title *string, description *string, categoryID *uuid.UUID, cityID *uuid.UUID, durationDays *int, createdBy *uuid.UUID, status *string, images []*models.TourImageInput) (*db.Tour, error)
+	CreateTour(ctx context.Context, title string, description *string, categoryID uuid.UUID, cityID uuid.UUID, durationDays int, status string, images []*models.TourImageInput) (*db.Tour, error)
+	UpdateTour(ctx context.Context, id uuid.UUID, title *string, description *string, categoryID *uuid.UUID, cityID *uuid.UUID, durationDays *int, status *string, images []*models.TourImageInput) (*db.Tour, error)
 	DeleteTour(ctx context.Context, id uuid.UUID) (*db.Tour, error)
 	CreatePoi(ctx context.Context, name string, description *string, cityID uuid.UUID, typeArg string, images []*models.POIImageInput) (*db.PointsOfInterest, error)
 	UpdatePoi(ctx context.Context, id uuid.UUID, name *string, description *string, cityID *uuid.UUID, typeArg *string, images []*models.POIImageInput) (*db.PointsOfInterest, error)
@@ -688,7 +687,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateTour(childComplexity, args["title"].(string), args["description"].(*string), args["category_id"].(uuid.UUID), args["city_id"].(uuid.UUID), args["duration_days"].(int), args["created_by"].(uuid.UUID), args["status"].(string), args["images"].([]*models.TourImageInput)), true
+		return e.complexity.Mutation.CreateTour(childComplexity, args["title"].(string), args["description"].(*string), args["category_id"].(uuid.UUID), args["city_id"].(uuid.UUID), args["duration_days"].(int), args["status"].(string), args["images"].([]*models.TourImageInput)), true
 	case "Mutation.createUser":
 		if e.complexity.Mutation.CreateUser == nil {
 			break
@@ -925,7 +924,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateTour(childComplexity, args["id"].(uuid.UUID), args["title"].(*string), args["description"].(*string), args["category_id"].(*uuid.UUID), args["city_id"].(*uuid.UUID), args["duration_days"].(*int), args["created_by"].(*uuid.UUID), args["status"].(*string), args["images"].([]*models.TourImageInput)), true
+		return e.complexity.Mutation.UpdateTour(childComplexity, args["id"].(uuid.UUID), args["title"].(*string), args["description"].(*string), args["category_id"].(*uuid.UUID), args["city_id"].(*uuid.UUID), args["duration_days"].(*int), args["status"].(*string), args["images"].([]*models.TourImageInput)), true
 	case "Mutation.updateUser":
 		if e.complexity.Mutation.UpdateUser == nil {
 			break
@@ -1425,12 +1424,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Tour.CreatedAt(childComplexity), true
-	case "Tour.created_by":
-		if e.complexity.Tour.CreatedBy == nil {
-			break
-		}
-
-		return e.complexity.Tour.CreatedBy(childComplexity), true
 	case "Tour.description":
 		if e.complexity.Tour.Description == nil {
 			break
@@ -1913,12 +1906,10 @@ extend type Mutation {
   category_id: UUID!
   city_id: UUID!
   duration_days: Int!
-  created_by: UUID!
   status: String!
   created_at: Time!
   updated_at: Time!
   images: [TourImage!]!
-
   city: City
   category: Category
 }
@@ -1950,7 +1941,6 @@ extend type Mutation {
     category_id: UUID!
     city_id: UUID!
     duration_days: Int!
-    created_by: UUID!
     status: String!
     images: [TourImageInput!]
   ): Tour!
@@ -1962,7 +1952,6 @@ extend type Mutation {
     category_id: UUID
     city_id: UUID
     duration_days: Int
-    created_by: UUID
     status: String
     images: [TourImageInput!]
   ): Tour!
@@ -2249,21 +2238,16 @@ func (ec *executionContext) field_Mutation_createTour_args(ctx context.Context, 
 		return nil, err
 	}
 	args["duration_days"] = arg4
-	arg5, err := graphql.ProcessArgField(ctx, rawArgs, "created_by", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	arg5, err := graphql.ProcessArgField(ctx, rawArgs, "status", ec.unmarshalNString2string)
 	if err != nil {
 		return nil, err
 	}
-	args["created_by"] = arg5
-	arg6, err := graphql.ProcessArgField(ctx, rawArgs, "status", ec.unmarshalNString2string)
+	args["status"] = arg5
+	arg6, err := graphql.ProcessArgField(ctx, rawArgs, "images", ec.unmarshalOTourImageInput2ᚕᚖgraphqlᚋgraphqlᚋmodelsᚐTourImageInputᚄ)
 	if err != nil {
 		return nil, err
 	}
-	args["status"] = arg6
-	arg7, err := graphql.ProcessArgField(ctx, rawArgs, "images", ec.unmarshalOTourImageInput2ᚕᚖgraphqlᚋgraphqlᚋmodelsᚐTourImageInputᚄ)
-	if err != nil {
-		return nil, err
-	}
-	args["images"] = arg7
+	args["images"] = arg6
 	return args, nil
 }
 
@@ -2680,21 +2664,16 @@ func (ec *executionContext) field_Mutation_updateTour_args(ctx context.Context, 
 		return nil, err
 	}
 	args["duration_days"] = arg5
-	arg6, err := graphql.ProcessArgField(ctx, rawArgs, "created_by", ec.unmarshalOUUID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID)
+	arg6, err := graphql.ProcessArgField(ctx, rawArgs, "status", ec.unmarshalOString2ᚖstring)
 	if err != nil {
 		return nil, err
 	}
-	args["created_by"] = arg6
-	arg7, err := graphql.ProcessArgField(ctx, rawArgs, "status", ec.unmarshalOString2ᚖstring)
+	args["status"] = arg6
+	arg7, err := graphql.ProcessArgField(ctx, rawArgs, "images", ec.unmarshalOTourImageInput2ᚕᚖgraphqlᚋgraphqlᚋmodelsᚐTourImageInputᚄ)
 	if err != nil {
 		return nil, err
 	}
-	args["status"] = arg7
-	arg8, err := graphql.ProcessArgField(ctx, rawArgs, "images", ec.unmarshalOTourImageInput2ᚕᚖgraphqlᚋgraphqlᚋmodelsᚐTourImageInputᚄ)
-	if err != nil {
-		return nil, err
-	}
-	args["images"] = arg8
+	args["images"] = arg7
 	return args, nil
 }
 
@@ -5304,7 +5283,7 @@ func (ec *executionContext) _Mutation_createTour(ctx context.Context, field grap
 		ec.fieldContext_Mutation_createTour,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().CreateTour(ctx, fc.Args["title"].(string), fc.Args["description"].(*string), fc.Args["category_id"].(uuid.UUID), fc.Args["city_id"].(uuid.UUID), fc.Args["duration_days"].(int), fc.Args["created_by"].(uuid.UUID), fc.Args["status"].(string), fc.Args["images"].([]*models.TourImageInput))
+			return ec.resolvers.Mutation().CreateTour(ctx, fc.Args["title"].(string), fc.Args["description"].(*string), fc.Args["category_id"].(uuid.UUID), fc.Args["city_id"].(uuid.UUID), fc.Args["duration_days"].(int), fc.Args["status"].(string), fc.Args["images"].([]*models.TourImageInput))
 		},
 		nil,
 		ec.marshalNTour2ᚖgraphqlᚋinternalᚋdbᚐTour,
@@ -5333,8 +5312,6 @@ func (ec *executionContext) fieldContext_Mutation_createTour(ctx context.Context
 				return ec.fieldContext_Tour_city_id(ctx, field)
 			case "duration_days":
 				return ec.fieldContext_Tour_duration_days(ctx, field)
-			case "created_by":
-				return ec.fieldContext_Tour_created_by(ctx, field)
 			case "status":
 				return ec.fieldContext_Tour_status(ctx, field)
 			case "created_at":
@@ -5373,7 +5350,7 @@ func (ec *executionContext) _Mutation_updateTour(ctx context.Context, field grap
 		ec.fieldContext_Mutation_updateTour,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().UpdateTour(ctx, fc.Args["id"].(uuid.UUID), fc.Args["title"].(*string), fc.Args["description"].(*string), fc.Args["category_id"].(*uuid.UUID), fc.Args["city_id"].(*uuid.UUID), fc.Args["duration_days"].(*int), fc.Args["created_by"].(*uuid.UUID), fc.Args["status"].(*string), fc.Args["images"].([]*models.TourImageInput))
+			return ec.resolvers.Mutation().UpdateTour(ctx, fc.Args["id"].(uuid.UUID), fc.Args["title"].(*string), fc.Args["description"].(*string), fc.Args["category_id"].(*uuid.UUID), fc.Args["city_id"].(*uuid.UUID), fc.Args["duration_days"].(*int), fc.Args["status"].(*string), fc.Args["images"].([]*models.TourImageInput))
 		},
 		nil,
 		ec.marshalNTour2ᚖgraphqlᚋinternalᚋdbᚐTour,
@@ -5402,8 +5379,6 @@ func (ec *executionContext) fieldContext_Mutation_updateTour(ctx context.Context
 				return ec.fieldContext_Tour_city_id(ctx, field)
 			case "duration_days":
 				return ec.fieldContext_Tour_duration_days(ctx, field)
-			case "created_by":
-				return ec.fieldContext_Tour_created_by(ctx, field)
 			case "status":
 				return ec.fieldContext_Tour_status(ctx, field)
 			case "created_at":
@@ -5471,8 +5446,6 @@ func (ec *executionContext) fieldContext_Mutation_deleteTour(ctx context.Context
 				return ec.fieldContext_Tour_city_id(ctx, field)
 			case "duration_days":
 				return ec.fieldContext_Tour_duration_days(ctx, field)
-			case "created_by":
-				return ec.fieldContext_Tour_created_by(ctx, field)
 			case "status":
 				return ec.fieldContext_Tour_status(ctx, field)
 			case "created_at":
@@ -6530,8 +6503,6 @@ func (ec *executionContext) fieldContext_Package_tour(_ context.Context, field g
 				return ec.fieldContext_Tour_city_id(ctx, field)
 			case "duration_days":
 				return ec.fieldContext_Tour_duration_days(ctx, field)
-			case "created_by":
-				return ec.fieldContext_Tour_created_by(ctx, field)
 			case "status":
 				return ec.fieldContext_Tour_status(ctx, field)
 			case "created_at":
@@ -7729,8 +7700,6 @@ func (ec *executionContext) fieldContext_Query_tour(ctx context.Context, field g
 				return ec.fieldContext_Tour_city_id(ctx, field)
 			case "duration_days":
 				return ec.fieldContext_Tour_duration_days(ctx, field)
-			case "created_by":
-				return ec.fieldContext_Tour_created_by(ctx, field)
 			case "status":
 				return ec.fieldContext_Tour_status(ctx, field)
 			case "created_at":
@@ -7797,8 +7766,6 @@ func (ec *executionContext) fieldContext_Query_tours(_ context.Context, field gr
 				return ec.fieldContext_Tour_city_id(ctx, field)
 			case "duration_days":
 				return ec.fieldContext_Tour_duration_days(ctx, field)
-			case "created_by":
-				return ec.fieldContext_Tour_created_by(ctx, field)
 			case "status":
 				return ec.fieldContext_Tour_status(ctx, field)
 			case "created_at":
@@ -8463,35 +8430,6 @@ func (ec *executionContext) fieldContext_Tour_duration_days(_ context.Context, f
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Tour_created_by(ctx context.Context, field graphql.CollectedField, obj *db.Tour) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Tour_created_by,
-		func(ctx context.Context) (any, error) {
-			return obj.CreatedBy, nil
-		},
-		nil,
-		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Tour_created_by(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Tour",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type UUID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -12918,11 +12856,6 @@ func (ec *executionContext) _Tour(ctx context.Context, sel ast.SelectionSet, obj
 			}
 		case "duration_days":
 			out.Values[i] = ec._Tour_duration_days(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&out.Invalids, 1)
-			}
-		case "created_by":
-			out.Values[i] = ec._Tour_created_by(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&out.Invalids, 1)
 			}

@@ -216,13 +216,27 @@ func (r *packageResolver) Tour(ctx context.Context, obj *db.Package) (*db.Tour, 
 	if obj.TourID == uuid.Nil {
 		return nil, nil
 	}
-	tour, err := database.Queries.GetTour(ctx, obj.TourID)
+
+	row, err := database.Queries.GetTour(ctx, obj.TourID)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, err
 	}
+
+	tour := db.Tour{
+		ID:           row.ID,
+		Title:        row.Title,
+		Description:  row.Description,
+		CategoryID:   row.CategoryID,
+		CityID:       row.CityID,
+		DurationDays: row.DurationDays,
+		Status:       row.Status,
+		CreatedAt:    row.CreatedAt,
+		UpdatedAt:    row.UpdatedAt,
+	}
+
 	return &tour, nil
 }
 
